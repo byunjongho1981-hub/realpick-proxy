@@ -154,7 +154,7 @@ export default function App() {
       : "RSS 수집 실패. 현재 한국 이커머스 실시간 인기 제품 기준으로 판단해줘.";
 
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetch(`${VERCEL_URL}/api/claude`, {
         method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({
           model:"claude-sonnet-4-20250514", max_tokens:2000,
@@ -207,7 +207,7 @@ export default function App() {
     }
 
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetch(`${VERCEL_URL}/api/claude`, {
         method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({
           model:"claude-sonnet-4-20250514", max_tokens:1200,
