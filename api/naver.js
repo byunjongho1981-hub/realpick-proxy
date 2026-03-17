@@ -8,9 +8,7 @@ export default async function handler(req, res) {
 
   const CLIENT_ID = "9owybLOVcvNmjz36SMTe";
   const CLIENT_SECRET = "tu9yTPylok";
-
-  // 엔드포인트 선택 (헤더로 지정 가능, 기본값: 검색어트렌드)
-  const endpoint = req.headers["x-naver-endpoint"] || "https://openapi.naver.com/v1/datalab/search";
+  const endpoint = req.headers["x-naver-endpoint"] || "https://openapi.naver.com/v1/datalab/shopping/categories";
 
   try {
     const response = await fetch(endpoint, {
