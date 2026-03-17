@@ -24,34 +24,75 @@ const DEFAULT_BOARD = [
 const REVENUE = { coupang: { clicks: 1240, conversions: 38, revenue: 47200 }, naver: { clicks: 890, conversions: 22, revenue: 29800 } };
 const CACHE_MS = 3 * 60 * 60 * 1000;
 
-// 네이버 쇼핑인사이트 카테고리 코드
+// 네이버 쇼핑인사이트 카테고리 (실시간 인기 카테고리)
 const SHOPPING_CATEGORIES = [
-  { name: "가전", code: "50000803" },
+  { name: "가전",     code: "50000803" },
   { name: "주방용품", code: "50000004" },
   { name: "건강식품", code: "50000008" },
-  { name: "뷰티", code: "50000002" },
-  { name: "스포츠", code: "50000006" },
+  { name: "뷰티",     code: "50000002" },
+  { name: "스포츠",   code: "50000006" },
   { name: "패션잡화", code: "50000001" },
   { name: "생활용품", code: "50000005" },
   { name: "반려동물", code: "50000907" },
 ];
 
-// 네이버 검색어트렌드 키워드 그룹
-const TREND_KEYWORDS = [
-  { groupName: "주방가전", keywords: ["에어프라이어", "전기포트", "믹서기", "인덕션"] },
-  { groupName: "청소가전", keywords: ["무선청소기", "로봇청소기", "스팀청소기"] },
-  { groupName: "뷰티", keywords: ["선크림", "마스크팩", "클렌징폼", "앰플"] },
-  { groupName: "건강", keywords: ["유산균", "비타민", "오메가3", "프로틴"] },
-  { groupName: "스포츠", keywords: ["요가매트", "덤벨", "폼롤러", "줄넘기"] },
-  { groupName: "패션잡화", keywords: ["크로스백", "토트백", "볼캡", "머플러"] },
-  { groupName: "생활용품", keywords: ["수납함", "행거", "방향제", "가습기"] },
-];
-
-function normalizeName(name) {
-  return name.replace(/\s+/g,"").toLowerCase().replace(/[^\w가-힣]/g,"");
+function normalizeName(n) {
+  return n.replace(/\s+/g,"").toLowerCase().replace(/[^\w가-힣]/g,"");
 }
 
-// 뽐뿌 RSS (보조 소스)
+function getDateRange(days = 30) {
+  const end = new Date();
+  const start = new Date(end - days * 24 * 60 * 60 * 1000);
+  return {
+    start: start.toISOString().slice(0,10),
+    end: end.toISOString().slice(0,10),
+  };
+}
+
+// 네이버 쇼핑인사이트 — 카테고리별 인기 키워드 실시간 수집
+async function fetchShoppingKeywords(categoryCode, categoryName) {
+  const { start, end } = getDateRange(30);
+  try {
+    const res = await fetch(`${VERCEL_URL}/api/naver`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Naver-Endpoint": "https://openapi.naver.com/v1/datalab/shopping/category/keywords",
+      },
+      body: JSON.stringify({
+        startDate: start,
+        endDate: end,
+        timeUnit: "week",
+        category: categoryCode,
+        keyword: [],
+        device: "",
+        gender: "",
+        ages: [],
+      }),
+    });
+    return await res.json();
+  } catch { return null; }
+}
+
+// 네이버 쇼핑인사이트 — 카테고리 트렌드 (성장률)
+async function fetchCategoryTrend(categoryCode, categoryName) {
+  const { start, end } = getDateRange(30);
+  try {
+    const res = await fetch(`${VERCEL_URL}/api/naver`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        startDate: start,
+        endDate: end,
+        timeUnit: "week",
+        category: [{ name: categoryName, param: [categoryCode] }],
+      }),
+    });
+    return await res.json();
+  } catch { return null; }
+}
+
+// 뽐뿌 RSS (보조 실시간 소스)
 async function fetchPpomppu() {
   const proxies = [
     u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
@@ -75,42 +116,6 @@ async function fetchPpomppu() {
   return [];
 }
 
-// 네이버 검색어트렌드 API
-async function fetchNaverTrend(keywordGroups) {
-  const today = new Date();
-  const end = today.toISOString().slice(0,10);
-  const start = new Date(today - 30*24*60*60*1000).toISOString().slice(0,10);
-  try {
-    const res = await fetch(`${VERCEL_URL}/api/naver`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ startDate: start, endDate: end, timeUnit: "week", keywordGroups })
-    });
-    return await res.json();
-  } catch { return null; }
-}
-
-// 네이버 쇼핑인사이트 API
-async function fetchNaverShopping(categoryCode, categoryName) {
-  const today = new Date();
-  const end = today.toISOString().slice(0,10);
-  const start = new Date(today - 30*24*60*60*1000).toISOString().slice(0,10);
-  try {
-    const res = await fetch(`${VERCEL_URL}/api/naver`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Naver-Endpoint": "https://openapi.naver.com/v1/datalab/shopping/categories"
-      },
-      body: JSON.stringify({
-        startDate: start, endDate: end, timeUnit: "week",
-        category: [{ name: categoryName, param: [categoryCode] }]
-      })
-    });
-    return await res.json();
-  } catch { return null; }
-}
-
 export default function App() {
   const [tab, setTab] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -131,12 +136,13 @@ export default function App() {
   useEffect(() => {
     async function testNaver() {
       try {
+        const { start, end } = getDateRange(30);
         const res = await fetch(`${VERCEL_URL}/api/naver`, {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ startDate: "2026-01-01", endDate: "2026-03-17", timeUnit: "week", keywordGroups: [{ groupName: "테스트", keywords: ["에어프라이어"] }] })
+          body: JSON.stringify({ startDate: start, endDate: end, timeUnit: "week", category: [{ name: "가전", param: ["50000803"] }] })
         });
         const data = await res.json();
-        if (data.results || data.startDate) setApiSaved(true);
+        if (data.results) setApiSaved(true);
       } catch {}
     }
     testNaver();
@@ -160,59 +166,77 @@ export default function App() {
       setLastFetched(new Date(cacheRef.current.timestamp));
       return;
     }
+
     setLoading(true); setProducts([]); setSelected(null); setDetail(null);
-    setSourceStatus({}); setStatusMsg("📡 네이버 데이터 수집 중...");
+    setSourceStatus({}); setStatusMsg("📡 네이버 실시간 데이터 수집 중...");
 
     const collectedData = [];
+    const newStatus = {};
 
-    // 1. 네이버 검색어트렌드 수집
-    setStatusMsg("📊 네이버 검색어트렌드 분석 중...");
-    setSourceStatus({ "네이버 검색어트렌드": "checking", "네이버 쇼핑인사이트": "checking", "뽐뿌 핫딜": "checking" });
-
-    const trendData = await fetchNaverTrend(TREND_KEYWORDS);
-    if (trendData?.results) {
-      trendData.results.forEach(r => {
-        const lastWeek = r.data?.slice(-2);
-        if (lastWeek?.length >= 2) {
-          const growth = lastWeek[1].ratio - lastWeek[0].ratio;
-          collectedData.push({ keyword: r.title, type: "검색어트렌드", growth, ratio: lastWeek[1].ratio });
-        }
-      });
-      setSourceStatus(prev => ({ ...prev, "네이버 검색어트렌드": "alive" }));
-    } else {
-      setSourceStatus(prev => ({ ...prev, "네이버 검색어트렌드": "dead" }));
-    }
-
-    // 2. 네이버 쇼핑인사이트 수집 (상위 4개 카테고리)
-    setStatusMsg("🛒 네이버 쇼핑인사이트 분석 중...");
+    // 1. 네이버 쇼핑인사이트 — 카테고리 트렌드 (성장률 기준 실시간)
+    setStatusMsg("🛒 네이버 쇼핑인사이트 카테고리 트렌드 수집 중...");
     let shoppingOk = false;
-    for (const cat of SHOPPING_CATEGORIES.slice(0, 4)) {
-      const data = await fetchNaverShopping(cat.code, cat.name);
-      if (data?.results) {
-        const lastWeek = data.results[0]?.data?.slice(-2);
-        if (lastWeek?.length >= 2) {
-          const growth = lastWeek[1].ratio - lastWeek[0].ratio;
-          collectedData.push({ keyword: cat.name, type: "쇼핑인사이트", growth, ratio: lastWeek[1].ratio });
+    for (const cat of SHOPPING_CATEGORIES) {
+      const data = await fetchCategoryTrend(cat.code, cat.name);
+      if (data?.results?.[0]?.data) {
+        const d = data.results[0].data;
+        const recent = d.slice(-4); // 최근 4주
+        if (recent.length >= 2) {
+          const growth = recent[recent.length-1].ratio - recent[0].ratio;
+          const currentRatio = recent[recent.length-1].ratio;
+          collectedData.push({
+            keyword: cat.name + " 카테고리",
+            category: cat.name,
+            type: "쇼핑인사이트",
+            growth: growth,
+            ratio: currentRatio,
+            weeklyData: recent,
+          });
           shoppingOk = true;
         }
       }
     }
-    setSourceStatus(prev => ({ ...prev, "네이버 쇼핑인사이트": shoppingOk ? "alive" : "dead" }));
+    newStatus["네이버 쇼핑인사이트"] = shoppingOk ? "alive" : "dead";
 
-    // 3. 뽐뿌 RSS 수집 (보조)
+    // 2. 네이버 쇼핑인사이트 — 인기 키워드 실시간 수집 (상위 3개 카테고리)
+    setStatusMsg("🔍 네이버 쇼핑 인기 키워드 수집 중...");
+    const topCats = collectedData.sort((a,b) => b.growth - a.growth).slice(0,3);
+    let keywordOk = false;
+    for (const cat of SHOPPING_CATEGORIES.slice(0,3)) {
+      const data = await fetchShoppingKeywords(cat.code, cat.name);
+      if (data?.results) {
+        data.results.forEach(r => {
+          if (r.title) {
+            collectedData.push({
+              keyword: r.title,
+              category: cat.name,
+              type: "쇼핑인기키워드",
+              growth: r.data?.[r.data.length-1]?.ratio - r.data?.[0]?.ratio || 0,
+              ratio: r.data?.[r.data.length-1]?.ratio || 50,
+            });
+            keywordOk = true;
+          }
+        });
+      }
+    }
+    newStatus["쇼핑 인기키워드"] = keywordOk ? "alive" : "dead";
+
+    // 3. 뽐뿌 핫딜 (보조 실시간)
     setStatusMsg("📌 뽐뿌 핫딜 수집 중...");
     const ppomppu = await fetchPpomppu();
     if (ppomppu.length > 0) {
       ppomppu.forEach(k => collectedData.push({ keyword: k, type: "뽐뿌핫딜", growth: 0, ratio: 50 }));
-      setSourceStatus(prev => ({ ...prev, "뽐뿌 핫딜": "alive" }));
+      newStatus["뽐뿌 핫딜"] = "alive";
     } else {
-      setSourceStatus(prev => ({ ...prev, "뽐뿌 핫딜": "dead" }));
+      newStatus["뽐뿌 핫딜"] = "dead";
     }
 
-    // 4. 성장률 기준 정렬
-    const sorted = collectedData.sort((a, b) => b.growth - a.growth);
-    const dataBlock = sorted.slice(0, 30).map((d, i) =>
-      `${i+1}. [${d.type} / 증가율${d.growth.toFixed(1)} / 현재지수${d.ratio.toFixed(1)}] ${d.keyword}`
+    setSourceStatus(newStatus);
+
+    // 성장률 기준 정렬
+    const sorted = collectedData.sort((a,b) => b.growth - a.growth);
+    const dataBlock = sorted.slice(0,30).map((d,i) =>
+      `${i+1}. [${d.type} / 증가율${(d.growth||0).toFixed(1)} / 현재지수${(d.ratio||0).toFixed(1)}] ${d.keyword}`
     ).join("\n");
 
     setStatusMsg("🤖 AI TOP 3 선정 중...");
@@ -223,17 +247,17 @@ export default function App() {
         body: JSON.stringify({
           model:"claude-sonnet-4-20250514", max_tokens:2000,
           system:`당신은 TREND HUNTER 시스템의 AI 분석기입니다.
-입력 데이터는 네이버 실제 API 데이터입니다 (검색어트렌드 + 쇼핑인사이트 + 뽐뿌핫딜).
-증가율(growth)이 높을수록 빠르게 상승 중인 상품입니다.
+입력 데이터는 네이버 쇼핑인사이트 실시간 API 데이터입니다.
+증가율(growth)이 높을수록 지금 빠르게 상승 중인 카테고리/키워드입니다.
 
-성공 기준: 경쟁이 적고 + 리뷰가 이미 존재하고 + 아직 폭발 전인 상품
+성공 기준: 경쟁 적음 + 리뷰 존재 + 아직 폭발 전
 필터: 가격 5,000~30,000원 우선 / 3초 이해 가능 / 충동구매 가능 / 브랜드·광고 제외
-TOP 3만 선정 (반드시 3개)
+TOP 3만 선정 (반드시 3개) — 카테고리가 아닌 구체적인 상품명으로
 
-카테고리는 반드시: ${FIXED_CATEGORIES.join(", ")} 중에서만
+카테고리: ${FIXED_CATEGORIES.join(", ")} 중에서만
 [ 로 시작 ] 로 끝나는 순수 JSON만.
-형식: [{"rank":1,"name":"구체적인상품명","category":"가전/IT","reason":"네이버 데이터 기반 근거 1문장","speedScore":85,"profitScore":78,"competitionLevel":"낮음","phase":"상승중","priceRange":"12,000~18,000원","platform":["쿠팡","네이버"],"sources":["네이버 검색어트렌드"],"frequency":3,"successFlags":{"reviewExists":true,"notExplodedYet":true,"reactionStarting":true}}]`,
-          messages:[{ role:"user", content:`네이버 실데이터 기반 TOP 3 JSON만:\n\n${dataBlock}` }]
+형식: [{"rank":1,"name":"구체적상품명","category":"가전/IT","reason":"네이버 실데이터 근거 1문장","speedScore":85,"profitScore":78,"competitionLevel":"낮음","phase":"상승중","priceRange":"12,000~18,000원","platform":["쿠팡","네이버"],"sources":["네이버 쇼핑인사이트"],"frequency":3,"successFlags":{"reviewExists":true,"notExplodedYet":true,"reactionStarting":true}}]`,
+          messages:[{ role:"user", content:`네이버 실시간 데이터 기반 TOP 3 JSON만:\n\n${dataBlock}` }]
         })
       });
       const data = await res.json();
@@ -245,8 +269,7 @@ TOP 3만 선정 (반드시 3개)
       const seen = new Set();
       const deduped = parsed.filter(p => { const k = normalizeName(p.name); if (seen.has(k)) return false; seen.add(k); return true; });
       historyRef.current = [...historyRef.current.slice(-5), { timestamp: Date.now(), products: deduped }];
-      const aliveCount = Object.values(sourceStatus).filter(v=>v==="alive").length;
-      const msg = `✅ 네이버 실데이터 기반 · ${sorted.length}개 데이터포인트 → TOP 3 완료`;
+      const msg = `✅ 네이버 실시간 데이터 · ${sorted.length}개 데이터포인트 → TOP 3 완료`;
       cacheRef.current = { products: deduped, statusMsg: msg, timestamp: Date.now() };
       setProducts(deduped); setStatusMsg(msg); setLastFetched(new Date());
     } catch(err) { setStatusMsg("🔴 오류: " + err.message); }
@@ -259,11 +282,23 @@ TOP 3만 선정 (반드시 3개)
       ? historyRef.current[historyRef.current.length-2].products.find(p => normalizeName(p.name) === normalizeName(product.name))
       : null;
 
-    // 네이버 실제 검색량 데이터
+    // 해당 상품 네이버 검색어트렌드 실시간 조회
     let naverData = null;
     try {
-      const nr = await fetchNaverTrend([{ groupName: product.name, keywords: [product.name] }]);
-      if (nr?.results) naverData = nr;
+      const { start, end } = getDateRange(30);
+      const res = await fetch(`${VERCEL_URL}/api/naver`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Naver-Endpoint": "https://openapi.naver.com/v1/datalab/search",
+        },
+        body: JSON.stringify({
+          startDate: start, endDate: end, timeUnit: "week",
+          keywordGroups: [{ groupName: product.name, keywords: [product.name] }]
+        })
+      });
+      const d = await res.json();
+      if (d.results) naverData = d;
     } catch {}
 
     try {
@@ -273,7 +308,7 @@ TOP 3만 선정 (반드시 3개)
           model:"claude-sonnet-4-20250514", max_tokens:1200,
           system:`TREND HUNTER 속도 분석 전문가. { 로 시작 } 로 끝나는 순수 JSON만.
 형식: {"avgPrice":"12,000원","competition":"낮음","searchVolume":"월 2.1만회","searchGrowth":"+34%","coupangRating":"4.2","reviewGrowth":"+12%/주","commissionRate":"3~5%","speedTrend":[40,48,55,62,71,83,95],"shortsTip":"팁","blogTip":"팁","estimatedMonthlyRevenue":"약 18만원","entryWindow":"지금이 적기","warning":"없음"}`,
-          messages:[{ role:"user", content:`"${product.name}" 분석. 네이버실데이터: ${naverData ? JSON.stringify(naverData.results[0]?.data?.slice(-4)) : "없음"}. 이전점수: ${prev?.speedScore||"없음"}. JSON만.` }]
+          messages:[{ role:"user", content:`"${product.name}" 분석. 네이버실데이터: ${naverData ? JSON.stringify(naverData.results?.[0]?.data?.slice(-4)) : "없음"}. 이전점수: ${prev?.speedScore||"없음"}. JSON만.` }]
         })
       });
       const data = await res.json();
@@ -305,7 +340,7 @@ TOP 3만 선정 (반드시 3개)
         <span style={{ fontSize:22 }}>🎯</span>
         <div>
           <div style={{ fontSize:16, fontWeight:800, color:"#f8fafc" }}>TREND HUNTER</div>
-          <div style={{ fontSize:11, color:"#64748b" }}>네이버 실데이터 기반 · 24~72시간 선점</div>
+          <div style={{ fontSize:11, color:"#64748b" }}>네이버 실시간 데이터 기반 · 24~72시간 선점</div>
         </div>
         <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:8 }}>
           {nextFetchIn && <div style={{ background:"#0f172a", border:"1px solid #334155", borderRadius:20, padding:"4px 12px", fontSize:11, color:"#94a3b8" }}>⏱ {nextFetchIn}</div>}
@@ -344,7 +379,7 @@ TOP 3만 선정 (반드시 3개)
               <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
                 <div>
                   <div style={{ fontSize:16, fontWeight:800 }}>🔥 TOP 3 선정</div>
-                  <div style={{ fontSize:12, color:"#475569", marginTop:4 }}>{lastFetched ? `마지막 수집: ${lastFetched.toLocaleTimeString("ko-KR")}` : "네이버 실데이터 기반 분석"}</div>
+                  <div style={{ fontSize:12, color:"#475569", marginTop:4 }}>{lastFetched ? `마지막 수집: ${lastFetched.toLocaleTimeString("ko-KR")}` : "네이버 실시간 데이터 기반"}</div>
                 </div>
                 <div style={{ display:"flex", gap:8 }}>
                   <button onClick={()=>hunt(false)} disabled={loading}
@@ -376,7 +411,7 @@ TOP 3만 선정 (반드시 3개)
 
               {!loading && products.length===0 && !statusMsg && (
                 <div style={{ background:"#1c150740", border:"1px solid #d97706", borderRadius:10, padding:"14px 16px", fontSize:13, color:"#fbbf24" }}>
-                  💡 <b>지금 헌팅</b> 버튼을 눌러 네이버 실데이터 기반 TOP 3를 발굴하세요
+                  💡 <b>지금 헌팅</b> 버튼을 눌러 네이버 실시간 데이터 기반 TOP 3를 발굴하세요
                 </div>
               )}
               {loading && <div style={{ textAlign:"center", padding:"50px 0", color:"#475569" }}><div style={{ fontSize:40, marginBottom:12 }}>🚀</div><div style={{ fontSize:14 }}>{statusMsg}</div></div>}
@@ -401,6 +436,7 @@ TOP 3만 선정 (반드시 3개)
                             {[[p.successFlags?.reviewExists,"리뷰 존재","#16a34a"],[p.successFlags?.notExplodedYet,"폭발 전","#2563eb"],[p.successFlags?.reactionStarting,"반응 시작","#d97706"]].map(([flag,label,color])=>(
                               <span key={label} style={{ background:flag?color+"20":"#1e293b", border:`1px solid ${flag?color:"#334155"}`, borderRadius:6, padding:"2px 8px", fontSize:11, color:flag?color:"#475569", fontWeight:600 }}>{flag?"✓":"✗"} {label}</span>
                             ))}
+                            {p.sources?.map((src,j)=><span key={j} style={{ background:"#052e1620", border:"1px solid #16a34a", borderRadius:6, padding:"2px 8px", fontSize:11, color:"#4ade80" }}>✓ {src}</span>)}
                           </div>
                         </div>
                         <div style={{ flexShrink:0, textAlign:"center" }}>
@@ -413,7 +449,6 @@ TOP 3만 선정 (반드시 3개)
                         <div style={{ marginTop:14, paddingTop:14, borderTop:"1px solid #334155", display:"flex", alignItems:"center", gap:8 }}>
                           <div style={{ display:"flex", gap:6, flex:1, flexWrap:"wrap" }}>
                             {p.platform?.map((pl,j)=><span key={j} style={{ background:"#1e293b", border:"1px solid #334155", borderRadius:6, padding:"3px 10px", fontSize:12, color:"#94a3b8" }}>{pl}</span>)}
-                            {p.sources?.map((src,j)=><span key={j} style={{ background:"#052e1620", border:"1px solid #16a34a", borderRadius:6, padding:"3px 8px", fontSize:11, color:"#4ade80" }}>✓ {src}</span>)}
                           </div>
                           <button onClick={e=>{e.stopPropagation();fetchDetail(p);}} style={{ background:"#2563eb", color:"#fff", border:"none", borderRadius:8, padding:"9px 20px", fontSize:13, fontWeight:700, cursor:"pointer" }}>속도 분석 →</button>
                         </div>
@@ -430,11 +465,11 @@ TOP 3만 선정 (반드시 3개)
           <div style={{ background:"#1e293b", borderRadius:16, padding:24, border:"1px solid #334155" }}>
             <div style={{ fontSize:16, fontWeight:800, marginBottom:20 }}>📊 {selected?`${selected.name} — 속도 분석`:"속도 분석"}</div>
             {!selected&&!detailLoading&&<div style={{ textAlign:"center", padding:"50px 0", color:"#475569" }}><div style={{ fontSize:36, marginBottom:10 }}>👆</div><div>트렌드헌터 탭에서 상품 선택 후 속도 분석을 눌러주세요</div></div>}
-            {detailLoading&&<div style={{ textAlign:"center", padding:"50px 0", color:"#475569" }}><div style={{ fontSize:36, marginBottom:10 }}>🔎</div><div>네이버 실데이터 분석 중...</div></div>}
+            {detailLoading&&<div style={{ textAlign:"center", padding:"50px 0", color:"#475569" }}><div style={{ fontSize:36, marginBottom:10 }}>🔎</div><div>네이버 실시간 데이터 분석 중...</div></div>}
             {detail&&!detail.error&&(
               <div>
                 <div style={{ background:detail.naverReal?"#052e1640":"#1c150740", border:`1px solid ${detail.naverReal?"#16a34a":"#d97706"}`, borderRadius:8, padding:"8px 14px", marginBottom:16, fontSize:12, color:detail.naverReal?"#4ade80":"#fbbf24" }}>
-                  {detail.naverReal?"✅ 네이버 실제 검색량 데이터 기반":"⚠️ AI 추정값"}
+                  {detail.naverReal?"✅ 네이버 실시간 검색량 데이터 기반":"⚠️ AI 추정값"}
                 </div>
                 {detail.prevScore&&<div style={{ background:"#1e40af20", border:"1px solid #3b82f6", borderRadius:8, padding:"10px 14px", marginBottom:16, fontSize:13, color:"#60a5fa", fontWeight:600 }}>📈 이전 속도점수: {detail.prevScore} → 현재: {selected?.speedScore} ({selected?.speedScore-detail.prevScore>=0?"+":""}{selected?.speedScore-detail.prevScore})</div>}
                 <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12, marginBottom:20 }}>
