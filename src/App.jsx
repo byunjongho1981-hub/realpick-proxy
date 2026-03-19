@@ -1,5 +1,6 @@
 import { useState } from "react";
 import SearchBox from "./components/SearchBox";
+import NaverAnalysis from "./components/NaverAnalysis";
 import { fetchYouTube } from "./api/youtube";
 import { extractShoppingKeyword, fetchNaverProducts } from "./api/naver";
 import { fetchNaverKeywords } from "./api/keyword";
@@ -118,7 +119,6 @@ export default function App() {
         {/* ── 왼쪽: 검색창 + 키워드 TOP10 ── */}
         <div>
           <SearchBox onSearch={handleSearch} loading={loadingYT||loadingNV||loadingKW} />
-
           {searched && (
             <div style={{ marginTop:20 }}>
               <ColHeader icon="🔥" title="관심 키워드 TOP10" loading={loadingKW} color="#ff8800" cache={cacheHit.kw} />
@@ -187,7 +187,7 @@ export default function App() {
           {!loadingYT && !ytError && videos.length === 0 && searched && <EmptyBox text="48시간 이내 영상 없음" />}
         </div>
 
-        {/* ── 오른쪽: 네이버 쇼핑 ── */}
+        {/* ── 오른쪽: 네이버 쇼핑 + 분석 ── */}
         <div>
           <ColHeader icon="🛍" title="네이버 쇼핑" loading={loadingNV} color="#03c75a" cache={cacheHit.nv} />
           {shoppingKeyword && !loadingNV && (
@@ -209,19 +209,26 @@ export default function App() {
                     <span style={{ fontSize:10, color:"#03c75a", fontWeight:700 }}>#{i+1}</span>
                     {p.url && <span style={{ fontSize:11, color:"#555" }}>↗</span>}
                   </div>
-                  <div style={{ fontWeight:700, fontSize:12, lineHeight:1.4, marginBottom:5, overflow:"hidden", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical" }}>{p.name}</div>
+                  <div style={{ fontWeight:700, fontSize:12, lineHeight:1.4, marginBottom:5, overflow:"hidden", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical" }}>
+                    {p.name?.replace(/<[^>]*>/g,"")}
+                  </div>
                   <div style={{ fontSize:14, fontWeight:900, color:"#03c75a", marginBottom:4 }}>{p.price ? parseInt(p.price).toLocaleString()+"원" : "-"}</div>
                   <div style={{ fontSize:11, color:"#555", marginBottom:3 }}>
                     🏪 {p.mall}
                     {p.isAd && <span style={{ marginLeft:5, fontSize:9, color:"#ff6644", border:"1px solid #ff664466", borderRadius:3, padding:"1px 3px" }}>광고</span>}
                   </div>
                   {(p.rating||p.reviewCount) && <div style={{ fontSize:10, color:"#666", marginBottom:4 }}>⭐{p.rating} 💬{fmtNum(p.reviewCount)}개</div>}
-                  <div style={{ fontSize:10, color:"#4a9a6a", padding:"5px 8px", background:"rgba(3,199,90,0.06)", borderRadius:6 }}>💡 {p.reason}</div>
+                  {p.reason && <div style={{ fontSize:10, color:"#4a9a6a", padding:"5px 8px", background:"rgba(3,199,90,0.06)", borderRadius:6 }}>💡 {p.reason}</div>}
                 </div>
               ))}
             </div>
           )}
           {!loadingNV && !nvError && products.length === 0 && searched && <EmptyBox text="상품 결과 없음" />}
+
+          {/* 네이버 쇼핑 분석 */}
+          {!loadingNV && products.length > 0 && (
+            <NaverAnalysis products={products} />
+          )}
         </div>
 
       </div>
