@@ -1,54 +1,57 @@
-const CLAUDE_URL    = "https://api.anthropic.com/v1/messages";
-const ANTHROPIC_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
-
-const HEADERS = {
-  "Content-Type": "application/json",
-  "x-api-key": ANTHROPIC_KEY,
-  "anthropic-version": "2023-06-01",
-  "anthropic-dangerous-direct-browser-access": "true"
-};
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`;
+const GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 const CACHE_TTL = 5 * 60 * 1000;
 const cache     = new Map();
 const getCache  = k => { const h=cache.get(k); if(!h) return null; if(Date.now()-h.ts>CACHE_TTL){cache.delete(k);return null;} return h.data; };
 const setCache  = (k, d) => cache.set(k, { ts: Date.now(), data: d });
 
-// ══════════════════════════════════════
-// Step 1. 유튜브 제목에서 핵심 키워드 추출
-// ══════════════════════════════════════
-export const extractKeywordsFromTitles = async (titles) => {
-  if (!titles || titles.length === 0) return [];
-
-  const res = await fetch(CLAUDE_URL, {
-    method: "POST", headers: HEADERS,
+// Gemini API 호출
+const callGemini = async (prompt) => {
+  const res = await fetch(`${GEMINI_URL}?key=${GEMINI_KEY}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 200,
-      system: `You are a Korean keyword extractor.
-Extract the most important product/topic keywords from YouTube video titles.
-Return ONLY a JSON array of strings, no markdown, no explanation.
-Format: ["키워드1","키워드2","키워드3"]
-Rules:
-- Extract 3-5 keywords max
-- Focus on nouns and product names
-- Remove common words (추천, 리뷰, 후기, 언박싱, 비교, 최고, 베스트)
-- Korean only`,
-      messages: [{
-        role: "user",
-        content: `유튜브 제목 목록:\n${titles.slice(0,10).map((t,i)=>`${i+1}. ${t}`).join("\n")}\n\n핵심 키워드 JSON 배열만 반환:`
-      }]
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.1, maxOutputTokens: 300 }
     })
   });
   const data = await res.json();
-  const text = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("").trim();
+  if (data.error) throw new Error(data.error.message);
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+};
+
+const parseJsonArray = (text) => {
+  const m = text.match(/\[[\s\S]*\]/);
+  if (!m) throw new Error("파싱 실패");
+  try { return JSON.parse(m[0]); }
+  catch { return JSON.parse(m[0].replace(/[\u0000-\u001F\u007F-\u009F]/g, "")); }
+};
+
+// ══════════════════════════════════════
+// Step 1. 유튜브 제목에서 핵심 키워드 추출 (Gemini)
+// ══════════════════════════════════════
+export const extractKeywordsFromTitles = async (titles) => {
+  if (!titles || titles.length === 0) return [];
   try {
-    const m = text.match(/\[[\s\S]*?\]/);
-    return m ? JSON.parse(m[0]) : [];
+    const prompt = `다음 유튜브 제목들에서 핵심 키워드 3~5개를 추출해줘.
+규칙:
+- JSON 배열만 반환 (설명 없이)
+- 한국어 명사만
+- 추천/리뷰/후기/언박싱/비교/최고/베스트 제외
+- 형식: ["키워드1","키워드2","키워드3"]
+
+유튜브 제목:
+${titles.slice(0,10).map((t,i)=>`${i+1}. ${t}`).join("\n")}
+
+JSON:`;
+    const text = await callGemini(prompt);
+    return parseJsonArray(text);
   } catch { return []; }
 };
 
 // ══════════════════════════════════════
-// Step 2. 네이버 검색 + 쇼핑 통합 조회
+// Step 2. 네이버 검색 + 쇼핑 조회
 // ══════════════════════════════════════
 const searchNaverBlog = async (keyword) => {
   try {
@@ -80,7 +83,13 @@ const searchNaverShop = async (keyword) => {
 // ══════════════════════════════════════
 // Step 3. 통합 분석
 // ══════════════════════════════════════
-const stripHtml = s => s.replace(/<[^>]*>/g,"").replace(/&quot;/g,'"').replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&nbsp;/g," ").trim();
+const stripHtml = s => s
+  .replace(/<[^>]*>/g,"")
+  .replace(/&quot;/g,'"')
+  .replace(/&amp;/g,"&")
+  .replace(/&lt;/g,"<")
+  .replace(/&gt;/g,">")
+  .trim();
 
 export const analyzeKeywords = async (titles, originalKeyword) => {
   const ck = `analyze:${originalKeyword.trim().toLowerCase()}`;
@@ -105,28 +114,20 @@ export const analyzeKeywords = async (titles, originalKeyword) => {
 
   // Step 3: 통합 분석
   const integrated = searchResults.map(({ keyword, blogs, news, shops }) => {
-    // 블로그+뉴스 언급 수
     const mentionCount = blogs.length + news.length;
 
-    // 쇼핑 평균가
-    const prices = shops.map(s => parseInt(s.lprice)||0).filter(p => p > 0);
+    const prices   = shops.map(s => parseInt(s.lprice)||0).filter(p => p > 0);
     const avgPrice = prices.length ? Math.round(prices.reduce((a,b)=>a+b,0)/prices.length) : 0;
     const minPrice = prices.length ? Math.min(...prices) : 0;
-
-    // 쇼핑 상품 수
     const shopCount = shops.length;
 
-    // 관심도 점수 (언급수 50% + 쇼핑상품수 30% + 가격경쟁력 20%)
     const mentionScore = Math.min(100, (mentionCount / 20) * 100) * 0.5;
     const shopScore    = Math.min(100, (shopCount / 5) * 100) * 0.3;
     const priceScore   = avgPrice > 0 ? Math.max(0, 100 - (avgPrice / 100000) * 30) * 0.2 : 0;
     const interestScore = Math.round(mentionScore + shopScore + priceScore);
 
-    // 대표 블로그 제목
     const topBlog = blogs[0] ? stripHtml(blogs[0].title) : null;
     const topNews = news[0]  ? stripHtml(news[0].title)  : null;
-
-    // 대표 쇼핑 상품
     const topShop = shops[0] ? {
       name:  stripHtml(shops[0].title),
       price: parseInt(shops[0].lprice)||0,
@@ -134,22 +135,10 @@ export const analyzeKeywords = async (titles, originalKeyword) => {
       url:   shops[0].link
     } : null;
 
-    return {
-      keyword,
-      mentionCount,
-      shopCount,
-      avgPrice,
-      minPrice,
-      interestScore,
-      topBlog,
-      topNews,
-      topShop
-    };
+    return { keyword, mentionCount, shopCount, avgPrice, minPrice, interestScore, topBlog, topNews, topShop };
   });
 
-  // 관심도 점수 기준 정렬
   const sorted = integrated.sort((a,b) => b.interestScore - a.interestScore);
-
   const result = { keywords: sorted, extractedAt: Date.now() };
   setCache(ck, result);
   return { result, fromCache: false };
