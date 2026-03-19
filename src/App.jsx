@@ -3,11 +3,13 @@ import SearchBox from "./components/SearchBox";
 import NaverAnalysis from "./components/NaverAnalysis";
 import IntegratedAnalysis from "./components/IntegratedAnalysis";
 import MoneyKeyword from "./components/MoneyKeyword";
+import MoneyEngine from "./components/MoneyEngine";
 import { fetchYouTube } from "./api/youtube";
 import { extractShoppingKeyword, fetchNaverProducts } from "./api/naver";
 import { fetchNaverKeywords } from "./api/keyword";
 import { analyzeKeywords } from "./api/analyze";
 import { analyzeMoneyKeywords } from "./api/moneyKeyword";
+import { runMoneyEngine } from "./api/moneyEngine";
 
 const fmtNum = n => { if(!n) return"-"; const x=parseInt(n); if(x>=100000000) return(x/100000000).toFixed(1)+"억"; if(x>=10000) return Math.floor(x/10000)+"만"; if(x>=1000) return(x/1000).toFixed(1)+"천"; return x.toLocaleString(); };
 const dayAgo = iso => { if(!iso) return""; const d=Math.floor((Date.now()-new Date(iso))/86400000); if(d===0)return"오늘"; if(d<7)return`${d}일 전`; if(d<30)return`${Math.floor(d/7)}주 전`; return`${Math.floor(d/30)}개월 전`; };
@@ -35,93 +37,105 @@ const SectionTitle = ({ icon, title, loading, color, cache }) => (
   </div>
 );
 
-export default function App() {
-  const [keyword, setKeyword]                   = useState("");
-  const [videos, setVideos]                     = useState([]);
-  const [products, setProducts]                 = useState([]);
-  const [keywords, setKeywords]                 = useState([]);
-  const [analysisResult, setAnalysisResult]     = useState(null);
-  const [moneyResult, setMoneyResult]           = useState(null);
-  const [shoppingKeyword, setShoppingKeyword]   = useState("");
-  const [loadingYT, setLoadingYT]               = useState(false);
-  const [loadingNV, setLoadingNV]               = useState(false);
-  const [loadingKW, setLoadingKW]               = useState(false);
-  const [loadingAN, setLoadingAN]               = useState(false);
-  const [loadingMN, setLoadingMN]               = useState(false);
-  const [ytError, setYtError]                   = useState("");
-  const [nvError, setNvError]                   = useState("");
-  const [kwError, setKwError]                   = useState("");
-  const [anError, setAnError]                   = useState("");
-  const [mnError, setMnError]                   = useState("");
-  const [searched, setSearched]                 = useState(false);
-  const [cacheHit, setCacheHit]                 = useState({ yt:false, nv:false, kw:false });
-  const [activeTab, setActiveTab]               = useState("youtube"); // youtube | money
+const TABS = [
+  { val:"youtube", label:"📺 유튜브 & 쇼핑" },
+  { val:"money",   label:"💰 돈 될 키워드" },
+  { val:"engine",  label:"🚀 키워드 엔진" }
+];
 
-  const handleSearch = async ({ keyword: kw, apiKey }) => {
-    setKeyword(kw);
+export default function App() {
+  const [keyword, setKeyword]                 = useState("");
+  const [apiKey, setApiKeyState]              = useState("");
+  const [videos, setVideos]                   = useState([]);
+  const [products, setProducts]               = useState([]);
+  const [keywords, setKeywords]               = useState([]);
+  const [analysisResult, setAnalysisResult]   = useState(null);
+  const [moneyResult, setMoneyResult]         = useState(null);
+  const [engineResult, setEngineResult]       = useState(null);
+  const [shoppingKeyword, setShoppingKeyword] = useState("");
+  const [loadingYT, setLoadingYT]             = useState(false);
+  const [loadingNV, setLoadingNV]             = useState(false);
+  const [loadingKW, setLoadingKW]             = useState(false);
+  const [loadingAN, setLoadingAN]             = useState(false);
+  const [loadingMN, setLoadingMN]             = useState(false);
+  const [loadingEN, setLoadingEN]             = useState(false);
+  const [ytError, setYtError]                 = useState("");
+  const [nvError, setNvError]                 = useState("");
+  const [kwError, setKwError]                 = useState("");
+  const [anError, setAnError]                 = useState("");
+  const [mnError, setMnError]                 = useState("");
+  const [enError, setEnError]                 = useState("");
+  const [searched, setSearched]               = useState(false);
+  const [cacheHit, setCacheHit]               = useState({ yt:false, nv:false, kw:false });
+  const [activeTab, setActiveTab]             = useState("youtube");
+
+  const handleSearch = async ({ keyword: kw, apiKey: ak }) => {
+    setKeyword(kw); setApiKeyState(ak);
     setVideos([]); setProducts([]); setKeywords([]);
-    setAnalysisResult(null); setMoneyResult(null); setShoppingKeyword("");
-    setYtError(""); setNvError(""); setKwError(""); setAnError(""); setMnError("");
+    setAnalysisResult(null); setMoneyResult(null); setEngineResult(null);
+    setShoppingKeyword("");
+    setYtError(""); setNvError(""); setKwError(""); setAnError(""); setMnError(""); setEnError("");
     setSearched(true); setCacheHit({ yt:false, nv:false, kw:false });
-    setLoadingYT(true); setLoadingNV(true); setLoadingKW(true); setLoadingAN(true); setLoadingMN(true);
+    setLoadingYT(true); setLoadingNV(true); setLoadingKW(true);
+    setLoadingAN(true); setLoadingMN(true); setLoadingEN(true);
 
     // YouTube
     let ytVideos = [];
     try {
-      const { videos: v, fromCache } = await fetchYouTube(kw, apiKey);
+      const { videos: v, fromCache } = await fetchYouTube(kw, ak);
       ytVideos = v; setVideos(v);
       setCacheHit(p => ({ ...p, yt: fromCache }));
     } catch (e) {
-      const msg = e.message || "";
-      setYtError(msg.includes("403") ? "API 키 권한 없음" : msg.includes("400") ? "API 키 오류" : "YouTube 오류: " + msg);
+      const msg = e.message||"";
+      setYtError(msg.includes("403")?"API 키 권한 없음":msg.includes("400")?"API 키 오류":"YouTube 오류: "+msg);
     } finally { setLoadingYT(false); }
 
     // 쇼핑 키워드 추출
     let derivedKw = kw;
     try {
-      if (ytVideos.length > 0) derivedKw = await extractShoppingKeyword(kw, ytVideos.map(v => v.title));
+      if (ytVideos.length > 0) derivedKw = await extractShoppingKeyword(kw, ytVideos.map(v=>v.title));
     } catch { derivedKw = kw; }
     setShoppingKeyword(derivedKw);
 
     // 병렬 실행
     await Promise.all([
-      // 네이버 쇼핑
       (async () => {
         try {
           const { products: p, fromCache } = await fetchNaverProducts(derivedKw);
-          if (!Array.isArray(p) || !p.length) setNvError("검색된 상품 없음");
-          else { setProducts(p); setCacheHit(prev => ({ ...prev, nv: fromCache })); }
-        } catch (e) { setNvError("쇼핑 오류: " + (e.message||"")); }
+          if (!Array.isArray(p)||!p.length) setNvError("검색된 상품 없음");
+          else { setProducts(p); setCacheHit(prev=>({...prev, nv:fromCache})); }
+        } catch (e) { setNvError("쇼핑 오류: "+(e.message||"")); }
         finally { setLoadingNV(false); }
       })(),
-
-      // 관심 키워드
       (async () => {
         try {
           const { keywords: k } = await fetchNaverKeywords(kw);
-          if (!Array.isArray(k) || !k.length) setKwError("키워드 결과 없음");
+          if (!Array.isArray(k)||!k.length) setKwError("키워드 결과 없음");
           else setKeywords(k);
-        } catch (e) { setKwError("키워드 오류: " + (e.message||"")); }
+        } catch (e) { setKwError("키워드 오류: "+(e.message||"")); }
         finally { setLoadingKW(false); }
       })(),
-
-      // 통합 분석
       (async () => {
         try {
           if (!ytVideos.length) { setAnError("유튜브 영상 없음"); return; }
-          const { result } = await analyzeKeywords(ytVideos.map(v => v.title), kw);
+          const { result } = await analyzeKeywords(ytVideos.map(v=>v.title), kw);
           setAnalysisResult(result);
-        } catch (e) { setAnError("통합 분석 오류: " + (e.message||"")); }
+        } catch (e) { setAnError("통합 분석 오류: "+(e.message||"")); }
         finally { setLoadingAN(false); }
       })(),
-
-      // 돈 될 키워드 분석
       (async () => {
         try {
           const { result } = await analyzeMoneyKeywords(kw);
           setMoneyResult(result);
-        } catch (e) { setMnError("돈 될 키워드 오류: " + (e.message||"")); }
+        } catch (e) { setMnError("돈 될 키워드 오류: "+(e.message||"")); }
         finally { setLoadingMN(false); }
+      })(),
+      (async () => {
+        try {
+          const { result } = await runMoneyEngine(kw, ak);
+          setEngineResult(result);
+        } catch (e) { setEnError("엔진 오류: "+(e.message||"")); }
+        finally { setLoadingEN(false); }
       })()
     ]);
   };
@@ -131,41 +145,38 @@ export default function App() {
       <style>{`@keyframes spin{to{transform:rotate(360deg)}} *{box-sizing:border-box}`}</style>
 
       {/* 헤더 */}
-      <div style={{ background:"rgba(255,255,255,0.03)", borderBottom:"1px solid rgba(255,255,255,0.06)", padding:"16px 24px" }}>
+      <div style={{ background:"rgba(255,255,255,0.03)", borderBottom:"1px solid rgba(255,255,255,0.06)", padding:"14px 24px" }}>
         <div style={{ maxWidth:1600, margin:"0 auto", display:"flex", alignItems:"center", gap:20 }}>
           <div style={{ flexShrink:0 }}>
-            <div style={{ fontSize:16, fontWeight:800 }}>🔍 트렌드 & 쇼핑 통합 검색</div>
-            <div style={{ fontSize:10, color:"#555", marginTop:1 }}>YouTube · 네이버 · 키워드 분석</div>
+            <div style={{ fontSize:15, fontWeight:800 }}>🔍 트렌드 & 쇼핑 통합 검색</div>
+            <div style={{ fontSize:10, color:"#555", marginTop:1 }}>YouTube · 네이버 · 키워드 엔진</div>
           </div>
           <div style={{ flex:1 }}>
-            <SearchBox onSearch={handleSearch} loading={loadingYT||loadingNV||loadingKW||loadingAN||loadingMN} />
+            <SearchBox onSearch={handleSearch} loading={loadingYT||loadingNV||loadingKW||loadingAN||loadingMN||loadingEN} />
           </div>
         </div>
       </div>
 
       {searched && (
-        <div style={{ maxWidth:1600, margin:"0 auto", padding:"16px 24px 40px" }}>
+        <div style={{ maxWidth:1600, margin:"0 auto", padding:"14px 24px 40px" }}>
 
-          {/* ── 탭 ── */}
-          <div style={{ display:"flex", gap:4, marginBottom:16, background:"rgba(255,255,255,0.03)", borderRadius:10, padding:4, width:"fit-content" }}>
-            {[
-              { val:"youtube", label:"📺 유튜브 & 쇼핑" },
-              { val:"money",   label:"💰 돈 될 키워드" }
-            ].map(t => (
+          {/* 탭 */}
+          <div style={{ display:"flex", gap:4, marginBottom:14, background:"rgba(255,255,255,0.03)", borderRadius:10, padding:4, width:"fit-content" }}>
+            {TABS.map(t => (
               <button key={t.val} onClick={() => setActiveTab(t.val)} style={{
                 padding:"8px 16px", borderRadius:7, border:"none", fontSize:12, cursor:"pointer",
-                fontWeight: activeTab===t.val ? 700 : 400,
-                background: activeTab===t.val ? "rgba(255,255,255,0.1)" : "transparent",
-                color: activeTab===t.val ? "#fff" : "#555"
+                fontWeight: activeTab===t.val?700:400,
+                background: activeTab===t.val?"rgba(255,255,255,0.1)":"transparent",
+                color: activeTab===t.val?"#fff":"#555"
               }}>{t.label}</button>
             ))}
           </div>
 
           {/* ── 유튜브 & 쇼핑 탭 ── */}
-          {activeTab === "youtube" && (
-            <div style={{ display:"grid", gridTemplateColumns:"280px 1fr 300px", gap:16, alignItems:"start" }}>
+          {activeTab==="youtube" && (
+            <div style={{ display:"grid", gridTemplateColumns:"280px 1fr 300px", gap:14, alignItems:"start" }}>
 
-              {/* 왼쪽: 관심 키워드 */}
+              {/* 왼쪽: 키워드 */}
               <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:12, padding:14 }}>
                 <SectionTitle icon="🔥" title="관심 키워드 TOP10" loading={loadingKW} color="#ff8800" />
                 {kwError && <ErrBox msg={kwError} />}
@@ -176,7 +187,7 @@ export default function App() {
                       <div key={i} style={{ background:i<3?"rgba(255,136,0,0.07)":"rgba(255,255,255,0.02)", border:i<3?"1px solid rgba(255,136,0,0.12)":"1px solid rgba(255,255,255,0.04)", borderRadius:7, padding:"7px 9px" }}>
                         <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:3 }}>
                           <div style={{ flexShrink:0, width:18, height:18, borderRadius:4,
-                            background: i===0?"linear-gradient(135deg,#ffd700,#ff8800)":i===1?"linear-gradient(135deg,#c0c0c0,#888)":i===2?"linear-gradient(135deg,#cd7f32,#8b4513)":"rgba(255,255,255,0.06)",
+                            background:i===0?"linear-gradient(135deg,#ffd700,#ff8800)":i===1?"linear-gradient(135deg,#c0c0c0,#888)":i===2?"linear-gradient(135deg,#cd7f32,#8b4513)":"rgba(255,255,255,0.06)",
                             display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, fontWeight:900, color:i<3?"#000":"#555"
                           }}>{i+1}</div>
                           <span style={{ fontSize:12, fontWeight:700, color:"#fff", flex:1 }}>{item.keyword}</span>
@@ -192,18 +203,18 @@ export default function App() {
               </div>
 
               {/* 가운데: YouTube + 통합분석 */}
-              <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+              <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
                 <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:12, padding:14 }}>
                   <SectionTitle icon="📺" title="YouTube 트렌드" loading={loadingYT} color="#ff4444" cache={cacheHit.yt} />
                   {ytError && <ErrBox msg={ytError} />}
                   {loadingYT && <LoadBox color="#ff4444" text="분석 중..." />}
                   {!loadingYT && videos.length > 0 && (
                     <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
-                      {[...videos].sort((a,b) => b.trendScore - a.trendScore).map((v, i) => (
-                        <div key={v.id} onClick={() => window.open(v.url, "_blank")}
+                      {[...videos].sort((a,b)=>b.trendScore-a.trendScore).map((v,i) => (
+                        <div key={v.id} onClick={()=>window.open(v.url,"_blank")}
                           style={{ background:i===0?"rgba(255,34,34,0.07)":"rgba(255,255,255,0.02)", border:i===0?"1px solid rgba(255,34,34,0.18)":"1px solid rgba(255,255,255,0.04)", borderRadius:9, padding:9, cursor:"pointer", display:"flex", gap:8 }}
-                          onMouseEnter={e => e.currentTarget.style.background="rgba(255,255,255,0.06)"}
-                          onMouseLeave={e => e.currentTarget.style.background=i===0?"rgba(255,34,34,0.07)":"rgba(255,255,255,0.02)"}>
+                          onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.06)"}
+                          onMouseLeave={e=>e.currentTarget.style.background=i===0?"rgba(255,34,34,0.07)":"rgba(255,255,255,0.02)"}>
                           <div style={{ position:"relative", flexShrink:0 }}>
                             <img src={v.thumbnail} alt="" style={{ width:84, height:47, objectFit:"cover", borderRadius:5, display:"block" }} />
                             <div style={{ position:"absolute", top:2, left:2, background:i<3?"linear-gradient(135deg,#ff2222,#880000)":"rgba(0,0,0,0.75)", borderRadius:3, padding:"1px 4px", fontSize:8, fontWeight:800 }}>#{i+1}</div>
@@ -228,20 +239,18 @@ export default function App() {
                   )}
                   {!loadingYT && !ytError && !videos.length && <EmptyBox text="48시간 이내 영상 없음" />}
                 </div>
-
-                {/* 통합 분석 */}
                 <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:12, padding:14 }}>
                   <IntegratedAnalysis result={analysisResult} loading={loadingAN} error={anError} keyword={keyword} />
                 </div>
               </div>
 
-              {/* 오른쪽: 네이버 쇼핑 */}
+              {/* 오른쪽: 쇼핑 */}
               <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:12, padding:14 }}>
                 <SectionTitle icon="🛍" title="네이버 쇼핑" loading={loadingNV} color="#03c75a" cache={cacheHit.nv} />
                 {shoppingKeyword && !loadingNV && (
                   <div style={{ marginBottom:8, padding:"4px 8px", background:"rgba(3,199,90,0.06)", border:"1px solid rgba(3,199,90,0.12)", borderRadius:5, fontSize:10, color:"#4a9a6a" }}>
                     🔑 <b style={{ color:"#03c75a" }}>{shoppingKeyword}</b>
-                    {shoppingKeyword !== keyword && <span style={{ color:"#2a5a3a" }}> (원본: {keyword})</span>}
+                    {shoppingKeyword!==keyword && <span style={{ color:"#2a5a3a" }}> (원본: {keyword})</span>}
                   </div>
                 )}
                 {nvError && <ErrBox msg={nvError} />}
@@ -249,22 +258,20 @@ export default function App() {
                 {!loadingNV && products.length > 0 && (
                   <>
                     <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-                      {products.map((p, i) => (
-                        <div key={i} onClick={() => p.url && window.open(p.url, "_blank")}
+                      {products.map((p,i) => (
+                        <div key={i} onClick={()=>p.url&&window.open(p.url,"_blank")}
                           style={{ background:"rgba(3,199,90,0.04)", border:"1px solid rgba(3,199,90,0.1)", borderRadius:9, padding:9, cursor:p.url?"pointer":"default" }}
-                          onMouseEnter={e => e.currentTarget.style.background="rgba(3,199,90,0.09)"}
-                          onMouseLeave={e => e.currentTarget.style.background="rgba(3,199,90,0.04)"}>
+                          onMouseEnter={e=>e.currentTarget.style.background="rgba(3,199,90,0.09)"}
+                          onMouseLeave={e=>e.currentTarget.style.background="rgba(3,199,90,0.04)"}>
                           <div style={{ fontWeight:600, fontSize:11, lineHeight:1.4, marginBottom:3, overflow:"hidden", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical" }}>
                             {p.name?.replace(/<[^>]*>/g,"")}
                           </div>
-                          <div style={{ fontSize:13, fontWeight:900, color:"#03c75a", marginBottom:2 }}>{p.price ? parseInt(p.price).toLocaleString()+"원" : "-"}</div>
+                          <div style={{ fontSize:13, fontWeight:900, color:"#03c75a", marginBottom:2 }}>{p.price?parseInt(p.price).toLocaleString()+"원":"-"}</div>
                           <div style={{ fontSize:10, color:"#555" }}>🏪 {p.mall}</div>
                         </div>
                       ))}
                     </div>
-                    <div style={{ marginTop:10 }}>
-                      <NaverAnalysis products={products} />
-                    </div>
+                    <div style={{ marginTop:10 }}><NaverAnalysis products={products} /></div>
                   </>
                 )}
                 {!loadingNV && !nvError && !products.length && <EmptyBox text="상품 없음" />}
@@ -273,13 +280,23 @@ export default function App() {
           )}
 
           {/* ── 돈 될 키워드 탭 ── */}
-          {activeTab === "money" && (
-            <div style={{ maxWidth:800, margin:"0 auto" }}>
+          {activeTab==="money" && (
+            <div style={{ maxWidth:820, margin:"0 auto" }}>
               <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:12, padding:16 }}>
                 <MoneyKeyword result={moneyResult} loading={loadingMN} error={mnError} keyword={keyword} />
               </div>
             </div>
           )}
+
+          {/* ── 키워드 엔진 탭 ── */}
+          {activeTab==="engine" && (
+            <div style={{ maxWidth:900, margin:"0 auto" }}>
+              <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.06)", borderRadius:12, padding:16 }}>
+                <MoneyEngine result={engineResult} loading={loadingEN} error={enError} />
+              </div>
+            </div>
+          )}
+
         </div>
       )}
     </div>
