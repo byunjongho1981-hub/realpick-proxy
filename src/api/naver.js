@@ -18,7 +18,6 @@ const getCache  = k => {
 };
 const setCache = (k, d) => cache.set(k, { ts: Date.now(), data: d });
 
-// 모든 content 블록에서 텍스트 추출
 const extractText = (content = []) => {
   let text = "";
   for (const b of content) {
@@ -33,38 +32,43 @@ const extractText = (content = []) => {
   return text;
 };
 
-// 텍스트에서 가장 긴 JSON 배열 추출
 const parseJsonArray = (text) => {
-  const matches = [...text.matchAll(/\[[\s\S]*?\]/g)];
-  if (!matches.length) throw new Error("파싱 실패");
-  const longest = matches.sort((a, b) => b[0].length - a[0].length)[0];
-  return JSON.parse(longest[0]);
+  const m = text.match(/\[[\s\S]*\]/);
+  if (!m) throw new Error("파싱 실패");
+  try {
+    return JSON.parse(m[0]);
+  } catch {
+    const clean = m[0].replace(/[\u0000-\u001F\u007F-\u009F]/g, "");
+    return JSON.parse(clean);
+  }
 };
 
 export const extractShoppingKeyword = async (originalKeyword, titles) => {
+  if (!titles || titles.length === 0) return originalKeyword;
+
   const res = await fetch(CLAUDE_URL, {
     method: "POST",
     headers: HEADERS,
     body: JSON.stringify({
       model: "claude-sonnet-4-20250514",
-      max_tokens: 100,
+      max_tokens: 50,
       system: `You are a Naver Shopping keyword extractor.
-Given a search keyword and YouTube video titles, extract the single best product keyword for Naver Shopping.
 Rules:
-- Return ONLY the keyword, nothing else (no explanation, no punctuation)
-- 2–5 Korean words max
-- Focus on purchasable product names, not concepts or events
-- Remove brand hype words (최고, 추천, 리뷰, 언박싱, 후기, 꿀팁 등)
-- If no clear product found, return the original keyword`,
+- Return ONLY the keyword, nothing else
+- Must be closely related to the original keyword
+- 2–4 Korean words max
+- Do NOT change the core meaning of the original keyword
+- If unsure, return the original keyword exactly`,
       messages: [{
         role: "user",
-        content: `원본 키워드: "${originalKeyword}"\n\n유튜브 제목 목록:\n${titles.slice(0, 8).map((t, i) => `${i + 1}. ${t}`).join("\n")}\n\n네이버 쇼핑 검색 키워드 1개만 반환:`
+        content: `원본 키워드: "${originalKeyword}"\n유튜브 제목:\n${titles.slice(0, 5).map((t, i) => `${i+1}. ${t}`).join("\n")}\n\n반환 (원본 키워드 의미 유지):`
       }]
     })
   });
   const data = await res.json();
   const text = extractText(data.content).trim();
-  return text || originalKeyword;
+  if (!text || !text.includes(originalKeyword.slice(0, 2))) return originalKeyword;
+  return text;
 };
 
 export const fetchNaverProducts = async (shoppingKw) => {
