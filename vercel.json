@@ -1,9 +1,0 @@
-{
-  "buildCommand": null,
-  "outputDirectory": null,
-  "functions": {
-    "api/*.js": {
-      "maxDuration": 60
-    }
-  }
-}
