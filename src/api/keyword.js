@@ -18,7 +18,6 @@ const getCache  = k => {
 };
 const setCache = (k, d) => cache.set(k, { ts: Date.now(), data: d });
 
-// 모든 content 블록에서 텍스트 추출
 const extractText = (content = []) => {
   let text = "";
   for (const b of content) {
@@ -33,12 +32,15 @@ const extractText = (content = []) => {
   return text;
 };
 
-// 텍스트에서 가장 긴 JSON 배열 추출
 const parseJsonArray = (text) => {
-  const matches = [...text.matchAll(/\[[\s\S]*?\]/g)];
-  if (!matches.length) throw new Error("파싱 실패");
-  const longest = matches.sort((a, b) => b[0].length - a[0].length)[0];
-  return JSON.parse(longest[0]);
+  const m = text.match(/\[[\s\S]*\]/);
+  if (!m) throw new Error("파싱 실패");
+  try {
+    return JSON.parse(m[0]);
+  } catch {
+    const clean = m[0].replace(/[\u0000-\u001F\u007F-\u009F]/g, "");
+    return JSON.parse(clean);
+  }
 };
 
 export const fetchNaverKeywords = async (keyword) => {
