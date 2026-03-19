@@ -1,20 +1,11 @@
-const NAVER_ID     = import.meta.env.VITE_NAVER_CLIENT_ID;
-const NAVER_SECRET = import.meta.env.VITE_NAVER_CLIENT_SECRET;
-
-const NAVER_HEADERS = {
-  "X-Naver-Client-Id": NAVER_ID,
-  "X-Naver-Client-Secret": NAVER_SECRET
-};
-
 const CACHE_TTL = 5 * 60 * 1000;
 const cache     = new Map();
 const getCache  = k => { const h=cache.get(k); if(!h) return null; if(Date.now()-h.ts>CACHE_TTL){cache.delete(k);return null;} return h.data; };
 const setCache  = (k, d) => cache.set(k, { ts: Date.now(), data: d });
 
-// ── Step 1: 검색 결과 수집 ──
-const searchNaver = async (type, keyword, display=20) => {
-  const url = `https://openapi.naver.com/v1/search/${type}.json?query=${encodeURIComponent(keyword)}&display=${display}`;
-  const res = await fetch(url, { headers: NAVER_HEADERS });
+// ── Step 1: 검색 결과 수집 (프록시 경유) ──
+const searchNaver = async (type, keyword) => {
+  const res = await fetch(`/api/naver-search?query=${encodeURIComponent(keyword)}&type=${type}`);
   if (!res.ok) return [];
   const data = await res.json();
   return (data.items || []).map(item => ({
@@ -28,12 +19,12 @@ const searchNaver = async (type, keyword, display=20) => {
 const extractText = (items) =>
   items.map(i =>
     (i.title + " " + i.description)
-      .replace(/<[^>]*>/g, "")        // HTML 태그 제거
+      .replace(/<[^>]*>/g, "")
       .replace(/&quot;/g, '"')
       .replace(/&amp;/g, "&")
       .replace(/&lt;/g, "<")
       .replace(/&gt;/g, ">")
-      .replace(/[^\uAC00-\uD7A3\s]/g, " ") // 한글+공백만 남김
+      .replace(/[^\uAC00-\uD7A3\s]/g, " ")
       .trim()
   ).join(" ");
 
@@ -54,25 +45,23 @@ const tokenize = (text) =>
 // ── Step 4: 빈도 분석 ──
 const analyzeFrequency = (tokens) => {
   const freq = {};
-  for (const t of tokens) {
-    freq[t] = (freq[t] || 0) + 1;
-  }
+  for (const t of tokens) freq[t] = (freq[t] || 0) + 1;
   return freq;
 };
 
 // ── Step 5: 핵심 키워드 생성 ──
-const buildKeywords = (freqMap, sourceMap, originalKeyword, topN=10) => {
-  return Object.entries(freqMap)
+const buildKeywords = (freqMap, sourceMap, originalKeyword, topN=10) =>
+  Object.entries(freqMap)
     .filter(([w, cnt]) =>
-      cnt >= 2 &&                          // 최소 2회 이상
-      !originalKeyword.includes(w) &&      // 원본 키워드 제외
+      cnt >= 2 &&
+      !originalKeyword.includes(w) &&
       w !== originalKeyword
     )
     .sort((a, b) => b[1] - a[1])
     .slice(0, topN)
     .map(([word, count]) => {
-      const sources = sourceMap[word] || new Set();
-      const srcArr  = [...sources];
+      const sources  = sourceMap[word] || new Set();
+      const srcArr   = [...sources];
       const category = srcArr.length >= 2 ? "공통" : srcArr[0] || "공통";
       return {
         keyword:  word,
@@ -81,7 +70,6 @@ const buildKeywords = (freqMap, sourceMap, originalKeyword, topN=10) => {
         reason: `${srcArr.join("·")}에서 ${count}회 언급`
       };
     });
-};
 
 // ── 메인 파이프라인 ──
 export const fetchNaverKeywords = async (keyword) => {
@@ -89,11 +77,11 @@ export const fetchNaverKeywords = async (keyword) => {
   const cached = getCache(ck);
   if (cached) return { keywords: cached, fromCache: true };
 
-  // Step 1: 검색 결과 수집 (병렬)
+  // Step 1: 블로그 + 뉴스 + 카페 병렬 수집
   const [blogs, news, cafes] = await Promise.all([
-    searchNaver("blog",         keyword, 20),
-    searchNaver("news",         keyword, 20),
-    searchNaver("cafearticle",  keyword, 20)
+    searchNaver("blog",        keyword),
+    searchNaver("news",        keyword),
+    searchNaver("cafearticle", keyword)
   ]);
 
   const allItems = [...blogs, ...news, ...cafes];
@@ -103,10 +91,9 @@ export const fetchNaverKeywords = async (keyword) => {
   const blogText = extractText(blogs);
   const newsText = extractText(news);
   const cafeText = extractText(cafes);
-  const allText  = blogText + " " + newsText + " " + cafeText;
 
   // Step 3: 단어 분해
-  const allTokens  = tokenize(allText);
+  const allTokens  = tokenize(blogText + " " + newsText + " " + cafeText);
   const blogTokens = new Set(tokenize(blogText));
   const newsTokens = new Set(tokenize(newsText));
   const cafeTokens = new Set(tokenize(cafeText));
