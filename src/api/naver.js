@@ -1,7 +1,16 @@
-const CLAUDE_URL = "https://api.anthropic.com/v1/messages";
-const CACHE_TTL  = 5 * 60 * 1000;
-const cache      = new Map();
-const getCache   = k => {
+const CLAUDE_URL    = "https://api.anthropic.com/v1/messages";
+const ANTHROPIC_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
+
+const HEADERS = {
+  "Content-Type": "application/json",
+  "x-api-key": ANTHROPIC_KEY,
+  "anthropic-version": "2023-06-01",
+  "anthropic-dangerous-direct-browser-access": "true"
+};
+
+const CACHE_TTL = 5 * 60 * 1000;
+const cache     = new Map();
+const getCache  = k => {
   const h = cache.get(k);
   if (!h) return null;
   if (Date.now() - h.ts > CACHE_TTL) { cache.delete(k); return null; }
@@ -12,7 +21,7 @@ const setCache = (k, d) => cache.set(k, { ts: Date.now(), data: d });
 export const extractShoppingKeyword = async (originalKeyword, titles) => {
   const res = await fetch(CLAUDE_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: HEADERS,
     body: JSON.stringify({
       model: "claude-sonnet-4-20250514",
       max_tokens: 100,
@@ -42,7 +51,7 @@ export const fetchNaverProducts = async (shoppingKw) => {
 
   const res = await fetch(CLAUDE_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: HEADERS,
     body: JSON.stringify({
       model: "claude-sonnet-4-20250514",
       max_tokens: 1000,
