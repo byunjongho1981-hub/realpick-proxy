@@ -8,7 +8,6 @@ export default async function handler(req, res) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "GEMINI_API_KEY 없음" });
 
-  // body 파싱 — Vercel은 JSON body를 자동 파싱하지만 안전하게 처리
   let prompt = "";
   try {
     if (typeof req.body === "string") {
@@ -17,7 +16,6 @@ export default async function handler(req, res) {
       prompt = req.body?.prompt || "";
     }
   } catch {
-    // raw stream으로 재시도
     try {
       const chunks = [];
       for await (const chunk of req) chunks.push(chunk);
@@ -31,7 +29,7 @@ export default async function handler(req, res) {
   if (!prompt) return res.status(400).json({ error: "prompt 없음" });
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     const r = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
