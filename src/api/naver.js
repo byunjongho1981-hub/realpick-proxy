@@ -18,6 +18,29 @@ const getCache  = k => {
 };
 const setCache = (k, d) => cache.set(k, { ts: Date.now(), data: d });
 
+// 모든 content 블록에서 텍스트 추출
+const extractText = (content = []) => {
+  let text = "";
+  for (const b of content) {
+    if (b.type === "text") {
+      text += b.text;
+    } else if (b.type === "tool_result") {
+      for (const c of (b.content || [])) {
+        if (c.type === "text") text += c.text;
+      }
+    }
+  }
+  return text;
+};
+
+// 텍스트에서 가장 긴 JSON 배열 추출
+const parseJsonArray = (text) => {
+  const matches = [...text.matchAll(/\[[\s\S]*?\]/g)];
+  if (!matches.length) throw new Error("파싱 실패");
+  const longest = matches.sort((a, b) => b[0].length - a[0].length)[0];
+  return JSON.parse(longest[0]);
+};
+
 export const extractShoppingKeyword = async (originalKeyword, titles) => {
   const res = await fetch(CLAUDE_URL, {
     method: "POST",
@@ -40,7 +63,7 @@ Rules:
     })
   });
   const data = await res.json();
-  const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("").trim();
+  const text = extractText(data.content).trim();
   return text || originalKeyword;
 };
 
@@ -70,10 +93,8 @@ Set "isAd": true if the listing appears to be sponsored/advertisement.`,
     })
   });
   const data = await res.json();
-  const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
-  const m = text.match(/\[[\s\S]*\]/);
-  if (!m) throw new Error("파싱 실패");
-  const products = JSON.parse(m[0]);
+  const text = extractText(data.content);
+  const products = parseJsonArray(text);
   setCache(ck, products);
   return { products, fromCache: false };
 };
