@@ -1,5 +1,8 @@
 {
-  "functions": {
-    "api/*.js": { "maxDuration": 60 }
-  }
+  "buildCommand": null,
+  "outputDirectory": ".",
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
 }
