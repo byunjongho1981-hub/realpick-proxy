@@ -1,3 +1,24 @@
+// ── 파일 맨 위 상수로 버전 관리 ──────
+const VERSION = "v7.0";
+
+// ── 탭 네비게이션 부분에 뱃지 추가 ──
+// 기존 탭 div 교체
+<div style={{ display:"flex", gap:2, marginBottom:16, background:"rgba(255,255,255,0.03)", borderRadius:10, padding:3, flexWrap:"wrap", alignItems:"center" }}>
+  {TABS.map(t=>(
+    <button key={t.id} onClick={()=>setActiveTab(t.id)} style={{
+      flex:1, minWidth:52, padding:"8px 4px", borderRadius:7, border:"none", fontSize:11, cursor:"pointer",
+      fontWeight:activeTab===t.id?700:400,
+      background:activeTab===t.id?"rgba(255,255,255,0.1)":"transparent",
+      color:activeTab===t.id?"#fff":"#555",
+      borderBottom:activeTab===t.id?"2px solid #ffd700":"2px solid transparent",
+      transition:"all 0.15s", whiteSpace:"nowrap"
+    }}>{t.icon} {t.label}</button>
+  ))}
+  {/* 버전 뱃지 */}
+  <div style={{ fontSize:9, color:"#333", padding:"3px 8px", borderRadius:20, border:"1px solid #222", whiteSpace:"nowrap", flexShrink:0 }}>
+    {VERSION}
+  </div>
+</div>
 // v5.0 - 실시간 / 안정 추천 분리
 import { useState } from "react";
 import { runAutoRecommend } from "../api/autoRecommend";
