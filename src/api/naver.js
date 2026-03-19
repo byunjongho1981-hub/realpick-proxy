@@ -1,38 +1,54 @@
-const CLAUDE_URL    = "https://api.anthropic.com/v1/messages";
-const ANTHROPIC_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
-
-const CLAUDE_HEADERS = {
-  "Content-Type": "application/json",
-  "x-api-key": ANTHROPIC_KEY,
-  "anthropic-version": "2023-06-01",
-  "anthropic-dangerous-direct-browser-access": "true"
-};
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`;
+const GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 const CACHE_TTL = 5 * 60 * 1000;
 const cache     = new Map();
 const getCache  = k => { const h=cache.get(k); if(!h) return null; if(Date.now()-h.ts>CACHE_TTL){cache.delete(k);return null;} return h.data; };
 const setCache  = (k, d) => cache.set(k, { ts: Date.now(), data: d });
 
-// 쇼핑 키워드 추출 (Claude)
-export const extractShoppingKeyword = async (originalKeyword, titles) => {
-  if (!titles || titles.length === 0) return originalKeyword;
-  const res = await fetch(CLAUDE_URL, {
+// Gemini API 호출
+const callGemini = async (prompt) => {
+  const res = await fetch(`${GEMINI_URL}?key=${GEMINI_KEY}`, {
     method: "POST",
-    headers: CLAUDE_HEADERS,
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 50,
-      system: `Return ONLY the most relevant Naver Shopping search keyword. 2-4 Korean words. No explanation.`,
-      messages: [{
-        role: "user",
-        content: `원본 키워드: "${originalKeyword}"\n유튜브 제목:\n${titles.slice(0,5).map((t,i)=>`${i+1}. ${t}`).join("\n")}\n\n쇼핑 검색 키워드 1개만:`
-      }]
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.1, maxOutputTokens: 200 }
     })
   });
   const data = await res.json();
-  const text = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("").trim();
-  if (!text || !text.includes(originalKeyword.slice(0,2))) return originalKeyword;
-  return text;
+  if (data.error) throw new Error(data.error.message);
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+};
+
+const parseJsonArray = (text) => {
+  const m = text.match(/\[[\s\S]*\]/);
+  if (!m) throw new Error("파싱 실패");
+  try { return JSON.parse(m[0]); }
+  catch { return JSON.parse(m[0].replace(/[\u0000-\u001F\u007F-\u009F]/g, "")); }
+};
+
+// 쇼핑 키워드 추출 (Gemini)
+export const extractShoppingKeyword = async (originalKeyword, titles) => {
+  if (!titles || titles.length === 0) return originalKeyword;
+  try {
+    const prompt = `다음 유튜브 제목들을 분석해서 네이버 쇼핑 검색에 가장 적합한 키워드 1개만 반환해줘.
+규칙:
+- 키워드만 반환 (설명 없이)
+- 2~4개 한국어 단어
+- 원본 키워드 의미 유지
+- 추천/리뷰/후기/언박싱 같은 단어 제거
+
+원본 키워드: "${originalKeyword}"
+유튜브 제목:
+${titles.slice(0,5).map((t,i)=>`${i+1}. ${t}`).join("\n")}
+
+키워드:`;
+    const text = await callGemini(prompt);
+    const kw = text.trim().split("\n")[0].trim();
+    if (!kw || !kw.includes(originalKeyword.slice(0,2))) return originalKeyword;
+    return kw;
+  } catch { return originalKeyword; }
 };
 
 // 네이버 쇼핑 API (프록시 경유)
