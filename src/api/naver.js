@@ -3,8 +3,8 @@ const cache     = new Map();
 const getCache  = k => { const h=cache.get(k); if(!h) return null; if(Date.now()-h.ts>CACHE_TTL){cache.delete(k);return null;} return h.data; };
 const setCache  = (k, d) => cache.set(k, { ts: Date.now(), data: d });
 
-// Gemini 프록시 호출
-const callGemini = async (prompt) => {
+// Groq 프록시 호출
+const callAI = async (prompt) => {
   const res = await fetch("/api/gemini", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -12,10 +12,11 @@ const callGemini = async (prompt) => {
   });
   const data = await res.json();
   if (data.error) throw new Error(data.error);
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  // Groq OpenAI 형식
+  return data.choices?.[0]?.message?.content || "";
 };
 
-// 쇼핑 키워드 추출 (Gemini 프록시)
+// 쇼핑 키워드 추출
 export const extractShoppingKeyword = async (originalKeyword, titles) => {
   if (!titles || titles.length === 0) return originalKeyword;
   try {
@@ -31,7 +32,7 @@ export const extractShoppingKeyword = async (originalKeyword, titles) => {
 ${titles.slice(0,5).map((t,i)=>`${i+1}. ${t}`).join("\n")}
 
 키워드:`;
-    const text = await callGemini(prompt);
+    const text = await callAI(prompt);
     const kw = text.trim().split("\n")[0].trim();
     if (!kw || !kw.includes(originalKeyword.slice(0,2))) return originalKeyword;
     return kw;
