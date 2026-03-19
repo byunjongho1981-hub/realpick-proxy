@@ -1,19 +1,11 @@
 const CLAUDE_URL    = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
-const NAVER_ID      = import.meta.env.VITE_NAVER_CLIENT_ID;
-const NAVER_SECRET  = import.meta.env.VITE_NAVER_CLIENT_SECRET;
-const NAVER_SHOP    = "https://openapi.naver.com/v1/search/shop.json";
 
 const CLAUDE_HEADERS = {
   "Content-Type": "application/json",
   "x-api-key": ANTHROPIC_KEY,
   "anthropic-version": "2023-06-01",
   "anthropic-dangerous-direct-browser-access": "true"
-};
-
-const NAVER_HEADERS = {
-  "X-Naver-Client-Id": NAVER_ID,
-  "X-Naver-Client-Secret": NAVER_SECRET
 };
 
 const CACHE_TTL = 5 * 60 * 1000;
@@ -43,19 +35,19 @@ export const extractShoppingKeyword = async (originalKeyword, titles) => {
   return text;
 };
 
-// 네이버 쇼핑 API 직접 호출
+// 네이버 쇼핑 API (프록시 경유)
 export const fetchNaverProducts = async (shoppingKw) => {
   const ck = `nv:${shoppingKw.trim().toLowerCase()}`;
   const cached = getCache(ck);
   if (cached) return { products: cached, fromCache: true };
 
-  const url = `${NAVER_SHOP}?query=${encodeURIComponent(shoppingKw)}&display=5&sort=sim`;
-  const res = await fetch(url, { headers: NAVER_HEADERS });
-  if (!res.ok) throw new Error(`네이버 쇼핑 API 오류 (${res.status})`);
+  const res = await fetch(`/api/naver-shop?query=${encodeURIComponent(shoppingKw)}`);
+  if (!res.ok) throw new Error(`쇼핑 API 오류 (${res.status})`);
 
   const data = await res.json();
-  const items = (data.items || []).slice(0, 5);
+  if (data.error) throw new Error(data.error);
 
+  const items = (data.items || []).slice(0, 5);
   const products = items.map((item, i) => ({
     name:        item.title.replace(/<[^>]*>/g, ""),
     price:       item.lprice,
