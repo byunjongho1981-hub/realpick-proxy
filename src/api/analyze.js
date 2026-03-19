@@ -3,19 +3,17 @@ const cache     = new Map();
 const getCache  = k => { const h=cache.get(k); if(!h) return null; if(Date.now()-h.ts>CACHE_TTL){cache.delete(k);return null;} return h.data; };
 const setCache  = (k, d) => cache.set(k, { ts: Date.now(), data: d });
 
-// Gemini 프록시 호출
-const callGemini = async (prompt) => {
+// Groq 프록시 호출 (OpenAI 호환 형식)
+const callAI = async (prompt) => {
   const res = await fetch("/api/gemini", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ prompt })
   });
   const data = await res.json();
-  // 에러 메시지 상세 노출
-  if (data.error) throw new Error(`Gemini 오류 [${data.code||res.status}]: ${data.error}`);
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-  if (!text) throw new Error("Gemini 응답 비어있음: " + JSON.stringify(data).slice(0, 200));
-  return text;
+  if (data.error) throw new Error(data.error);
+  // Groq는 OpenAI 형식: choices[0].message.content
+  return data.choices?.[0]?.message?.content || "";
 };
 
 // ══════════════════════════════════════
@@ -31,26 +29,23 @@ export const extractKeywordsFromTitles = async (titles) => {
 제목:
 ${titles.slice(0,8).map((t,i)=>`${i+1}. ${t}`).join("\n")}`;
 
-  // 에러를 잡지 않고 위로 전파 → App.jsx에서 정확한 메시지 표시
-  const text = await callGemini(prompt);
+  const text = await callAI(prompt);
 
   // 1) JSON 배열 파싱
   const m1 = text.match(/\[[\s\S]*?\]/);
   if (m1) {
     try { return JSON.parse(m1[0]); } catch {}
   }
-
   // 2) 따옴표 단어 직접 추출
   const m2 = text.match(/"([^"]+)"/g);
   if (m2 && m2.length >= 2) {
     return m2.map(s => s.replace(/"/g,"")).filter(s => s.length >= 2).slice(0,5);
   }
-
-  // 3) 쉼표 구분 텍스트
+  // 3) 쉼표 구분
   const m3 = text.replace(/[\[\]"]/g,"").split(",").map(s=>s.trim()).filter(s=>s.length>=2);
   if (m3.length >= 2) return m3.slice(0,5);
 
-  throw new Error("키워드 파싱 실패. Gemini 응답: " + text.slice(0,100));
+  throw new Error("키워드 파싱 실패: " + text.slice(0,100));
 };
 
 // ══════════════════════════════════════
@@ -94,7 +89,7 @@ export const analyzeKeywords = async (titles, originalKeyword) => {
   const cached = getCache(ck);
   if (cached) return { result: cached, fromCache: true };
 
-  // Step 1: 키워드 추출 (에러 전파)
+  // Step 1: 키워드 추출
   const keywords = await extractKeywordsFromTitles(titles);
   if (!keywords.length) throw new Error("키워드 추출 실패");
 
