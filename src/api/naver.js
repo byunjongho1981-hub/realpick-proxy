@@ -1,104 +1,72 @@
 const CLAUDE_URL    = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
+const NAVER_ID      = import.meta.env.VITE_NAVER_CLIENT_ID;
+const NAVER_SECRET  = import.meta.env.VITE_NAVER_CLIENT_SECRET;
+const NAVER_SHOP    = "https://openapi.naver.com/v1/search/shop.json";
 
-const HEADERS = {
+const CLAUDE_HEADERS = {
   "Content-Type": "application/json",
   "x-api-key": ANTHROPIC_KEY,
   "anthropic-version": "2023-06-01",
   "anthropic-dangerous-direct-browser-access": "true"
 };
 
+const NAVER_HEADERS = {
+  "X-Naver-Client-Id": NAVER_ID,
+  "X-Naver-Client-Secret": NAVER_SECRET
+};
+
 const CACHE_TTL = 5 * 60 * 1000;
 const cache     = new Map();
-const getCache  = k => {
-  const h = cache.get(k);
-  if (!h) return null;
-  if (Date.now() - h.ts > CACHE_TTL) { cache.delete(k); return null; }
-  return h.data;
-};
-const setCache = (k, d) => cache.set(k, { ts: Date.now(), data: d });
+const getCache  = k => { const h=cache.get(k); if(!h) return null; if(Date.now()-h.ts>CACHE_TTL){cache.delete(k);return null;} return h.data; };
+const setCache  = (k, d) => cache.set(k, { ts: Date.now(), data: d });
 
-const extractText = (content = []) => {
-  let text = "";
-  for (const b of content) {
-    if (b.type === "text") {
-      text += b.text;
-    } else if (b.type === "tool_result") {
-      for (const c of (b.content || [])) {
-        if (c.type === "text") text += c.text;
-      }
-    }
-  }
-  return text;
-};
-
-const parseJsonArray = (text) => {
-  const m = text.match(/\[[\s\S]*\]/);
-  if (!m) throw new Error("파싱 실패");
-  try {
-    return JSON.parse(m[0]);
-  } catch {
-    const clean = m[0].replace(/[\u0000-\u001F\u007F-\u009F]/g, "");
-    return JSON.parse(clean);
-  }
-};
-
+// 쇼핑 키워드 추출 (Claude)
 export const extractShoppingKeyword = async (originalKeyword, titles) => {
   if (!titles || titles.length === 0) return originalKeyword;
-
   const res = await fetch(CLAUDE_URL, {
     method: "POST",
-    headers: HEADERS,
+    headers: CLAUDE_HEADERS,
     body: JSON.stringify({
       model: "claude-sonnet-4-20250514",
       max_tokens: 50,
-      system: `You are a Naver Shopping keyword extractor.
-Rules:
-- Return ONLY the keyword, nothing else
-- Must be closely related to the original keyword
-- 2–4 Korean words max
-- Do NOT change the core meaning of the original keyword
-- If unsure, return the original keyword exactly`,
+      system: `Return ONLY the most relevant Naver Shopping search keyword. 2-4 Korean words. No explanation.`,
       messages: [{
         role: "user",
-        content: `원본 키워드: "${originalKeyword}"\n유튜브 제목:\n${titles.slice(0, 5).map((t, i) => `${i+1}. ${t}`).join("\n")}\n\n반환 (원본 키워드 의미 유지):`
+        content: `원본 키워드: "${originalKeyword}"\n유튜브 제목:\n${titles.slice(0,5).map((t,i)=>`${i+1}. ${t}`).join("\n")}\n\n쇼핑 검색 키워드 1개만:`
       }]
     })
   });
   const data = await res.json();
-  const text = extractText(data.content).trim();
-  if (!text || !text.includes(originalKeyword.slice(0, 2))) return originalKeyword;
+  const text = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("").trim();
+  if (!text || !text.includes(originalKeyword.slice(0,2))) return originalKeyword;
   return text;
 };
 
+// 네이버 쇼핑 API 직접 호출
 export const fetchNaverProducts = async (shoppingKw) => {
-  const ck     = `nv:${shoppingKw.trim().toLowerCase()}`;
+  const ck = `nv:${shoppingKw.trim().toLowerCase()}`;
   const cached = getCache(ck);
   if (cached) return { products: cached, fromCache: true };
 
-  const res = await fetch(CLAUDE_URL, {
-    method: "POST",
-    headers: HEADERS,
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1000,
-      tools: [{ type: "web_search_20250305", name: "web_search" }],
-      system: `You are a Naver Shopping product researcher.
-Search Naver Shopping for products related to the given keyword.
-Return ONLY a JSON array, no markdown, no explanation.
-Format:
-[{"name":"상품명","price":"숫자만(원단위)","mall":"판매처","rating":"평점(0~5)","reviewCount":"리뷰수","url":"상품URL","reason":"한줄추천이유(한국어)","isAd":false}]
-Return 4–5 items. Prioritize popular, well-reviewed products.
-Set "isAd": true if the listing appears to be sponsored/advertisement.`,
-      messages: [{
-        role: "user",
-        content: `네이버 쇼핑에서 "${shoppingKw}" 관련 인기 상품 검색해서 JSON만 반환해줘.`
-      }]
-    })
-  });
+  const url = `${NAVER_SHOP}?query=${encodeURIComponent(shoppingKw)}&display=5&sort=sim`;
+  const res = await fetch(url, { headers: NAVER_HEADERS });
+  if (!res.ok) throw new Error(`네이버 쇼핑 API 오류 (${res.status})`);
+
   const data = await res.json();
-  const text = extractText(data.content);
-  const products = parseJsonArray(text);
+  const items = (data.items || []).slice(0, 5);
+
+  const products = items.map((item, i) => ({
+    name:        item.title.replace(/<[^>]*>/g, ""),
+    price:       item.lprice,
+    mall:        item.mallName,
+    rating:      null,
+    reviewCount: item.reviewCount || null,
+    url:         item.link,
+    reason:      i === 0 ? "가장 관련성 높은 상품" : "인기 추천 상품",
+    isAd:        false
+  }));
+
   setCache(ck, products);
   return { products, fromCache: false };
 };
