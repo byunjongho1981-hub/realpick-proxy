@@ -37,6 +37,8 @@ const SectionTitle = ({ icon, title, loading, color, cache }) => (
 );
 
 export default function App() {
+  const ytApiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
+
   const [keyword, setKeyword]               = useState("");
   const [videos, setVideos]                 = useState([]);
   const [products, setProducts]             = useState([]);
@@ -56,7 +58,7 @@ export default function App() {
   const [enError, setEnError]               = useState("");
   const [searched, setSearched]             = useState(false);
   const [cacheHit, setCacheHit]             = useState({ yt:false, nv:false });
-  const [activeTab, setActiveTab]           = useState("auto"); // 🔥 기본 탭을 자동추천으로
+  const [activeTab, setActiveTab]           = useState("auto");
 
   const handleSearch = async ({ keyword: kw, apiKey: ak }) => {
     setKeyword(kw);
@@ -68,7 +70,7 @@ export default function App() {
 
     let ytVideos = [];
     try {
-      const { videos: v, fromCache } = await fetchYouTube(kw, ak);
+      const { videos: v, fromCache } = await fetchYouTube(kw, ak || ytApiKey);
       ytVideos = v; setVideos(v);
       setCacheHit(p => ({ ...p, yt: fromCache }));
     } catch (e) {
@@ -109,7 +111,7 @@ export default function App() {
       })(),
       (async () => {
         try {
-          const { result } = await runMoneyEngine(kw, ak);
+          const { result } = await runMoneyEngine(kw, ak || ytApiKey);
           setEngineResult(result);
         } catch (e) { setEnError("엔진 오류: "+(e.message||"")); }
         finally { setLoadingEN(false); }
@@ -140,7 +142,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* 자동추천 탭은 searched 없어도 항상 표시 */}
       <div style={{ maxWidth:1600, margin:"0 auto", padding:"14px 24px 40px" }}>
 
         {/* 탭 */}
@@ -157,7 +158,7 @@ export default function App() {
 
         {/* ── 자동추천 탭 ── */}
         {activeTab==="auto" && (
-          <AutoRecommend />
+          <AutoRecommend apiKey={ytApiKey} />
         )}
 
         {/* ── 유튜브 & 쇼핑 탭 ── */}
@@ -271,7 +272,6 @@ export default function App() {
           </div>
         )}
 
-        {/* 유튜브 탭인데 검색 전 */}
         {activeTab==="youtube" && !searched && (
           <div style={{ textAlign:"center", color:"#333", fontSize:13, padding:60 }}>키워드를 검색하면 결과가 표시됩니다.</div>
         )}
