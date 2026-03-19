@@ -1,19 +1,14 @@
 {
-  "name": "trend-search",
-  "private": true,
+  "name": "naver-product-discovery",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev":   "node src/index.js",
+    "start": "node src/index.js"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "axios":      "^1.6.0",
+    "node-cache": "^5.1.2"
   },
-  "devDependencies": {
-    "@vitejs/plugin-react": "^4.2.1",
-    "vite": "^5.2.0"
-  }
+  "engines": { "node": ">=18" }
 }
