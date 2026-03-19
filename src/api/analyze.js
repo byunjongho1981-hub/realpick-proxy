@@ -11,8 +11,11 @@ const callGemini = async (prompt) => {
     body: JSON.stringify({ prompt })
   });
   const data = await res.json();
-  if (data.error) throw new Error(data.error);
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  // 에러 메시지 상세 노출
+  if (data.error) throw new Error(`Gemini 오류 [${data.code||res.status}]: ${data.error}`);
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  if (!text) throw new Error("Gemini 응답 비어있음: " + JSON.stringify(data).slice(0, 200));
+  return text;
 };
 
 // ══════════════════════════════════════
@@ -20,34 +23,34 @@ const callGemini = async (prompt) => {
 // ══════════════════════════════════════
 export const extractKeywordsFromTitles = async (titles) => {
   if (!titles || titles.length === 0) return [];
-  try {
-    const prompt = `아래 유튜브 제목에서 핵심 명사 키워드 5개를 추출해서 JSON 배열로만 답해줘.
+
+  const prompt = `아래 유튜브 제목에서 핵심 명사 키워드 5개를 추출해서 JSON 배열로만 답해줘.
 마크다운, 설명, 줄바꿈 없이 오직 JSON 배열만.
 예시: ["키워드1","키워드2","키워드3","키워드4","키워드5"]
 
 제목:
 ${titles.slice(0,8).map((t,i)=>`${i+1}. ${t}`).join("\n")}`;
 
-    const text = await callGemini(prompt);
+  // 에러를 잡지 않고 위로 전파 → App.jsx에서 정확한 메시지 표시
+  const text = await callGemini(prompt);
 
-    // 1) JSON 배열 파싱
-    const m1 = text.match(/\[[\s\S]*?\]/);
-    if (m1) {
-      try { return JSON.parse(m1[0]); } catch {}
-    }
+  // 1) JSON 배열 파싱
+  const m1 = text.match(/\[[\s\S]*?\]/);
+  if (m1) {
+    try { return JSON.parse(m1[0]); } catch {}
+  }
 
-    // 2) 따옴표 단어 직접 추출
-    const m2 = text.match(/"([^"]+)"/g);
-    if (m2 && m2.length >= 2) {
-      return m2.map(s => s.replace(/"/g,"")).filter(s => s.length >= 2).slice(0,5);
-    }
+  // 2) 따옴표 단어 직접 추출
+  const m2 = text.match(/"([^"]+)"/g);
+  if (m2 && m2.length >= 2) {
+    return m2.map(s => s.replace(/"/g,"")).filter(s => s.length >= 2).slice(0,5);
+  }
 
-    // 3) 쉼표 구분 텍스트
-    const m3 = text.replace(/[\[\]"]/g,"").split(",").map(s=>s.trim()).filter(s=>s.length>=2);
-    if (m3.length >= 2) return m3.slice(0,5);
+  // 3) 쉼표 구분 텍스트
+  const m3 = text.replace(/[\[\]"]/g,"").split(",").map(s=>s.trim()).filter(s=>s.length>=2);
+  if (m3.length >= 2) return m3.slice(0,5);
 
-    return [];
-  } catch { return []; }
+  throw new Error("키워드 파싱 실패. Gemini 응답: " + text.slice(0,100));
 };
 
 // ══════════════════════════════════════
@@ -91,7 +94,7 @@ export const analyzeKeywords = async (titles, originalKeyword) => {
   const cached = getCache(ck);
   if (cached) return { result: cached, fromCache: true };
 
-  // Step 1: 키워드 추출
+  // Step 1: 키워드 추출 (에러 전파)
   const keywords = await extractKeywordsFromTitles(titles);
   if (!keywords.length) throw new Error("키워드 추출 실패");
 
