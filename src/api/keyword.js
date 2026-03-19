@@ -18,6 +18,29 @@ const getCache  = k => {
 };
 const setCache = (k, d) => cache.set(k, { ts: Date.now(), data: d });
 
+// 모든 content 블록에서 텍스트 추출
+const extractText = (content = []) => {
+  let text = "";
+  for (const b of content) {
+    if (b.type === "text") {
+      text += b.text;
+    } else if (b.type === "tool_result") {
+      for (const c of (b.content || [])) {
+        if (c.type === "text") text += c.text;
+      }
+    }
+  }
+  return text;
+};
+
+// 텍스트에서 가장 긴 JSON 배열 추출
+const parseJsonArray = (text) => {
+  const matches = [...text.matchAll(/\[[\s\S]*?\]/g)];
+  if (!matches.length) throw new Error("파싱 실패");
+  const longest = matches.sort((a, b) => b[0].length - a[0].length)[0];
+  return JSON.parse(longest[0]);
+};
+
 export const fetchNaverKeywords = async (keyword) => {
   const ck     = `kw:${keyword.trim().toLowerCase()}`;
   const cached = getCache(ck);
@@ -47,18 +70,8 @@ Exclude common stop words (것, 수, 등, 및, 이, 그, 저).`,
   });
 
   const data = await res.json();
-  const allBlocks = data.content || [];
-  const text = allBlocks
-    .map(b => {
-      if (b.type === "text") return b.text;
-      if (b.type === "tool_result") return (b.content || []).map(c => c.text || "").join("");
-      return "";
-    })
-    .join("");
-
-  const m = text.match(/\[[\s\S]*?\]/);
-  if (!m) throw new Error("파싱 실패");
-  const keywords = JSON.parse(m[0]);
+  const text = extractText(data.content);
+  const keywords = parseJsonArray(text);
   setCache(ck, keywords);
   return { keywords, fromCache: false };
 };
