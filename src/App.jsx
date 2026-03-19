@@ -1,9 +1,11 @@
 import { useState } from "react";
 import SearchBox from "./components/SearchBox";
 import NaverAnalysis from "./components/NaverAnalysis";
+import IntegratedAnalysis from "./components/IntegratedAnalysis";
 import { fetchYouTube } from "./api/youtube";
 import { extractShoppingKeyword, fetchNaverProducts } from "./api/naver";
 import { fetchNaverKeywords } from "./api/keyword";
+import { analyzeKeywords } from "./api/analyze";
 
 /* ── 유틸 ── */
 const fmtNum = n => { if(!n) return"-"; const x=parseInt(n); if(x>=100000000) return(x/100000000).toFixed(1)+"억"; if(x>=10000) return Math.floor(x/10000)+"만"; if(x>=1000) return(x/1000).toFixed(1)+"천"; return x.toLocaleString(); };
@@ -38,22 +40,25 @@ export default function App() {
   const [videos, setVideos]                   = useState([]);
   const [products, setProducts]               = useState([]);
   const [keywords, setKeywords]               = useState([]);
+  const [analysisResult, setAnalysisResult]   = useState(null);
   const [shoppingKeyword, setShoppingKeyword] = useState("");
   const [loadingYT, setLoadingYT]             = useState(false);
   const [loadingNV, setLoadingNV]             = useState(false);
   const [loadingKW, setLoadingKW]             = useState(false);
+  const [loadingAN, setLoadingAN]             = useState(false);
   const [ytError, setYtError]                 = useState("");
   const [nvError, setNvError]                 = useState("");
   const [kwError, setKwError]                 = useState("");
+  const [anError, setAnError]                 = useState("");
   const [searched, setSearched]               = useState(false);
   const [cacheHit, setCacheHit]               = useState({ yt:false, nv:false, kw:false });
 
   const handleSearch = async ({ keyword: kw, apiKey }) => {
     setKeyword(kw);
-    setVideos([]); setProducts([]); setKeywords([]); setShoppingKeyword("");
-    setYtError(""); setNvError(""); setKwError("");
+    setVideos([]); setProducts([]); setKeywords([]); setAnalysisResult(null); setShoppingKeyword("");
+    setYtError(""); setNvError(""); setKwError(""); setAnError("");
     setSearched(true); setCacheHit({ yt:false, nv:false, kw:false });
-    setLoadingYT(true); setLoadingNV(true); setLoadingKW(true);
+    setLoadingYT(true); setLoadingNV(true); setLoadingKW(true); setLoadingAN(true);
 
     // Step 1: YouTube
     let ytVideos = [];
@@ -79,8 +84,9 @@ export default function App() {
     } catch { derivedKw = kw; }
     setShoppingKeyword(derivedKw);
 
-    // Step 3: 쇼핑 + 키워드 병렬
+    // Step 3: 쇼핑 + 키워드 + 통합분석 병렬
     await Promise.all([
+      // 네이버 쇼핑
       (async () => {
         try {
           const { products: p, fromCache } = await fetchNaverProducts(derivedKw);
@@ -90,6 +96,8 @@ export default function App() {
           setNvError(e.message?.includes("파싱") ? "상품 데이터 오류. 다시 시도해주세요." : "쇼핑 오류: " + (e.message||""));
         } finally { setLoadingNV(false); }
       })(),
+
+      // 키워드 분석
       (async () => {
         try {
           const { keywords: k, fromCache } = await fetchNaverKeywords(kw);
@@ -98,6 +106,17 @@ export default function App() {
         } catch (e) {
           setKwError("키워드 분석 오류: " + (e.message||""));
         } finally { setLoadingKW(false); }
+      })(),
+
+      // 통합 분석 (YouTube 제목 → 네이버 검색+쇼핑)
+      (async () => {
+        try {
+          if (ytVideos.length === 0) { setAnError("유튜브 영상이 없어 통합 분석을 건너뜁니다."); return; }
+          const { result } = await analyzeKeywords(ytVideos.map(v => v.title), kw);
+          setAnalysisResult(result);
+        } catch (e) {
+          setAnError("통합 분석 오류: " + (e.message||""));
+        } finally { setLoadingAN(false); }
       })()
     ]);
   };
@@ -110,7 +129,7 @@ export default function App() {
       <div style={{ textAlign:"center", padding:"24px 16px 12px" }}>
         <div style={{ fontSize:26, marginBottom:4 }}>🔍</div>
         <h1 style={{ fontSize:20, fontWeight:800, margin:0 }}>트렌드 & 쇼핑 통합 검색</h1>
-        <p style={{ color:"#444", fontSize:11, marginTop:4 }}>YouTube 트렌드 + 네이버 쇼핑 + 관심 키워드 TOP10</p>
+        <p style={{ color:"#444", fontSize:11, marginTop:4 }}>YouTube 트렌드 + 네이버 쇼핑 + 관심 키워드 + 통합 분석</p>
       </div>
 
       {/* 3컬럼 */}
@@ -118,7 +137,7 @@ export default function App() {
 
         {/* ── 왼쪽: 검색창 + 키워드 TOP10 ── */}
         <div>
-          <SearchBox onSearch={handleSearch} loading={loadingYT||loadingNV||loadingKW} />
+          <SearchBox onSearch={handleSearch} loading={loadingYT||loadingNV||loadingKW||loadingAN} />
           {searched && (
             <div style={{ marginTop:20 }}>
               <ColHeader icon="🔥" title="관심 키워드 TOP10" loading={loadingKW} color="#ff8800" cache={cacheHit.kw} />
@@ -149,7 +168,7 @@ export default function App() {
           )}
         </div>
 
-        {/* ── 가운데: YouTube 트렌드 ── */}
+        {/* ── 가운데: YouTube 트렌드 + 통합분석 ── */}
         <div>
           <ColHeader icon="📺" title="YouTube 트렌드" loading={loadingYT} color="#ff4444" cache={cacheHit.yt} />
           {ytError && <ErrBox msg={ytError} />}
@@ -185,6 +204,14 @@ export default function App() {
             </div>
           )}
           {!loadingYT && !ytError && videos.length === 0 && searched && <EmptyBox text="48시간 이내 영상 없음" />}
+
+          {/* 통합 분석 */}
+          <IntegratedAnalysis
+            result={analysisResult}
+            loading={loadingAN}
+            error={anError}
+            keyword={keyword}
+          />
         </div>
 
         {/* ── 오른쪽: 네이버 쇼핑 + 분석 ── */}
