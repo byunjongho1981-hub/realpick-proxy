@@ -15,32 +15,38 @@ const callGemini = async (prompt) => {
   return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 };
 
-const parseJsonArray = (text) => {
-  const m = text.match(/\[[\s\S]*\]/);
-  if (!m) throw new Error("파싱 실패");
-  try { return JSON.parse(m[0]); }
-  catch { return JSON.parse(m[0].replace(/[\u0000-\u001F\u007F-\u009F]/g, "")); }
-};
-
 // ══════════════════════════════════════
 // Step 1. 유튜브 제목에서 핵심 키워드 추출
 // ══════════════════════════════════════
 export const extractKeywordsFromTitles = async (titles) => {
   if (!titles || titles.length === 0) return [];
   try {
-    const prompt = `다음 유튜브 제목들에서 핵심 키워드 3~5개를 추출해줘.
-규칙:
-- JSON 배열만 반환 (설명 없이)
-- 한국어 명사만
-- 추천/리뷰/후기/언박싱/비교/최고/베스트 제외
-- 형식: ["키워드1","키워드2","키워드3"]
+    const prompt = `아래 유튜브 제목에서 핵심 명사 키워드 5개를 추출해서 JSON 배열로만 답해줘.
+마크다운, 설명, 줄바꿈 없이 오직 JSON 배열만.
+예시: ["키워드1","키워드2","키워드3","키워드4","키워드5"]
 
-유튜브 제목:
-${titles.slice(0,10).map((t,i)=>`${i+1}. ${t}`).join("\n")}
+제목:
+${titles.slice(0,8).map((t,i)=>`${i+1}. ${t}`).join("\n")}`;
 
-JSON:`;
     const text = await callGemini(prompt);
-    return parseJsonArray(text);
+
+    // 1) JSON 배열 파싱
+    const m1 = text.match(/\[[\s\S]*?\]/);
+    if (m1) {
+      try { return JSON.parse(m1[0]); } catch {}
+    }
+
+    // 2) 따옴표 단어 직접 추출
+    const m2 = text.match(/"([^"]+)"/g);
+    if (m2 && m2.length >= 2) {
+      return m2.map(s => s.replace(/"/g,"")).filter(s => s.length >= 2).slice(0,5);
+    }
+
+    // 3) 쉼표 구분 텍스트
+    const m3 = text.replace(/[\[\]"]/g,"").split(",").map(s=>s.trim()).filter(s=>s.length>=2);
+    if (m3.length >= 2) return m3.slice(0,5);
+
+    return [];
   } catch { return []; }
 };
 
@@ -89,7 +95,7 @@ export const analyzeKeywords = async (titles, originalKeyword) => {
   const keywords = await extractKeywordsFromTitles(titles);
   if (!keywords.length) throw new Error("키워드 추출 실패");
 
-  // Step 2: 병렬 검색
+  // Step 2: 각 키워드 병렬 검색
   const searchResults = await Promise.all(
     keywords.map(async (kw) => {
       const [blogs, news, shops] = await Promise.all([
@@ -101,7 +107,7 @@ export const analyzeKeywords = async (titles, originalKeyword) => {
     })
   );
 
-  // Step 3: 분석
+  // Step 3: 통합 분석
   const integrated = searchResults.map(({ keyword, blogs, news, shops }) => {
     const mentionCount = blogs.length + news.length;
     const prices       = shops.map(s => parseInt(s.lprice)||0).filter(p => p > 0);
