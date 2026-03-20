@@ -6,9 +6,6 @@
 
 const https = require('https');
 
-// ════════════════════════════════════════
-// CONFIG
-// ════════════════════════════════════════
 const CFG = {
   TIMEOUT_MS:     9000,
   RETRY:          1,
@@ -29,7 +26,6 @@ const CAT_NAMES = {
   '50000012':'반려동물','50000013':'자동차용품','50000014':'여행/티켓',
 };
 
-// 카테고리별 fallback 시드
 const CAT_SEEDS = {
   '50000000':['원피스','청바지','맨투맨','후드티','코트','니트','슬랙스','레깅스'],
   '50000001':['운동화','크로스백','반지갑','선글라스','벨트','토트백','백팩','스니커즈'],
@@ -48,17 +44,14 @@ const CAT_SEEDS = {
   '50000014':['캐리어','여행파우치','목베개','여행용품','숙박권','항공권','렌터카','여행보험'],
 };
 
-// ════════════════════════════════════════
-// ENV
-// ════════════════════════════════════════
+// 전체 탐색용: 각 카테고리 시드 앞 2개씩
+const ALL_SEEDS = Object.keys(CAT_SEEDS).flatMap(id => CAT_SEEDS[id].slice(0, 2));
+
 function checkEnv() {
   const miss = ['NAVER_CLIENT_ID','NAVER_CLIENT_SECRET'].filter(k=>!process.env[k]);
   if (miss.length) throw new Error('환경변수 누락: ' + miss.join(', '));
 }
 
-// ════════════════════════════════════════
-// 날짜 범위
-// ════════════════════════════════════════
 function buildRange(period) {
   const fmt = d => d.toISOString().slice(0,10);
   const ago = n => { const d=new Date(); d.setDate(d.getDate()-n); return d; };
@@ -68,9 +61,6 @@ function buildRange(period) {
   return                        {start:fmt(ago(6)), end:fmt(now),   prevStart:fmt(ago(13)), prevEnd:fmt(ago(7)),  unit:'date'};
 }
 
-// ════════════════════════════════════════
-// HTTP
-// ════════════════════════════════════════
 function httpCall(opts, body) {
   return new Promise((resolve, reject) => {
     const t = setTimeout(()=>reject(new Error('timeout')), CFG.TIMEOUT_MS);
@@ -108,9 +98,6 @@ async function withRetry(fn, n=CFG.RETRY) {
   catch(e) { if(n>0) return withRetry(fn,n-1); return null; }
 }
 
-// ════════════════════════════════════════
-// 텍스트 정제
-// ════════════════════════════════════════
 function clean(text) {
   return String(text||'').replace(/<[^>]+>/g,'').replace(/&\w+;/g,' ')
     .replace(/[^\w가-힣\s]/g,' ').replace(/\s+/g,' ').trim();
@@ -120,18 +107,12 @@ const SPAM_RE = /(.)\1{4,}|[\u3040-\u30FF]|[\u4E00-\u9FFF]|https?:\/\//;
 function isClean(t) { return t.length>=2 && !AD_RE.test(t) && !SPAM_RE.test(t); }
 function safeNum(v, fb=0) { const n=Number(v); return isNaN(n)?fb:n; }
 
-// ════════════════════════════════════════
-// 카테고리 키워드 수집
-// ════════════════════════════════════════
 async function fetchCatKeywords(categoryId) {
   const range = buildRange('week');
   try {
     const data = await withRetry(()=>naverPost('/v1/datalab/shopping/category/keywords', {
-      startDate: range.start,
-      endDate:   range.end,
-      timeUnit:  'date',
-      category:  categoryId,
-      device:    '', gender:'', ages:[],
+      startDate: range.start, endDate: range.end, timeUnit: 'date',
+      category: categoryId, device:'', gender:'', ages:[],
     }));
     const results = data && data.results;
     if (!Array.isArray(results)||!results.length) return null;
@@ -149,9 +130,6 @@ async function fetchCatKeywords(categoryId) {
   }
 }
 
-// ════════════════════════════════════════
-// Datalab 변화율
-// ════════════════════════════════════════
 async function getDatalabRate(keyword, range) {
   try {
     const data = await naverPost('/v1/datalab/search', {
@@ -169,13 +147,9 @@ async function getDatalabRate(keyword, range) {
   } catch { return null; }
 }
 
-// ════════════════════════════════════════
-// 네이버 4소스 검색 (카테고리 필터 포함)
-// ════════════════════════════════════════
 async function searchAll(keyword, catId) {
   const shopParams = {query:keyword, display:15, sort:'sim'};
   if (catId && catId!=='all') shopParams.category = catId;
-
   const catLabel = (catId && CAT_NAMES[catId]) ? CAT_NAMES[catId] : '';
   const blogQuery = catLabel ? keyword+' '+catLabel : keyword;
 
@@ -185,7 +159,6 @@ async function searchAll(keyword, catId) {
     withRetry(()=>naverGet('/v1/search/news.json',        {query:keyword,   display:10, sort:'date'})),
     withRetry(()=>naverGet('/v1/search/cafearticle.json', {query:keyword,   display:10})),
   ]);
-
   const get  = r => r.status==='fulfilled'?r.value:null;
   const norm = (d, src) => {
     if (!d||!Array.isArray(d.items)||!d.items.length) return [];
@@ -199,9 +172,6 @@ async function searchAll(keyword, catId) {
   };
 }
 
-// ════════════════════════════════════════
-// 시드 확장
-// ════════════════════════════════════════
 async function expandSeed(seedKw, depth) {
   const STOP = new Set(['이','가','을','를','의','에','는','은','도','와','과','및','세트','상품','제품','판매','구매','추천','리뷰','후기']);
   const r1 = await withRetry(()=>naverGet('/v1/search/shop.json',{query:seedKw,display:20,sort:'sim'}));
@@ -222,9 +192,6 @@ async function expandSeed(seedKw, depth) {
   return [...new Set(expanded)].slice(0,15);
 }
 
-// ════════════════════════════════════════
-// 점수 계산
-// ════════════════════════════════════════
 function calcScore(items, maxCount) {
   const W=CFG.SCORE, tot=items.length||1;
   const cnt = src => items.filter(i=>i.source===src).length;
@@ -264,17 +231,17 @@ function makeSummary(name, score, trend) {
   return {summary:`${name} ${labels[trend.status]||''}${rateText} · ${Math.round(score.totalScore)}점 · ${action.toUpperCase()} 추천`, action};
 }
 
-// ════════════════════════════════════════
-// 후보 빌드 공통
-// ════════════════════════════════════════
 async function buildCandidates(keywords, range, catId) {
-  const unique = [...new Set(keywords.map(k=>k.trim()).filter(Boolean))].slice(0,40);
-  if (!unique.length) return {candidates:[], apiStatus:{}};
+  // 안전장치: keywords가 배열이 아니거나 비어있으면 빈 결과 반환
+  if (!Array.isArray(keywords) || !keywords.length) {
+    return {candidates:[], apiStatus:{search:'키워드 없음'}};
+  }
 
-  // 검색 병렬 실행 (카테고리 ID 전달)
+  const unique = [...new Set(keywords.map(k=>String(k).trim()).filter(Boolean))].slice(0,40);
+  if (!unique.length) return {candidates:[], apiStatus:{search:'키워드 없음'}};
+
   const searches = await Promise.allSettled(unique.map(kw=>searchAll(kw, catId)));
 
-  // Datalab 변화율 상위 N개만
   const rates = {};
   await Promise.allSettled(
     unique.slice(0,CFG.DATALAB_LIMIT).map(async kw=>{ rates[kw]=await getDatalabRate(kw,range); })
@@ -327,12 +294,24 @@ module.exports = async (req, res) => {
   const range  = buildRange(period);
 
   try {
-    // ── MODE 1: 카테고리
     if (mode==='category') {
       const catId = req.query.categoryId || '50000003';
 
+      // ── 전체 탐색: 카테고리별 시드 앞 2개씩 (API 1회 호출로 처리)
+      if (catId === 'all') {
+        const keywords = ALL_SEEDS; // 파일 상단 상수 사용
+        const {candidates, apiStatus} = await buildCandidates(keywords, range, null);
+        return res.status(200).json({
+          candidates, mode,
+          categoryId:'all', categoryName:'전체',
+          keywords, period, total:candidates.length,
+          apiStatus, updatedAt:new Date().toISOString(),
+        });
+      }
+
+      // ── 개별 카테고리 탐색
       let keywords = await fetchCatKeywords(catId);
-      if (!keywords||!keywords.length) {
+      if (!Array.isArray(keywords) || !keywords.length) {
         console.warn('[category] Shopping Insight 실패, seed fallback:', catId);
         keywords = CAT_SEEDS[catId] || CAT_SEEDS['50000003'];
       }
@@ -346,7 +325,6 @@ module.exports = async (req, res) => {
       });
     }
 
-    // ── MODE 2: 시드 확장
     if (mode==='seed') {
       const seedKw = String(req.query.keyword||'').trim().slice(0,30);
       if (!seedKw) return res.status(400).json({error:'키워드를 입력해주세요', code:'NO_KEYWORD'});
