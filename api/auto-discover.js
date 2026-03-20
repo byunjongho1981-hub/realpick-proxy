@@ -330,8 +330,8 @@ module.exports = async (req, res) => {
 
         console.log('[all] 전체 카테고리 탐색 시작 —', Object.keys(CAT_SEEDS).length, '개 카테고리');
 
-        // 전체 탐색 전용 함수 호출
-        const { candidates, apiStatus } = await searchAllCategories(range);
+        // 전체 탐색 전용 함수 호출 (range 불필요)
+        const { candidates, apiStatus, processLog } = await searchAllCategories();
 
         const result = {
           candidates,
@@ -341,6 +341,7 @@ module.exports = async (req, res) => {
           period,
           total:        candidates.length,
           apiStatus,
+          processLog,
           updatedAt:    new Date().toISOString(),
           fromCache:    false,
         };
