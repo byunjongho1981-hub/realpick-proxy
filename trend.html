@@ -137,6 +137,11 @@
       </div>
     </div>
     <div class="filter-row">
+      <span class="filter-label">기간</span>
+      <button class="filter-btn on" data-period="week" onclick="onPeriod(this,'week')">이번주</button>
+      <button class="filter-btn" data-period="today" onclick="onPeriod(this,'today')">오늘</button>
+      <button class="filter-btn" data-period="month" onclick="onPeriod(this,'month')">이번달</button>
+      <div class="sep"></div>
       <span class="filter-label">트렌드</span>
       <button class="filter-btn on" data-filter="all" onclick="onFilter(this,'all')">전체</button>
       <button class="filter-btn" data-filter="rising" onclick="onFilter(this,'rising')">🔥 급상승</button>
@@ -311,9 +316,10 @@ async function fetchDiscover(keyword) {
   const timer = setTimeout(() => ctrl.abort(), 12000);
   try {
     const kw = keyword.trim() || '인기상품';
-    const res = await fetch(`/api/discover?keyword=${encodeURIComponent(kw)}&display=20`, {
-      signal: ctrl.signal,
-    });
+    const res = await fetch(
+      `/api/discover?keyword=${encodeURIComponent(kw)}&display=20&period=${S.period}`,
+      { signal: ctrl.signal }
+    );
     clearTimeout(timer);
     if (!res.ok) throw new Error(`서버 오류 (HTTP ${res.status})`);
     const data = await res.json();
@@ -567,6 +573,13 @@ function selectCandidate(idx) {
   S.selected = S.filtered[idx] || null;
   renderTable();
   renderDetail();
+}
+
+// 기간 필터
+function onPeriod(el, val) {
+  document.querySelectorAll('[data-period]').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  S.period = val;
 }
 
 function onFilter(el, val) {
