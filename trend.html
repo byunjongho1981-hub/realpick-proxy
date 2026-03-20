@@ -221,6 +221,7 @@
 
   <!-- 컨트롤 -->
   <div class="controls">
+    <!-- MODE 1: 카테고리 -->
     <div class="ctrl-panel active" id="ctrl-category">
       <div class="ctrl-row">
         <span class="ctrl-label">카테고리</span>
@@ -234,8 +235,33 @@
         <button class="cat-btn" data-cat="50000000" onclick="onCat(this)">패션의류</button>
         <button class="cat-btn" data-cat="50000001" onclick="onCat(this)">패션잡화</button>
       </div>
+    </div>
+    <!-- MODE 2: 급상승 -->
+    <div class="ctrl-panel" id="ctrl-rising">
       <div class="ctrl-row">
-        <span class="ctrl-label">카테고리</span>
+        <span class="ctrl-label">변화율</span>
+        <button class="cat-btn on" data-threshold="10" onclick="onThreshold(this)">+10%</button>
+        <button class="cat-btn" data-threshold="20" onclick="onThreshold(this)">+20%</button>
+        <button class="cat-btn" data-threshold="30" onclick="onThreshold(this)">+30%</button>
+        <div class="sep"></div>
+        <button class="cat-btn on" data-mcat="all" onclick="onMcat(this)">전체</button>
+        <button class="cat-btn" data-mcat="50000003" onclick="onMcat(this)">디지털</button>
+        <button class="cat-btn" data-mcat="50000002" onclick="onMcat(this)">뷰티</button>
+        <button class="cat-btn" data-mcat="50000008" onclick="onMcat(this)">생활</button>
+      </div>
+    </div>
+    <!-- MODE 3: 시드 -->
+    <div class="ctrl-panel" id="ctrl-seed">
+      <div class="ctrl-row">
+        <span class="ctrl-label">시드 키워드</span>
+        <input id="seed-input" class="search-input" type="text" placeholder="예: 무선 청소기" maxlength="30"
+          onkeydown="if(event.key==='Enter')runMode()"/>
+        <span class="ctrl-label">확장 깊이</span>
+        <button class="cat-btn on" data-depth="1" onclick="onDepth(this)">1단계</button>
+        <button class="cat-btn" data-depth="2" onclick="onDepth(this)">2단계</button>
+      </div>
+    </div>
+  </div>
         <button class="cat-btn on" data-threshold="10" onclick="onThreshold(this)">+10%</button>
         <button class="cat-btn" data-threshold="20" onclick="onThreshold(this)">+20%</button>
         <button class="cat-btn" data-threshold="30" onclick="onThreshold(this)">+30%</button>
