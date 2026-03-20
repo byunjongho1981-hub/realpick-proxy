@@ -168,15 +168,8 @@
   <!-- 요약 카드 -->
   <div class="summary-bar" style="justify-content:space-between;align-items:center">
 
-    <!-- 왼쪽: 직접검색 + 자동탐색 버튼 -->
+    <!-- 왼쪽: 직접검색 + 자동탐색 -->
     <div style="display:flex;flex-direction:column;gap:7px;flex-shrink:0">
-      <!-- 큰 자동탐색 버튼 -->
-      <button id="btn-auto-big" onclick="runAutoDiscover()"
-        style="display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 22px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:14px;font-weight:800;box-shadow:0 4px 14px rgba(99,102,241,.35);transition:all .2s;white-space:nowrap"
-        onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(99,102,241,.45)'"
-        onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 14px rgba(99,102,241,.35)'">
-        🚀 자동 트렌드 탐색
-      </button>
       <!-- 직접 검색 -->
       <div style="display:flex;align-items:center;background:#f1f5f9;border:1.5px solid var(--c-border);border-radius:10px;overflow:hidden">
         <span style="padding:0 8px;font-size:15px;color:var(--c-faint)">🔎</span>
@@ -187,6 +180,13 @@
           style="padding:8px 12px;background:var(--c-primary);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:700;transition:background .15s"
           onmouseover="this.style.background='#4f46e5'" onmouseout="this.style.background='var(--c-primary)'">검색</button>
       </div>
+      <!-- 자동탐색 시작 버튼 -->
+      <button id="btn-auto-big" onclick="runMode()"
+        style="display:flex;align-items:center;justify-content:center;gap:8px;padding:9px 22px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:13px;font-weight:800;box-shadow:0 4px 14px rgba(99,102,241,.3);transition:all .2s;white-space:nowrap"
+        onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(99,102,241,.45)'"
+        onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 14px rgba(99,102,241,.3)'">
+        🚀 자동탐색 시작
+      </button>
     </div>
 
     <!-- 가운데: 요약 카드들 -->
@@ -228,8 +228,7 @@
         <button class="cat-btn on" data-period="week" onclick="onPeriod(this)">이번주</button>
         <button class="cat-btn" data-period="today" onclick="onPeriod(this)">오늘</button>
         <button class="cat-btn" data-period="month" onclick="onPeriod(this)">이번달</button>
-        <button id="btn-cat" class="btn btn-primary" style="margin-left:8px" onclick="runMode()">🚀 자동탐색 시작</button>
-        <button class="btn btn-ghost" onclick="onReset()">초기화</button>
+        <button class="btn btn-ghost" onclick="onReset()" style="margin-left:8px">초기화</button>
       </div>
     </div>
     <div class="ctrl-panel" id="ctrl-rising">
@@ -244,8 +243,7 @@
         <button class="cat-btn" data-mcat="50000003" onclick="onMcat(this)">디지털</button>
         <button class="cat-btn" data-mcat="50000002" onclick="onMcat(this)">뷰티</button>
         <button class="cat-btn" data-mcat="50000008" onclick="onMcat(this)">생활</button>
-        <button id="btn-rising" class="btn btn-primary" style="margin-left:8px" onclick="runMode()">🔥 급상승 탐색</button>
-        <button class="btn btn-ghost" onclick="onReset()">초기화</button>
+        <button class="btn btn-ghost" onclick="onReset()" style="margin-left:8px">초기화</button>
       </div>
     </div>
     <div class="ctrl-panel" id="ctrl-seed">
@@ -256,7 +254,6 @@
         <span class="ctrl-label">확장 깊이</span>
         <button class="cat-btn on" data-depth="1" onclick="onDepth(this)">1단계</button>
         <button class="cat-btn" data-depth="2" onclick="onDepth(this)">2단계</button>
-        <button id="btn-seed" class="btn btn-primary" onclick="runMode()">🌱 확장 탐색</button>
         <button class="btn btn-ghost" onclick="onReset()">초기화</button>
       </div>
     </div>
@@ -803,7 +800,7 @@ function setLoading(on,msg=''){
   S.loading=on;
   document.getElementById('loading-overlay').style.display=on?'flex':'none';
   if(msg) document.getElementById('loading-msg').textContent=msg;
-  ['btn-cat','btn-rising','btn-seed'].forEach(id=>{const b=document.getElementById(id);if(b)b.disabled=on;});
+  ['btn-auto-big','btn-quick-search'].forEach(id=>{const b=document.getElementById(id);if(b)b.disabled=on;});
 }
 function showError(msg){
   S.error=msg;
