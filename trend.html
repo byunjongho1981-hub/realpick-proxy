@@ -431,10 +431,18 @@ function runMode(){
 }
 
 function runCategory(){
-  var label = S.catId==='all' ? '전체 카테고리 탐색 중...' : '카테고리 인기 키워드 수집 중... ('+(CAT_NAMES[S.catId]||'')+')';
+  var label = S.catId==='all'
+    ? '전체 카테고리 탐색 중... (최초 1회만 수집, 이후 30분 캐시)'
+    : '카테고리 인기 키워드 수집 중... ('+(CAT_NAMES[S.catId]||'')+')';
   setLoading(true, label);
   apiFetch('/api/auto-discover?mode=category&categoryId='+S.catId+'&period='+S.period)
-    .then(function(d){ handleResult(d); })
+    .then(function(d){
+      handleResult(d);
+      // 캐시 여부 안내
+      if(d.fromCache && d.cacheAge){
+        showToast('📦 캐시 데이터 사용 중 ('+d.cacheAge+') — 30분마다 갱신');
+      }
+    })
     .catch(function(e){ showError(e.message); })
     .finally(function(){ setLoading(false); });
 }
