@@ -1,35 +1,24 @@
-/**
- * /api/auto-discover.js
- * Vercel 무료 플랜 10초 타임아웃 기준으로 설계
- * 개별 카테고리: 키워드 5개 × 쇼핑 1개 API = 5회 호출
- * 전체 탐색: 카테고리 15개 × 쇼핑 1개 = 15회 호출 (순차)
- */
-const https = require('https');
+var https = require('https');
 
-const CFG = {
-  TIMEOUT_MS: 3500, // 5초 제한 내 여유있게
-  RETRY:      0,    // 재시도 없음 (시간 절약)
-  GRADE: { A:70, B:50 },
-  CHANGE: { RISING:10, FALLING:-10 },
-  SCORE: { shopping:40, blog:20, news:10, cafe:15, trend:15 },
-  DEFAULT_PERIOD: 'week',
-};
+var TIMEOUT = 3500;
+var GRADE_A = 70;
+var GRADE_B = 50;
 
-const CAT_ORDER = [
-  '50000003','50000002','50000008','50000007','50000006',
-  '50000004','50000005','50000000','50000001','50000009',
-  '50000010','50000011','50000012','50000013','50000014',
-];
-
-const CAT_NAMES = {
+var CAT_NAMES = {
   '50000000':'패션의류','50000001':'패션잡화','50000002':'화장품/미용',
   '50000003':'디지털/가전','50000004':'가구/인테리어','50000005':'출산/육아',
   '50000006':'식품','50000007':'스포츠/레저','50000008':'생활/건강',
   '50000009':'도서/음반','50000010':'완구/취미','50000011':'문구/오피스',
-  '50000012':'반려동물','50000013':'자동차용품','50000014':'여행/티켓',
+  '50000012':'반려동물','50000013':'자동차용품','50000014':'여행/티켓'
 };
 
-const CAT_SEEDS = {
+var CAT_ORDER = [
+  '50000003','50000002','50000008','50000007','50000006',
+  '50000004','50000005','50000000','50000001','50000009',
+  '50000010','50000011','50000012','50000013','50000014'
+];
+
+var CAT_SEEDS = {
   '50000000':['원피스','청바지','맨투맨','후드티','코트'],
   '50000001':['운동화','크로스백','선글라스','벨트','백팩'],
   '50000002':['선크림','토너패드','비타민C세럼','클렌징폼','앰플'],
@@ -44,246 +33,281 @@ const CAT_SEEDS = {
   '50000011':['무선마우스','기계식키보드','포스트잇','USB허브','모니터암'],
   '50000012':['강아지사료','고양이사료','펫패드','강아지간식','자동급식기'],
   '50000013':['블랙박스','하이패스단말기','차량용충전기','세차용품','카매트'],
-  '50000014':['캐리어','여행파우치','목베개','숙박권','여행보험'],
+  '50000014':['캐리어','여행파우치','목베개','숙박권','여행보험']
 };
 
-// 전체 탐색 캐시 (1시간)
-const CACHE = { data:null, ts:null, TTL: 60*60*1000 };
-function getCache(){ return CACHE.data && (Date.now()-CACHE.ts < CACHE.TTL) ? CACHE.data : null; }
-function setCache(d){ CACHE.data=d; CACHE.ts=Date.now(); }
+var CACHE = { data: null, ts: 0, TTL: 60 * 60 * 1000 };
 
-// ── HTTP
-function checkEnv(){
-  const miss = ['NAVER_CLIENT_ID','NAVER_CLIENT_SECRET'].filter(k=>!process.env[k]);
-  if(miss.length) throw new Error('환경변수 누락: '+miss.join(', '));
+function getCache() {
+  if (!CACHE.data) return null;
+  if (Date.now() - CACHE.ts > CACHE.TTL) return null;
+  return CACHE.data;
 }
-function httpCall(opts, body){
-  return new Promise((resolve,reject)=>{
-    const t=setTimeout(()=>reject(new Error('timeout')), CFG.TIMEOUT_MS);
-    const req=https.request(opts, res=>{
-      let raw='';
-      res.on('data',c=>raw+=c);
-      res.on('end',()=>{ clearTimeout(t); try{resolve(JSON.parse(raw));}catch{resolve({});} });
+function setCache(d) {
+  CACHE.data = d;
+  CACHE.ts = Date.now();
+}
+
+function checkEnv() {
+  var miss = [];
+  if (!process.env.NAVER_CLIENT_ID) miss.push('NAVER_CLIENT_ID');
+  if (!process.env.NAVER_CLIENT_SECRET) miss.push('NAVER_CLIENT_SECRET');
+  if (miss.length > 0) throw new Error('환경변수 누락: ' + miss.join(', '));
+}
+
+function httpGet(path, params) {
+  return new Promise(function(resolve, reject) {
+    var qs = '';
+    var keys = Object.keys(params);
+    for (var i = 0; i < keys.length; i++) {
+      qs += (i === 0 ? '?' : '&') + encodeURIComponent(keys[i]) + '=' + encodeURIComponent(params[keys[i]]);
+    }
+    var options = {
+      hostname: 'openapi.naver.com',
+      path: path + qs,
+      method: 'GET',
+      headers: {
+        'X-Naver-Client-Id': process.env.NAVER_CLIENT_ID,
+        'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET
+      }
+    };
+    var timer = setTimeout(function() { reject(new Error('timeout')); }, TIMEOUT);
+    var req = https.request(options, function(res) {
+      var raw = '';
+      res.on('data', function(c) { raw += c; });
+      res.on('end', function() {
+        clearTimeout(timer);
+        try { resolve(JSON.parse(raw)); } catch(e) { resolve({}); }
+      });
     });
-    req.on('error',e=>{ clearTimeout(t); reject(e); });
-    if(body) req.write(body);
+    req.on('error', function(e) { clearTimeout(timer); reject(e); });
     req.end();
   });
 }
-const HDR=()=>({'X-Naver-Client-Id':process.env.NAVER_CLIENT_ID,'X-Naver-Client-Secret':process.env.NAVER_CLIENT_SECRET});
-function naverGet(path, params){
-  return httpCall({hostname:'openapi.naver.com',path:`${path}?${new URLSearchParams(params)}`,method:'GET',headers:HDR()});
-}
-async function withRetry(fn, n=CFG.RETRY){
-  try{return await fn();}catch(e){if(n>0)return withRetry(fn,n-1);return null;}
-}
 
-// ── 텍스트 정제
-function clean(t){ return String(t||'').replace(/<[^>]+>/g,'').replace(/&\w+;/g,' ').replace(/[^\w가-힣\s]/g,' ').replace(/\s+/g,' ').trim(); }
-const AD_RE=/\[광고\]|\[협찬\]|쿠폰|특가|이벤트|당일배송|무료배송|사은품/i;
-const SP_RE=/(.)\1{4,}|[\u3040-\u30FF]|[\u4E00-\u9FFF]|https?:\/\//;
-function isClean(t){ return t.length>=2 && !AD_RE.test(t) && !SP_RE.test(t); }
-function safeNum(v,fb=0){ const n=Number(v); return isNaN(n)?fb:n; }
-
-// ── 쇼핑 검색 1회 (핵심 함수)
-async function shopSearch(keyword, catId){
-  const params={query:keyword, display:20, sort:'sim'};
-  if(catId && catId!=='all') params.category=catId;
-  const data=await withRetry(()=>naverGet('/v1/search/shop.json', params));
-  if(!data||!Array.isArray(data.items)) return [];
-  return data.items
-    .map(i=>({title:clean(i.title||''),link:i.link||'',price:safeNum(i.lprice||i.price,0),mallName:i.mallName||''}))
-    .filter(i=>isClean(i.title)&&i.price>0);
+function cleanText(t) {
+  return String(t || '').replace(/<[^>]+>/g, '').replace(/[^\w가-힣\s]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+function isClean(t) {
+  if (t.length < 2) return false;
+  if (/\[광고\]|\[협찬\]|쿠폰|특가|이벤트/.test(t)) return false;
+  return true;
+}
+function safeNum(v) {
+  var n = Number(v);
+  return isNaN(n) ? 0 : n;
 }
 
-// ── 점수 계산 (고정 공식)
-function calcScore(itemCount, maxCount){
-  const shopScore  = Math.round((itemCount/maxCount)*CFG.SCORE.shopping);
-  const trendScore = Math.round((itemCount/maxCount)*CFG.SCORE.trend);
-  const total = Math.min(100, shopScore+trendScore);
-  return {
-    totalScore: total,
-    breakdown:  {shopping:shopScore, trend:trendScore},
-    grade:      total>=CFG.GRADE.A?'A':total>=CFG.GRADE.B?'B':'C',
-    confidence: itemCount>=10?'high':itemCount>=5?'medium':'low',
-  };
-}
-function judgeT(count){
-  if(count===1)  return {status:'new',    changeRate:null, source:'count'};
-  if(count>=12)  return {status:'rising', changeRate:null, source:'count'};
-  if(count>=6)   return {status:'stable', changeRate:null, source:'count'};
-  return                {status:'falling',changeRate:null, source:'count'};
-}
-function makeSummary(name, score, trend){
-  if(score.confidence==='low') return {summary:`${name} — 데이터 부족, 판단 보류`, action:'hold'};
-  const action=score.grade==='A'?'shorts':score.grade==='B'?'blog':'compare';
-  const lbl={rising:'🔥 급상승',stable:'➡️ 보합',falling:'📉 하락',new:'✨ 신규',unknown:'❓ 보류'};
-  return {summary:`${name} ${lbl[trend.status]||''} · ${score.totalScore}점 · ${action.toUpperCase()} 추천`, action};
-}
-
-// ── 개별 카테고리 탐색
-async function discoverCategory(catId, period){
-  const keywords = CAT_SEEDS[catId]||CAT_SEEDS['50000003'];
-
-  // 키워드 5개 병렬 쇼핑 검색
-  const results = await Promise.allSettled(keywords.map(kw=>shopSearch(kw,catId)));
-
-  const valid = keywords.map((kw,i)=>{
-    const items = results[i].status==='fulfilled' ? results[i].value||[] : [];
-    return {kw, items, count:items.length};
-  }).filter(c=>c.count>0);
-
-  if(!valid.length) return {candidates:[], apiStatus:{search:'결과 없음'}};
-
-  const maxCount = Math.max(...valid.map(c=>c.count),1);
-  const candidates = valid.map(c=>{
-    const score = calcScore(c.count, maxCount);
-    const trend = judgeT(c.count);
-    const {summary,action} = makeSummary(c.kw, score, trend);
-    return {
-      id:c.kw, name:c.kw, keywords:[c.kw],
-      sources:['shopping'], count:c.count,
-      score, trend, summary, action,
-      sampleItems:c.items.slice(0,3).map(i=>({title:i.title,link:i.link,source:'shopping'})),
-    };
-  }).sort((a,b)=>b.score.totalScore-a.score.totalScore);
-
-  return {
-    candidates: candidates.slice(0,15),
-    apiStatus: {search:valid.length+'/'+keywords.length+' 성공'},
-  };
-}
-
-// ── 전체 탐색 (카테고리 병렬 처리 — 5초 제한 대응)
-async function discoverAll(){
-  const completed=[], failed=[], allPool=[];
-
-  // 15개 카테고리 동시 병렬 처리 (순차 → 병렬로 변경)
-  const tasks = CAT_ORDER.map(catId => {
-    const catName = CAT_NAMES[catId] || catId;
-    const topKw   = (CAT_SEEDS[catId] || [])[0] || '';
-    if(!topKw) return Promise.resolve({ catId, catName, items:[], ok:false, reason:'키워드 없음' });
-    return shopSearch(topKw, catId)
-      .then(items => ({ catId, catName, topKw, items, ok:true }))
-      .catch(e   => ({ catId, catName, topKw, items:[], ok:false, reason:e.message }));
-  });
-
-  const results = await Promise.allSettled(tasks);
-
-  results.forEach(r => {
-    if(r.status !== 'fulfilled') return;
-    const { catId, catName, topKw, items, ok, reason } = r.value;
-    if(!ok || !items.length){
-      failed.push({ catId, catName, reason: reason||'결과 없음' });
-      return;
+function shopSearch(keyword, catId) {
+  var params = { query: keyword, display: 20, sort: 'sim' };
+  if (catId && catId !== 'all') params.category = catId;
+  return httpGet('/v1/search/shop.json', params).then(function(data) {
+    if (!data || !Array.isArray(data.items)) return [];
+    var result = [];
+    for (var i = 0; i < data.items.length; i++) {
+      var item = data.items[i];
+      var title = cleanText(item.title || '');
+      var price = safeNum(item.lprice || item.price);
+      if (isClean(title) && price > 0) {
+        result.push({ title: title, link: item.link || '', price: price });
+      }
     }
-    const score = calcScore(items.length, 20);
-    const trend = judgeT(items.length);
-    const { summary, action } = makeSummary(topKw, score, trend);
-    allPool.push({
-      id:catId+'__'+topKw, name:topKw, category:catName, catId,
-      keywords:[topKw], sources:['shopping'], count:items.length,
-      score, trend, summary, action,
-      sampleItems:items.slice(0,3).map(i=>({title:i.title,link:i.link,source:'shopping'})),
-    });
-    completed.push(catName);
-  });
+    return result;
+  }).catch(function() { return []; });
+}
 
-  // 종합 재평가 (동일 고정 공식)
-  const globalMax = Math.max(...allPool.map(c=>c.count), 1);
-  allPool.forEach(c => { c.score = calcScore(c.count, globalMax); });
-  allPool.sort((a,b) => b.score.totalScore - a.score.totalScore);
+function calcScore(count, maxCount) {
+  var ratio = maxCount > 0 ? count / maxCount : 0;
+  var total = Math.min(100, Math.round(ratio * 55));
+  var grade = total >= GRADE_A ? 'A' : total >= GRADE_B ? 'B' : 'C';
+  var confidence = count >= 10 ? 'high' : count >= 5 ? 'medium' : 'low';
+  return { totalScore: total, breakdown: { shopping: Math.round(ratio*40), trend: Math.round(ratio*15) }, grade: grade, confidence: confidence };
+}
 
+function judgeT(count) {
+  if (count === 1) return { status: 'new',     changeRate: null, source: 'count' };
+  if (count >= 12) return { status: 'rising',  changeRate: null, source: 'count' };
+  if (count >= 6)  return { status: 'stable',  changeRate: null, source: 'count' };
+  return                  { status: 'falling', changeRate: null, source: 'count' };
+}
+
+function makeSummary(name, score, trend) {
+  if (score.confidence === 'low') return { summary: name + ' — 데이터 부족, 판단 보류', action: 'hold' };
+  var action = score.grade === 'A' ? 'shorts' : score.grade === 'B' ? 'blog' : 'compare';
+  var labels = { rising: '🔥 급상승', stable: '➡️ 보합', falling: '📉 하락', new: '✨ 신규' };
+  var lbl = labels[trend.status] || '';
+  return { summary: name + ' ' + lbl + ' · ' + score.totalScore + '점 · ' + action.toUpperCase() + ' 추천', action: action };
+}
+
+function buildCandidate(kw, items, maxCount) {
+  var score = calcScore(items.length, maxCount);
+  var trend = judgeT(items.length);
+  var sm = makeSummary(kw, score, trend);
+  var samples = [];
+  for (var i = 0; i < Math.min(3, items.length); i++) {
+    samples.push({ title: items[i].title, link: items[i].link, source: 'shopping' });
+  }
   return {
-    candidates: allPool.slice(0, 10),
-    apiStatus: {
-      completed: completed.length+'/'+CAT_ORDER.length+' 카테고리',
-      failed:    failed.length ? failed.map(f=>f.catName+'('+f.reason+')').join(', ') : '없음',
-    },
-    processLog: { completed, failed },
+    id: kw, name: kw, keywords: [kw], sources: ['shopping'],
+    count: items.length, score: score, trend: trend,
+    summary: sm.summary, action: sm.action, sampleItems: samples
   };
 }
 
-// ── 시드 확장
-async function discoverSeed(seedKw, depth){
-  const STOP=new Set(['이','가','을','를','의','에','는','은','도','와','과','세트','상품','제품','판매']);
-  const r1=await withRetry(()=>naverGet('/v1/search/shop.json',{query:seedKw,display:20,sort:'sim'}));
-  const freq={};
-  ((r1&&r1.items)||[]).forEach(i=>{
-    clean(i.title||'').split(/\s+/).filter(w=>w.length>1&&!STOP.has(w)&&w!==seedKw)
-      .forEach(w=>{freq[w]=(freq[w]||0)+1;});
-  });
-  const related=Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([w])=>w);
-  const keywords=[seedKw,...related].slice(0,8);
-
-  const results=await Promise.allSettled(keywords.map(kw=>shopSearch(kw,null)));
-  const valid=keywords.map((kw,i)=>{
-    const items=results[i].status==='fulfilled'?results[i].value||[]:[];
-    return {kw,items,count:items.length};
-  }).filter(c=>c.count>0);
-
-  if(!valid.length) return {candidates:[],apiStatus:{search:'결과 없음'}};
-  const maxCount=Math.max(...valid.map(c=>c.count),1);
-  const candidates=valid.map(c=>{
-    const score=calcScore(c.count,maxCount);
-    const trend=judgeT(c.count);
-    const {summary,action}=makeSummary(c.kw,score,trend);
-    return {
-      id:c.kw, name:c.kw, keywords:[c.kw],
-      sources:['shopping'], count:c.count,
-      score, trend, summary, action,
-      sampleItems:c.items.slice(0,3).map(i=>({title:i.title,link:i.link,source:'shopping'})),
-    };
-  }).sort((a,b)=>b.score.totalScore-a.score.totalScore);
-  return {candidates:candidates.slice(0,15), apiStatus:{search:valid.length+'/'+keywords.length+' 성공'}};
+// 개별 카테고리 탐색
+async function discoverCategory(catId) {
+  var keywords = CAT_SEEDS[catId] || CAT_SEEDS['50000003'];
+  var promises = [];
+  for (var i = 0; i < keywords.length; i++) {
+    promises.push(shopSearch(keywords[i], catId));
+  }
+  var results = await Promise.allSettled(promises);
+  var valid = [];
+  for (var j = 0; j < keywords.length; j++) {
+    var items = results[j].status === 'fulfilled' ? results[j].value : [];
+    if (items.length > 0) valid.push({ kw: keywords[j], items: items, count: items.length });
+  }
+  if (!valid.length) return { candidates: [], apiStatus: { search: '결과 없음' } };
+  var maxCount = 0;
+  for (var k = 0; k < valid.length; k++) { if (valid[k].count > maxCount) maxCount = valid[k].count; }
+  var candidates = [];
+  for (var m = 0; m < valid.length; m++) {
+    candidates.push(buildCandidate(valid[m].kw, valid[m].items, maxCount));
+  }
+  candidates.sort(function(a, b) { return b.score.totalScore - a.score.totalScore; });
+  return { candidates: candidates.slice(0, 15), apiStatus: { search: valid.length + '/' + keywords.length + ' 성공' } };
 }
 
-// ── MAIN
-module.exports=async(req,res)=>{
-  res.setHeader('Access-Control-Allow-Origin','*');
-  res.setHeader('Access-Control-Allow-Methods','GET,OPTIONS');
-  if(req.method==='OPTIONS') return res.status(200).end();
+// 전체 탐색 (병렬)
+async function discoverAll() {
+  var promises = [];
+  for (var i = 0; i < CAT_ORDER.length; i++) {
+    var catId = CAT_ORDER[i];
+    var topKw = CAT_SEEDS[catId] && CAT_SEEDS[catId][0] ? CAT_SEEDS[catId][0] : '';
+    promises.push(shopSearch(topKw, catId));
+  }
+  var results = await Promise.allSettled(promises);
+  var pool = [];
+  var completed = [];
+  var failed = [];
+  for (var j = 0; j < CAT_ORDER.length; j++) {
+    var catId2 = CAT_ORDER[j];
+    var catName = CAT_NAMES[catId2] || catId2;
+    var items = results[j].status === 'fulfilled' ? results[j].value : [];
+    if (!items.length) { failed.push(catName); continue; }
+    pool.push({ catId: catId2, catName: catName, kw: CAT_SEEDS[catId2][0], items: items, count: items.length });
+    completed.push(catName);
+  }
+  var globalMax = 0;
+  for (var k = 0; k < pool.length; k++) { if (pool[k].count > globalMax) globalMax = pool[k].count; }
+  var candidates = [];
+  for (var m = 0; m < pool.length; m++) {
+    var c = buildCandidate(pool[m].kw, pool[m].items, globalMax);
+    c.category = pool[m].catName;
+    candidates.push(c);
+  }
+  candidates.sort(function(a, b) { return b.score.totalScore - a.score.totalScore; });
+  return {
+    candidates: candidates.slice(0, 10),
+    apiStatus: { completed: completed.length + '/' + CAT_ORDER.length + ' 카테고리', failed: failed.length > 0 ? failed.join(', ') : '없음' },
+    processLog: { completed: completed, failed: failed }
+  };
+}
 
-  try{checkEnv();}catch(e){return res.status(500).json({error:e.message,code:'ENV_ERROR'});}
+// 시드 확장
+async function discoverSeed(seedKw) {
+  var r1 = await httpGet('/v1/search/shop.json', { query: seedKw, display: 20, sort: 'sim' }).catch(function() { return {}; });
+  var freq = {};
+  var items0 = r1 && Array.isArray(r1.items) ? r1.items : [];
+  for (var i = 0; i < items0.length; i++) {
+    var words = cleanText(items0[i].title || '').split(/\s+/);
+    for (var w = 0; w < words.length; w++) {
+      var word = words[w];
+      if (word.length > 1 && word !== seedKw) freq[word] = (freq[word] || 0) + 1;
+    }
+  }
+  var entries = [];
+  var fkeys = Object.keys(freq);
+  for (var f = 0; f < fkeys.length; f++) entries.push([fkeys[f], freq[fkeys[f]]]);
+  entries.sort(function(a, b) { return b[1] - a[1]; });
+  var keywords = [seedKw];
+  for (var e = 0; e < Math.min(6, entries.length); e++) keywords.push(entries[e][0]);
+  keywords = keywords.slice(0, 8);
+  var promises = [];
+  for (var p = 0; p < keywords.length; p++) promises.push(shopSearch(keywords[p], null));
+  var results = await Promise.allSettled(promises);
+  var valid = [];
+  for (var j = 0; j < keywords.length; j++) {
+    var sitems = results[j].status === 'fulfilled' ? results[j].value : [];
+    if (sitems.length > 0) valid.push({ kw: keywords[j], items: sitems, count: sitems.length });
+  }
+  if (!valid.length) return { candidates: [], apiStatus: { search: '결과 없음' } };
+  var maxCount = 0;
+  for (var k = 0; k < valid.length; k++) { if (valid[k].count > maxCount) maxCount = valid[k].count; }
+  var candidates = [];
+  for (var m = 0; m < valid.length; m++) candidates.push(buildCandidate(valid[m].kw, valid[m].items, maxCount));
+  candidates.sort(function(a, b) { return b.score.totalScore - a.score.totalScore; });
+  return { candidates: candidates.slice(0, 15), apiStatus: { search: valid.length + '/' + keywords.length + ' 성공' } };
+}
 
-  const mode  =req.query.mode||'category';
-  const period=['today','week','month'].includes(req.query.period)?req.query.period:CFG.DEFAULT_PERIOD;
+module.exports = async function(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
-  try{
-    if(mode==='category'){
-      const catId=req.query.categoryId||'50000003';
+  try { checkEnv(); } catch(e) { return res.status(500).json({ error: e.message }); }
 
-      if(catId==='all'){
-        const cached=getCache();
-        if(cached) return res.status(200).json({...cached,fromCache:true,cacheAge:Math.round((Date.now()-CACHE.ts)/1000)+'초 전'});
-        const {candidates,apiStatus,processLog}=await discoverAll();
-        const result={candidates,mode,categoryId:'all',categoryName:'전체',period,total:candidates.length,apiStatus,processLog,updatedAt:new Date().toISOString(),fromCache:false};
+  var mode = req.query.mode || 'category';
+  var period = req.query.period || 'week';
+
+  try {
+    if (mode === 'category') {
+      var catId = req.query.categoryId || '50000003';
+
+      if (catId === 'all') {
+        var cached = getCache();
+        if (cached) {
+          var age = Math.round((Date.now() - CACHE.ts) / 1000);
+          cached.fromCache = true;
+          cached.cacheAge = age + '초 전';
+          return res.status(200).json(cached);
+        }
+        var allResult = await discoverAll();
+        var result = {
+          candidates: allResult.candidates, mode: mode,
+          categoryId: 'all', categoryName: '전체', period: period,
+          total: allResult.candidates.length, apiStatus: allResult.apiStatus,
+          processLog: allResult.processLog, updatedAt: new Date().toISOString(), fromCache: false
+        };
         setCache(result);
         return res.status(200).json(result);
       }
 
-      const {candidates,apiStatus}=await discoverCategory(catId,period);
+      var catResult = await discoverCategory(catId);
       return res.status(200).json({
-        candidates,mode,categoryId:catId,categoryName:CAT_NAMES[catId]||catId,
-        period,total:candidates.length,apiStatus,updatedAt:new Date().toISOString(),
+        candidates: catResult.candidates, mode: mode,
+        categoryId: catId, categoryName: CAT_NAMES[catId] || catId,
+        period: period, total: catResult.candidates.length,
+        apiStatus: catResult.apiStatus, updatedAt: new Date().toISOString()
       });
     }
 
-    if(mode==='seed'){
-      const seedKw=String(req.query.keyword||'').trim().slice(0,30);
-      if(!seedKw) return res.status(400).json({error:'키워드를 입력해주세요',code:'NO_KEYWORD'});
-      const depth=Math.min(safeNum(req.query.depth,1),2);
-      const {candidates,apiStatus}=await discoverSeed(seedKw,depth);
+    if (mode === 'seed') {
+      var seedKw = String(req.query.keyword || '').trim().slice(0, 30);
+      if (!seedKw) return res.status(400).json({ error: '키워드를 입력해주세요' });
+      var seedResult = await discoverSeed(seedKw);
       return res.status(200).json({
-        candidates,mode,seedKeyword:seedKw,period,total:candidates.length,
-        apiStatus,updatedAt:new Date().toISOString(),
+        candidates: seedResult.candidates, mode: mode,
+        seedKeyword: seedKw, period: period,
+        total: seedResult.candidates.length, apiStatus: seedResult.apiStatus,
+        updatedAt: new Date().toISOString()
       });
     }
 
-    return res.status(400).json({error:'알 수 없는 mode',code:'INVALID_MODE'});
+    return res.status(400).json({ error: '알 수 없는 mode' });
 
-  }catch(e){
-    console.error('[auto-discover]',e.message);
-    return res.status(500).json({error:'탐색 중 오류가 발생했습니다.',detail:e.message,code:'SERVER_ERROR'});
+  } catch(e) {
+    console.error('[auto-discover]', e.message);
+    return res.status(500).json({ error: '탐색 중 오류가 발생했습니다.', detail: e.message });
   }
 };
