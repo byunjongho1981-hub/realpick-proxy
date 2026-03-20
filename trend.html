@@ -697,7 +697,9 @@ function onReset(){
 
 function selectItem(i){
   S.selected=S.filtered[i]||null;
-  renderTable();renderDetail();
+  renderTable();
+  renderDetail();
+  renderQuickLinks();
 }
 
 function switchMode(m){
