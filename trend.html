@@ -215,6 +215,7 @@
     <div id="ctrl-category" style="display:flex;flex-direction:column;gap:8px">
       <div class="ctrl-row">
         <span class="ctrl-label">카테고리</span>
+        <button class="cat-btn" data-cat="all" onclick="onCat(this)">🔍 전체</button>
         <button class="cat-btn on" data-cat="50000003" onclick="onCat(this)">디지털/가전</button>
         <button class="cat-btn" data-cat="50000002" onclick="onCat(this)">화장품/미용</button>
         <button class="cat-btn" data-cat="50000008" onclick="onCat(this)">생활/건강</button>
@@ -224,6 +225,12 @@
         <button class="cat-btn" data-cat="50000005" onclick="onCat(this)">출산/육아</button>
         <button class="cat-btn" data-cat="50000000" onclick="onCat(this)">패션의류</button>
         <button class="cat-btn" data-cat="50000001" onclick="onCat(this)">패션잡화</button>
+        <button class="cat-btn" data-cat="50000009" onclick="onCat(this)">도서/음반</button>
+        <button class="cat-btn" data-cat="50000010" onclick="onCat(this)">완구/취미</button>
+        <button class="cat-btn" data-cat="50000011" onclick="onCat(this)">문구/오피스</button>
+        <button class="cat-btn" data-cat="50000012" onclick="onCat(this)">반려동물</button>
+        <button class="cat-btn" data-cat="50000013" onclick="onCat(this)">자동차용품</button>
+        <button class="cat-btn" data-cat="50000014" onclick="onCat(this)">여행/티켓</button>
       </div>
     </div>
     <div id="ctrl-seed" style="display:none;flex-direction:column;gap:8px">
@@ -417,6 +424,31 @@ async function runMode(){
   else                       await runSeed();
 }
 async function runCategory(){
+  // 전체 선택 시 모든 카테고리 병렬 탐색 후 병합
+  if(S.catId==='all'){
+    setLoading(true,'전체 카테고리 탐색 중... (잠시 기다려 주세요)');
+    try{
+      const results = await Promise.allSettled(
+        ALL_CAT_IDS.map(id => apiFetch(`/api/auto-discover?mode=category&categoryId=${id}&period=${S.period}`))
+      );
+      // 성공한 결과만 병합
+      const allCandidates = results
+        .filter(r=>r.status==='fulfilled')
+        .flatMap(r=>r.value.candidates||[]);
+      // id 기준 중복 제거
+      const seen = new Set();
+      const unique = allCandidates.filter(c=>{ if(seen.has(c.id)) return false; seen.add(c.id); return true; });
+      // 점수순 정렬
+      unique.sort((a,b)=>safeNum(b.score?.totalScore)-safeNum(a.score?.totalScore));
+      handleResult({
+        candidates: unique.slice(0,50),
+        apiStatus: {전체카테고리:`${results.filter(r=>r.status==='fulfilled').length}/${ALL_CAT_IDS.length} 성공`},
+        updatedAt: new Date().toISOString(),
+      });
+    }catch(e){showError(e.message);}
+    finally{setLoading(false);}
+    return;
+  }
   setLoading(true,`카테고리 인기 키워드 수집 중... (${CAT_NAMES[S.catId]||''})`);
   try{handleResult(await apiFetch(`/api/auto-discover?mode=category&categoryId=${S.catId}&period=${S.period}`));}
   catch(e){showError(e.message);}finally{setLoading(false);}
