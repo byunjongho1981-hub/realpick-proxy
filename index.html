@@ -19,7 +19,7 @@
     .nav-logo{font-size:18px;font-weight:900;color:#6366f1;letter-spacing:-0.5px;margin-right:36px;white-space:nowrap}
     .nav-logo span{color:#1e293b}
     .nav-links{display:flex;gap:4px}
-    .nav-link{padding:7px 16px;border-radius:8px;font-size:13px;font-weight:500;color:#64748b;cursor:pointer;border:none;background:transparent;transition:all .15s}
+    .nav-link{padding:7px 16px;border-radius:8px;font-size:13px;font-weight:500;color:#64748b;cursor:pointer;border:none;background:transparent;transition:all .15s;text-decoration:none;display:inline-block}
     .nav-link:hover{background:#f1f5f9;color:#1e293b}
     .nav-link.active{background:#6366f1;color:#fff;font-weight:700}
     .nav-right{margin-left:auto;display:flex;align-items:center;gap:8px}
@@ -86,10 +86,10 @@
   <nav>
     <div class="nav-logo">Real<span>Pick</span></div>
     <div class="nav-links">
-      <button class="nav-link active">🏠 홈</button>
-      <button class="nav-link">📊 트렌드 분석</button>
-      <button class="nav-link">⚡ AI 추천</button>
-      <button class="nav-link">🗂 데이터 뷰</button>
+      <a class="nav-link active" href="/index.html">🏠 홈</a>
+      <a class="nav-link" href="/trend.html">🔍 트렌드 탐색</a>
+      <a class="nav-link" href="/ai.html">⚡ AI 추천</a>
+      <a class="nav-link" href="/data.html">🗂 데이터 뷰</a>
     </div>
     <div class="nav-right">
       <span class="nav-badge">BETA</span>
@@ -152,9 +152,9 @@
       <!-- 기능 카드 -->
       <div class="section-label">Features</div>
       <div class="grid">
-        <div class="card">
-          <div class="card-icon">📊</div>
-          <div class="card-title">트렌드 분석</div>
+        <div class="card" onclick="location.href='/trend.html'" style="cursor:pointer">
+          <div class="card-icon">🔍</div>
+          <div class="card-title">트렌드 탐색</div>
           <div class="card-desc">카테고리별 인기 키워드와 검색 트렌드를 시각화합니다.</div>
           <span class="card-tag" style="background:#6366f111;color:#6366f1">준비 중</span>
         </div>
