@@ -166,36 +166,39 @@
 <div class="page">
 
   <!-- 요약 카드 -->
-  <div class="summary-bar">
-    <div class="s-card"><div class="s-card-label">전체 후보</div><div class="s-card-val" id="sc-total" style="color:var(--c-primary)">–</div><div class="s-card-sub">탐색 결과</div></div>
-    <div class="s-card"><div class="s-card-label">🔥 급상승</div><div class="s-card-val" id="sc-rising" style="color:var(--rising)">–</div><div class="s-card-sub" id="sc-rising-sub">–</div></div>
-    <div class="s-card"><div class="s-card-label">🏆 A등급</div><div class="s-card-val" id="sc-agrade" style="color:var(--grade-a)">–</div><div class="s-card-sub">고신뢰 추천</div></div>
-    <div class="s-card"><div class="s-card-label">🛒 쇼핑 강세</div><div class="s-card-val" id="sc-shopping" style="color:var(--act-shorts)">–</div><div class="s-card-sub">쇼핑 소스 多</div></div>
-    <div class="s-card"><div class="s-card-label">📊 평균 점수</div><div class="s-card-val" id="sc-avg" style="color:var(--stable)">–</div><div class="s-card-sub">100점 만점</div></div>
-    <div class="s-card"><div class="s-card-label">⚠️ 데이터 부족</div><div class="s-card-val" id="sc-low" style="color:var(--c-faint)">–</div><div class="s-card-sub">신뢰도 low</div></div>
+  <div class="summary-bar" style="justify-content:space-between;align-items:center">
 
-    <!-- 큰 자동탐색 버튼 + 직접 검색 -->
-    <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0">
-      <!-- 직접 검색 -->
-      <div style="display:flex;align-items:center;gap:0;background:#f1f5f9;border:1.5px solid var(--c-border);border-radius:10px;overflow:hidden">
-        <span style="padding:0 10px;font-size:16px;color:var(--c-faint)">🔎</span>
-        <input id="quick-search-input" type="text" placeholder="직접 검색..." maxlength="30"
-          style="border:none;outline:none;background:transparent;padding:9px 4px 9px 0;font-size:13px;color:var(--c-text);width:160px"
-          onkeydown="if(event.key==='Enter')runQuickSearch()"/>
-        <button onclick="runQuickSearch()" id="btn-quick-search"
-          style="padding:9px 14px;background:var(--c-primary);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:700;transition:background .15s"
-          onmouseover="this.style.background='#4f46e5'" onmouseout="this.style.background='var(--c-primary)'">
-          검색
-        </button>
-      </div>
+    <!-- 왼쪽: 직접검색 + 자동탐색 버튼 -->
+    <div style="display:flex;flex-direction:column;gap:7px;flex-shrink:0">
       <!-- 큰 자동탐색 버튼 -->
       <button id="btn-auto-big" onclick="runAutoDiscover()"
-        style="display:flex;align-items:center;gap:8px;padding:10px 22px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:14px;font-weight:800;box-shadow:0 4px 14px rgba(99,102,241,.35);transition:all .2s;white-space:nowrap"
+        style="display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 22px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:14px;font-weight:800;box-shadow:0 4px 14px rgba(99,102,241,.35);transition:all .2s;white-space:nowrap"
         onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(99,102,241,.45)'"
         onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 14px rgba(99,102,241,.35)'">
         🚀 자동 트렌드 탐색
       </button>
+      <!-- 직접 검색 -->
+      <div style="display:flex;align-items:center;background:#f1f5f9;border:1.5px solid var(--c-border);border-radius:10px;overflow:hidden">
+        <span style="padding:0 8px;font-size:15px;color:var(--c-faint)">🔎</span>
+        <input id="quick-search-input" type="text" placeholder="직접 검색..." maxlength="30"
+          style="border:none;outline:none;background:transparent;padding:8px 4px 8px 0;font-size:13px;color:var(--c-text);width:140px"
+          onkeydown="if(event.key==='Enter')runQuickSearch()"/>
+        <button onclick="runQuickSearch()" id="btn-quick-search"
+          style="padding:8px 12px;background:var(--c-primary);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:700;transition:background .15s"
+          onmouseover="this.style.background='#4f46e5'" onmouseout="this.style.background='var(--c-primary)'">검색</button>
+      </div>
     </div>
+
+    <!-- 가운데: 요약 카드들 -->
+    <div style="display:flex;gap:8px;justify-content:center;flex:1;margin:0 16px;overflow-x:auto">
+      <div class="s-card"><div class="s-card-label">전체 후보</div><div class="s-card-val" id="sc-total" style="color:var(--c-primary)">–</div><div class="s-card-sub">탐색 결과</div></div>
+      <div class="s-card"><div class="s-card-label">🔥 급상승</div><div class="s-card-val" id="sc-rising" style="color:var(--rising)">–</div><div class="s-card-sub" id="sc-rising-sub">–</div></div>
+      <div class="s-card"><div class="s-card-label">🏆 A등급</div><div class="s-card-val" id="sc-agrade" style="color:var(--grade-a)">–</div><div class="s-card-sub">고신뢰 추천</div></div>
+      <div class="s-card"><div class="s-card-label">🛒 쇼핑 강세</div><div class="s-card-val" id="sc-shopping" style="color:var(--act-shorts)">–</div><div class="s-card-sub">쇼핑 소스 多</div></div>
+      <div class="s-card"><div class="s-card-label">📊 평균 점수</div><div class="s-card-val" id="sc-avg" style="color:var(--stable)">–</div><div class="s-card-sub">100점 만점</div></div>
+      <div class="s-card"><div class="s-card-label">⚠️ 데이터 부족</div><div class="s-card-val" id="sc-low" style="color:var(--c-faint)">–</div><div class="s-card-sub">신뢰도 low</div></div>
+    </div>
+
   </div>
 
   <!-- 모드 탭 -->
