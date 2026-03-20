@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>트렌드 탐색 — RealPick</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#f0f4ff;color:#1e293b;font-family:'Noto Sans KR',sans-serif;min-height:100vh}
+
+    nav{
+      position:fixed;top:0;left:0;right:0;z-index:100;
+      background:rgba(255,255,255,0.85);backdrop-filter:blur(12px);
+      border-bottom:1px solid #e2e8f0;
+      height:60px;display:flex;align-items:center;padding:0 32px;gap:0;
+    }
+    .nav-logo{font-size:18px;font-weight:900;color:#6366f1;letter-spacing:-0.5px;margin-right:36px;text-decoration:none}
+    .nav-logo span{color:#1e293b}
+    .nav-links{display:flex;gap:4px}
+    .nav-link{padding:7px 16px;border-radius:8px;font-size:13px;font-weight:500;color:#64748b;cursor:pointer;border:none;background:transparent;transition:all .15s;text-decoration:none;display:inline-block}
+    .nav-link:hover{background:#f1f5f9;color:#1e293b}
+    .nav-link.active{background:#6366f1;color:#fff;font-weight:700}
+    .nav-right{margin-left:auto}
+    .nav-badge{background:#6366f1;color:#fff;font-size:10px;padding:3px 10px;border-radius:20px;font-weight:700}
+
+    .page{margin-top:60px;padding:40px 36px;max-width:960px;margin-left:auto;margin-right:auto}
+    .page-header{margin-bottom:32px}
+    .page-label{font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+    .page-title{font-size:24px;font-weight:900;color:#1e293b;margin-bottom:6px}
+    .page-sub{font-size:13px;color:#64748b}
+
+    .coming{background:#fff;border-radius:20px;border:1px solid #e2e8f0;padding:80px 40px;text-align:center}
+    .coming-icon{font-size:52px;margin-bottom:20px}
+    .coming h3{font-size:18px;font-weight:700;color:#1e293b;margin-bottom:8px}
+    .coming p{font-size:13px;color:#94a3b8;line-height:1.7}
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a class="nav-logo" href="/index.html">Real<span>Pick</span></a>
+    <div class="nav-links">
+      <a class="nav-link" href="/index.html">🏠 홈</a>
+      <a class="nav-link active" href="/trend.html">🔍 트렌드 탐색</a>
+      <a class="nav-link" href="/ai.html">⚡ AI 추천</a>
+      <a class="nav-link" href="/data.html">🗂 데이터 뷰</a>
+    </div>
+    <div class="nav-right">
+      <span class="nav-badge">BETA</span>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="page-header">
+      <div class="page-label">Trend Explorer</div>
+      <div class="page-title">트렌드 탐색</div>
+      <div class="page-sub">네이버 검색어트렌드 &amp; 쇼핑인사이트 기반 키워드 분석</div>
+    </div>
+
+    <div class="coming">
+      <div class="coming-icon">🔍</div>
+      <h3>기능 준비 중입니다</h3>
+      <p>카테고리 선택 → 인기 키워드 조회 → 트렌드 시각화<br/>기능이 곧 추가됩니다.</p>
+    </div>
+  </div>
+
+</body>
+</html>
