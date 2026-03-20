@@ -51,7 +51,7 @@
     .cat-btn.on{border-color:#6366f1;background:#6366f1;color:#fff}
 
     /* 필터 바 */
-    .filter-bar{background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:8px 28px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0}
+    .filter-bar{background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:8px 28px;display:flex;align-items:center;gap:8px;flex-shrink:0;overflow-x:auto;white-space:nowrap}
     .filter-btn{padding:4px 12px;border-radius:20px;border:1.5px solid #e2e8f0;font-size:12px;font-weight:600;color:#64748b;cursor:pointer;background:#fff;transition:all .15s}
     .filter-btn.on{border-color:#6366f1;background:#6366f1;color:#fff}
     .sep{width:1px;height:16px;background:#e2e8f0;margin:0 2px}
@@ -469,17 +469,19 @@ function renderQuickLinks(){
   if(!c){ el.style.display='none'; return; }
   const q = encodeURIComponent(c.name);
   const links = [
-    { icon:'🛒', label:'쇼핑',  color:'#6366f1', url:`https://search.shopping.naver.com/search/all?query=${q}` },
-    { icon:'📝', label:'블로그', color:'#22d3ee', url:`https://search.naver.com/search.naver?where=blog&query=${q}` },
-    { icon:'🟡', label:'쿠팡',  color:'#f59e0b', url:`https://www.coupang.com/np/search?q=${q}` },
-    { icon:'▶️', label:'유튜브', color:'#f43f5e', url:`https://www.youtube.com/results?search_query=${encodeURIComponent(c.name+' 추천')}` },
+    { icon:'🛒', label:'네이버 쇼핑', color:'#6366f1', url:`https://search.shopping.naver.com/search/all?query=${q}` },
+    { icon:'📝', label:'네이버 블로그', color:'#22d3ee', url:`https://search.naver.com/search.naver?where=blog&query=${q}` },
+    { icon:'🟡', label:'쿠팡',         color:'#f59e0b', url:`https://www.coupang.com/np/search?q=${q}` },
+    { icon:'▶️', label:'유튜브',        color:'#f43f5e', url:`https://www.youtube.com/results?search_query=${encodeURIComponent(c.name+' 추천')}` },
   ];
   el.style.display='flex';
   el.innerHTML = links.map(l=>`
-    <a href="${l.url}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;text-decoration:none;font-size:12px;font-weight:600;color:#1e293b;white-space:nowrap;transition:border .15s"
-      onmouseover="this.style.borderColor='${l.color}';this.style.color='${l.color}'"
-      onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#1e293b'">
-      <span>${l.icon}</span>${l.label}
+    <a href="${l.url}" target="_blank" rel="noopener"
+      title="${l.label}"
+      style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;text-decoration:none;font-size:14px;flex-shrink:0;transition:all .15s"
+      onmouseover="this.style.borderColor='${l.color}';this.style.transform='scale(1.12)'"
+      onmouseout="this.style.borderColor='#e2e8f0';this.style.transform='scale(1)'">
+      ${l.icon}
     </a>`).join('');
 }
 
