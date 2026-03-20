@@ -4,6 +4,9 @@
   "outputDirectory": ".",
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/(.*)", "dest": "/index.html" }
+    { "src": "/trend.html", "dest": "/trend.html" },
+    { "src": "/ai.html",    "dest": "/ai.html" },
+    { "src": "/data.html",  "dest": "/data.html" },
+    { "src": "/",           "dest": "/index.html" }
   ]
 }
