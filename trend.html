@@ -64,7 +64,7 @@
     .result-row.selected td:first-child{border-left:3px solid #6366f1}
 
     /* ── DETAIL PANEL */
-    .detail-panel{width:320px;min-width:320px;background:#fff;border-left:1px solid #e2e8f0;overflow-y:auto;flex-shrink:0}
+    .detail-panel{width:320px;min-width:320px;background:#fff;border-right:1px solid #e2e8f0;overflow-y:auto;flex-shrink:0}
     .detail-header{padding:16px 18px;border-bottom:1px solid #e2e8f0;font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;position:sticky;top:0;background:#fff;z-index:5}
     .detail-body{padding:18px}
     .d-section{margin-bottom:20px}
@@ -156,6 +156,17 @@
   <!-- 바디 -->
   <div class="body-area">
 
+    <!-- 상세 패널 (왼쪽) -->
+    <div class="detail-panel">
+      <div class="detail-header">상세 분석</div>
+      <div class="detail-body" id="detail-body">
+        <div class="empty-box" style="padding:40px 10px">
+          <div class="empty-icon">📋</div>
+          <div class="empty-text" style="text-align:center">테이블에서 항목을 선택하면<br/>상세 분석이 표시됩니다</div>
+        </div>
+      </div>
+    </div>
+
     <!-- 테이블 패널 -->
     <div class="table-panel">
 
@@ -212,16 +223,7 @@
       </div>
     </div>
 
-    <!-- 상세 패널 -->
-    <div class="detail-panel">
-      <div class="detail-header">상세 분석</div>
-      <div class="detail-body" id="detail-body">
-        <div class="empty-box" style="padding:40px 10px">
-          <div class="empty-icon">📋</div>
-          <div class="empty-text" style="text-align:center">테이블에서 항목을 선택하면<br/>상세 분석이 표시됩니다</div>
-        </div>
-      </div>
-    </div>
+    <!-- 상세 패널 닫기 제거 (왼쪽으로 이동됨) -->
 
   </div>
 </div>
