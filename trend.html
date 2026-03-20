@@ -180,13 +180,19 @@
           style="padding:8px 12px;background:var(--c-primary);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:700;transition:background .15s"
           onmouseover="this.style.background='#4f46e5'" onmouseout="this.style.background='var(--c-primary)'">검색</button>
       </div>
-      <!-- 자동탐색 시작 버튼 -->
-      <button id="btn-auto-big" onclick="runMode()"
-        style="display:flex;align-items:center;justify-content:center;gap:8px;padding:9px 22px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:13px;font-weight:800;box-shadow:0 4px 14px rgba(99,102,241,.3);transition:all .2s;white-space:nowrap"
-        onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(99,102,241,.45)'"
-        onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 14px rgba(99,102,241,.3)'">
-        🚀 자동탐색 시작
-      </button>
+      <!-- 자동탐색 + 기간 버튼 한 줄 -->
+      <div style="display:flex;align-items:center;gap:6px">
+        <button id="btn-auto-big" onclick="runMode()"
+          style="display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 16px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:13px;font-weight:800;box-shadow:0 4px 14px rgba(99,102,241,.3);transition:all .2s;white-space:nowrap"
+          onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(99,102,241,.45)'"
+          onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 14px rgba(99,102,241,.3)'">
+          🚀 자동탐색
+        </button>
+        <button class="cat-btn" data-period="today" onclick="onPeriod(this)">오늘</button>
+        <button class="cat-btn on" data-period="week" onclick="onPeriod(this)">이번주</button>
+        <button class="cat-btn" data-period="month" onclick="onPeriod(this)">이번달</button>
+        <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px" onclick="onReset()">초기화</button>
+      </div>
     </div>
 
     <!-- 가운데: 요약 카드들 -->
@@ -224,16 +230,7 @@
         <button class="cat-btn" data-cat="50000001" onclick="onCat(this)">패션잡화</button>
       </div>
       <div class="ctrl-row">
-        <span class="ctrl-label">기간</span>
-        <button class="cat-btn on" data-period="week" onclick="onPeriod(this)">이번주</button>
-        <button class="cat-btn" data-period="today" onclick="onPeriod(this)">오늘</button>
-        <button class="cat-btn" data-period="month" onclick="onPeriod(this)">이번달</button>
-        <button class="btn btn-ghost" onclick="onReset()" style="margin-left:8px">초기화</button>
-      </div>
-    </div>
-    <div class="ctrl-panel" id="ctrl-rising">
-      <div class="ctrl-row">
-        <span class="ctrl-label">변화율 기준</span>
+        <span class="ctrl-label">카테고리</span>
         <button class="cat-btn on" data-threshold="10" onclick="onThreshold(this)">+10%</button>
         <button class="cat-btn" data-threshold="20" onclick="onThreshold(this)">+20%</button>
         <button class="cat-btn" data-threshold="30" onclick="onThreshold(this)">+30%</button>
