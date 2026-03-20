@@ -4,7 +4,7 @@
   "outputDirectory": ".",
   "functions": {
     "api/auto-discover.js": {
-      "maxDuration": 60
+      "maxDuration": 300
     }
   },
   "routes": [
