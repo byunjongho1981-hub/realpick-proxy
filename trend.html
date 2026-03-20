@@ -221,7 +221,7 @@
 
   <!-- 컨트롤 -->
   <div class="controls">
-    <div class="ctrl-panel active" id="ctrl-category">
+    <div id="ctrl-category" style="display:flex;flex-direction:column;gap:8px">
       <div class="ctrl-row">
         <span class="ctrl-label">카테고리</span>
         <button class="cat-btn on" data-cat="50000003" onclick="onCat(this)">디지털/가전</button>
@@ -235,7 +235,7 @@
         <button class="cat-btn" data-cat="50000001" onclick="onCat(this)">패션잡화</button>
       </div>
     </div>
-    <div class="ctrl-panel" id="ctrl-rising">
+    <div id="ctrl-rising" style="display:none;flex-direction:column;gap:8px">
       <div class="ctrl-row">
         <span class="ctrl-label">변화율</span>
         <button class="cat-btn on" data-threshold="10" onclick="onThreshold(this)">+10%</button>
@@ -249,7 +249,7 @@
         <button class="cat-btn" data-mcat="50000008" onclick="onMcat(this)">생활</button>
       </div>
     </div>
-    <div class="ctrl-panel" id="ctrl-seed">
+    <div id="ctrl-seed" style="display:none;flex-direction:column;gap:8px">
       <div class="ctrl-row">
         <span class="ctrl-label">시드 키워드</span>
         <input id="seed-input" class="search-input" type="text" placeholder="예: 무선 청소기" maxlength="30"
@@ -847,8 +847,11 @@ function selectItem(i){
 function switchMode(m){
   S.mode=m;S.selected=null;
   document.querySelectorAll('.mode-tab').forEach((t,i)=>t.classList.toggle('active',['category','rising','seed'][i]===m));
-  document.querySelectorAll('.ctrl-panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById('ctrl-'+m).classList.add('active');
+  ['ctrl-category','ctrl-rising','ctrl-seed'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    el.style.display = id===`ctrl-${m}` ? 'flex' : 'none';
+  });
   onReset();
 }
 function onCat(el){document.querySelectorAll('[data-cat]').forEach(b=>b.classList.remove('on'));el.classList.add('on');S.catId=el.dataset.cat;}
