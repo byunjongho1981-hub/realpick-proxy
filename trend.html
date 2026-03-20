@@ -480,8 +480,12 @@ async function runQuickSearch(){
 }
 function handleResult(data){
   if(!Array.isArray(data.candidates)) throw new Error('응답 형식 오류');
-  S.candidates=data.candidates;S.apiStatus=data.apiStatus||{};S.lastUpdated=data.updatedAt||new Date().toISOString();
-  applySort();renderAll();
+  S.candidates=data.candidates;
+  S.apiStatus=data.apiStatus||{};
+  S.lastUpdated=data.updatedAt||new Date().toISOString();
+  applySort();
+  try { renderAll(); }
+  catch(e) { console.error('[renderAll]', e); }
 }
 
 // ── FILTER/SORT
@@ -682,7 +686,8 @@ function onReset(){
 }
 function selectItem(i){
   S.selected=S.filtered[i]||null;
-  renderTable();renderDetail();renderQuickLinks();
+  try { renderTable(); renderDetail(); renderQuickLinks(); }
+  catch(e) { console.error('[selectItem render]', e); }
 }
 function switchMode(m){
   S.mode=m;S.selected=null;
