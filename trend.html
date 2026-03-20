@@ -5,63 +5,61 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>트렌드 탐색 — RealPick</title>
   <style>
-    /* ── THEME TOKENS ── */
     :root{
-      --c-bg:#f0f4ff; --c-surface:#fff; --c-border:#e2e8f0;
-      --c-text:#1e293b; --c-muted:#64748b; --c-faint:#94a3b8;
-      --c-primary:#6366f1; --c-primary-lt:#eff0ff;
-      --c-rising:#10b981;  --c-rising-lt:#ecfdf5;
-      --c-stable:#6366f1;  --c-stable-lt:#eff0ff;
-      --c-falling:#f43f5e; --c-falling-lt:#fff1f2;
-      --c-new:#f59e0b;     --c-new-lt:#fffbeb;
-      --c-unknown:#94a3b8; --c-unknown-lt:#f8fafc;
-      --c-grade-a:#10b981; --c-grade-b:#6366f1; --c-grade-c:#94a3b8;
-      --c-shorts:#f59e0b;  --c-blog:#22d3ee;
-      --c-hold:#94a3b8;    --c-compare:#a78bfa;
-      --radius:10px; --radius-sm:7px;
-      --shadow:0 1px 4px rgba(0,0,0,.07);
+      --c-bg:#f0f4ff;--c-surface:#fff;--c-border:#e2e8f0;
+      --c-text:#1e293b;--c-muted:#64748b;--c-faint:#94a3b8;
+      --c-primary:#6366f1;
+      --rising:#10b981;  --rising-lt:#ecfdf5;
+      --stable:#6366f1;  --stable-lt:#eff0ff;
+      --falling:#f43f5e; --falling-lt:#fff1f2;
+      --new:#f59e0b;     --new-lt:#fffbeb;
+      --unknown:#94a3b8; --unknown-lt:#f8fafc;
+      --grade-a:#10b981; --grade-a-lt:#ecfdf5;
+      --grade-b:#6366f1; --grade-b-lt:#eff0ff;
+      --grade-c:#94a3b8; --grade-c-lt:#f8fafc;
+      --act-shorts:#f59e0b; --act-shorts-lt:#fffbeb;
+      --act-blog:#0891b2;   --act-blog-lt:#ecfeff;
+      --act-hold:#94a3b8;   --act-hold-lt:#f8fafc;
+      --act-compare:#a78bfa;--act-compare-lt:#f5f3ff;
     }
     *{box-sizing:border-box;margin:0;padding:0}
     body{background:var(--c-bg);color:var(--c-text);font-family:'Noto Sans KR',sans-serif;min-height:100vh;font-size:13px}
 
-    /* ── NAV ── */
-    nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--c-border);height:52px;display:flex;align-items:center;padding:0 24px;gap:0}
-    .nav-logo{font-size:16px;font-weight:900;color:var(--c-primary);text-decoration:none;margin-right:28px;white-space:nowrap}
+    nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--c-border);height:52px;display:flex;align-items:center;padding:0 24px}
+    .nav-logo{font-size:16px;font-weight:900;color:var(--c-primary);text-decoration:none;margin-right:28px}
     .nav-logo span{color:var(--c-text)}
     .nav-links{display:flex;gap:2px}
     .nav-link{padding:6px 13px;border-radius:8px;font-size:13px;font-weight:500;color:var(--c-faint);text-decoration:none;display:inline-block;transition:all .15s}
     .nav-link:hover{background:#f1f5f9;color:var(--c-text)}
     .nav-link.active{background:var(--c-primary);color:#fff;font-weight:700}
-    .nav-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+    .nav-right{margin-left:auto}
     .nav-badge{background:var(--c-primary);color:#fff;font-size:10px;padding:2px 9px;border-radius:20px;font-weight:700}
 
-    /* ── PAGE SHELL ── */
     .page{margin-top:52px;display:flex;flex-direction:column;height:calc(100vh - 52px);overflow:hidden}
 
-    /* ── 요약 카드 영역 ── */
+    /* 요약 카드 */
     .summary-bar{background:var(--c-surface);border-bottom:1px solid var(--c-border);padding:10px 24px;display:flex;gap:8px;flex-shrink:0;overflow-x:auto}
-    .s-card{min-width:130px;background:var(--c-bg);border:1px solid var(--c-border);border-radius:var(--radius);padding:10px 14px;flex-shrink:0;cursor:default;transition:box-shadow .15s}
-    .s-card:hover{box-shadow:var(--shadow)}
+    .s-card{min-width:120px;background:var(--c-bg);border:1px solid var(--c-border);border-radius:10px;padding:10px 14px;flex-shrink:0}
     .s-card-label{font-size:10px;font-weight:700;color:var(--c-faint);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}
     .s-card-val{font-size:20px;font-weight:900;line-height:1;margin-bottom:3px}
-    .s-card-sub{font-size:11px;color:var(--c-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .s-card-sub{font-size:11px;color:var(--c-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px}
 
-    /* ── 모드 탭 ── */
+    /* 모드 탭 */
     .mode-bar{background:var(--c-surface);border-bottom:2px solid var(--c-border);padding:0 24px;display:flex;flex-shrink:0}
     .mode-tab{padding:11px 18px;font-size:13px;font-weight:600;color:var(--c-faint);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
     .mode-tab:hover{color:var(--c-primary)}
     .mode-tab.active{color:var(--c-primary);border-bottom-color:var(--c-primary)}
     .mode-badge{background:#10b981;color:#fff;font-size:9px;padding:1px 6px;border-radius:10px;margin-left:5px;vertical-align:middle}
 
-    /* ── 컨트롤 ── */
+    /* 컨트롤 */
     .controls{background:var(--c-surface);border-bottom:1px solid var(--c-border);padding:11px 24px;flex-shrink:0}
     .ctrl-panel{display:none;flex-direction:column;gap:8px}
     .ctrl-panel.active{display:flex}
     .ctrl-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
     .ctrl-label{font-size:10px;font-weight:700;color:var(--c-faint);text-transform:uppercase;letter-spacing:1px;white-space:nowrap}
-    .search-input{flex:1;max-width:320px;padding:8px 12px;border:1.5px solid var(--c-border);border-radius:var(--radius);font-size:13px;color:var(--c-text);outline:none;transition:border .15s;background:#f8fafc}
+    .search-input{flex:1;max-width:320px;padding:8px 12px;border:1.5px solid var(--c-border);border-radius:10px;font-size:13px;outline:none;transition:border .15s;background:#f8fafc}
     .search-input:focus{border-color:var(--c-primary);background:#fff}
-    .btn{padding:8px 16px;border-radius:var(--radius);border:none;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap}
+    .btn{padding:8px 16px;border-radius:10px;border:none;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap}
     .btn:disabled{opacity:.5;cursor:not-allowed}
     .btn-primary{background:var(--c-primary);color:#fff}
     .btn-primary:hover:not(:disabled){background:#4f46e5}
@@ -70,62 +68,56 @@
     .cat-btn{padding:4px 11px;border-radius:20px;border:1.5px solid var(--c-border);font-size:12px;font-weight:600;color:var(--c-muted);cursor:pointer;background:#fff;transition:all .15s}
     .cat-btn.on{border-color:var(--c-primary);background:var(--c-primary);color:#fff}
 
-    /* ── 필터 바 ── */
-    .filter-bar{background:#f8fafc;border-bottom:1px solid var(--c-border);padding:7px 24px;display:flex;align-items:center;gap:7px;flex-shrink:0;overflow-x:auto;white-space:nowrap}
+    /* 필터 바 */
+    .filter-bar{background:#f8fafc;border-bottom:1px solid var(--c-border);padding:7px 24px;display:flex;align-items:center;gap:6px;flex-shrink:0;overflow-x:auto;white-space:nowrap}
     .filter-btn{padding:4px 11px;border-radius:20px;border:1.5px solid var(--c-border);font-size:12px;font-weight:600;color:var(--c-muted);cursor:pointer;background:#fff;transition:all .15s;flex-shrink:0}
     .filter-btn.on{border-color:var(--c-primary);background:var(--c-primary);color:#fff}
     .sep{width:1px;height:16px;background:var(--c-border);margin:0 2px;flex-shrink:0}
-    select.sort-sel{padding:4px 8px;border:1.5px solid var(--c-border);border-radius:8px;font-size:12px;color:#475569;background:#fff;outline:none;cursor:pointer;flex-shrink:0}
+    select.sort-sel{padding:4px 8px;border:1.5px solid var(--c-border);border-radius:8px;font-size:12px;color:#475569;background:#fff;outline:none;cursor:pointer}
 
-    /* ── 바로가기 바 ── */
-    .quicklink-bar{background:#fff;border-bottom:1px solid var(--c-border);padding:6px 24px;display:none;align-items:center;gap:6px;flex-shrink:0}
-    .ql-label{font-size:10px;font-weight:700;color:var(--c-faint);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;margin-right:2px}
+    /* 바로가기 바 */
+    .ql-bar{background:#fff;border-bottom:1px solid var(--c-border);padding:6px 24px;display:none;align-items:center;gap:6px;flex-shrink:0}
+    .ql-label{font-size:10px;font-weight:700;color:var(--c-faint);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap}
     .ql-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:#fff;border:1.5px solid var(--c-border);border-radius:7px;text-decoration:none;font-size:12px;font-weight:600;color:#475569;white-space:nowrap;transition:all .15s}
     .ql-btn:hover{transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,.08)}
 
-    /* ── BODY ── */
+    /* 바디 */
     .body-area{display:flex;flex:1;overflow:hidden}
 
-    /* ── 좌측 패널 ── */
-    .detail-panel{width:280px;min-width:280px;background:var(--c-surface);border-right:1px solid var(--c-border);overflow-y:auto;flex-shrink:0;display:flex;flex-direction:column}
-    .dp-header{padding:12px 16px;border-bottom:1px solid var(--c-border);font-size:10px;font-weight:700;color:var(--c-faint);text-transform:uppercase;letter-spacing:1px;position:sticky;top:0;background:var(--c-surface);z-index:5;flex-shrink:0}
-    .dp-body{padding:14px;flex:1}
+    /* 좌측 패널 */
+    .detail-panel{width:280px;min-width:280px;background:var(--c-surface);border-right:1px solid var(--c-border);overflow-y:auto;flex-shrink:0}
+    .dp-header{padding:12px 16px;border-bottom:1px solid var(--c-border);font-size:10px;font-weight:700;color:var(--c-faint);text-transform:uppercase;letter-spacing:1px;position:sticky;top:0;background:var(--c-surface);z-index:5}
+    .dp-body{padding:14px}
     .dp-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 16px;color:var(--c-faint);gap:8px;text-align:center}
-
-    /* 패널 내부 */
-    .dp-name{font-size:15px;font-weight:800;color:var(--c-text);line-height:1.3;margin-bottom:4px}
+    .dp-name{font-size:15px;font-weight:800;line-height:1.3;margin-bottom:6px}
     .dp-kwtags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px}
-    .dp-kwtag{background:var(--c-primary-lt);color:var(--c-primary);border-radius:5px;padding:2px 8px;font-size:10px;font-weight:600}
-    .dp-section{margin-bottom:14px}
+    .dp-kwtag{background:var(--stable-lt);color:var(--c-primary);border-radius:5px;padding:2px 8px;font-size:10px;font-weight:600}
+    .dp-sec{margin-bottom:14px}
     .dp-sec-lbl{font-size:10px;font-weight:700;color:var(--c-faint);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
-    .dp-box{background:#f8fafc;border-radius:8px;padding:10px 12px;font-size:12px;color:var(--c-text);line-height:1.6}
-    .dp-warn-box{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;font-size:12px;color:#92400e;line-height:1.6}
-    .score-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px}
-    .sc{background:#f8fafc;border-radius:8px;padding:10px;text-align:center}
+    .dp-box{background:#f8fafc;border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.6}
+    .dp-warn{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;font-size:12px;color:#92400e;line-height:1.7}
+    .sc-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px}
+    .sc-cell{background:#f8fafc;border-radius:8px;padding:10px;text-align:center}
     .sc-big{font-size:18px;font-weight:900;line-height:1}
     .sc-lbl{font-size:10px;color:var(--c-faint);margin-top:2px}
     .bar-item{margin-bottom:7px}
     .bar-lrow{display:flex;justify-content:space-between;margin-bottom:3px;font-size:11px}
     .bar-track{height:5px;background:var(--c-border);border-radius:3px;overflow:hidden}
     .bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--c-primary),#818cf8)}
-    .action-box{background:#1e293b;border-radius:8px;padding:12px}
-    .dp-action-btns{display:flex;flex-direction:column;gap:5px;margin-top:10px}
-    .dp-action-btn{display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:8px;border:none;cursor:pointer;font-size:12px;font-weight:600;transition:all .15s;text-align:left}
+    .action-box{background:#1e293b;border-radius:8px;padding:12px;margin-top:4px}
+    .act-btn{display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:8px;border:none;cursor:pointer;font-size:12px;font-weight:600;transition:all .15s;text-align:left;width:100%;margin-bottom:5px}
 
     /* 위치 추적 */
-    .pos-wrap{display:flex;align-items:center;gap:8px;background:#f8fafc;border-radius:8px;padding:10px 12px;margin-bottom:12px}
+    .pos-wrap{display:flex;align-items:center;gap:10px;background:#f8fafc;border-radius:8px;padding:10px 12px;margin-bottom:12px}
     .pos-rank{font-size:22px;font-weight:900;line-height:1}
-    .pos-info{flex:1}
-    .pos-total{font-size:10px;color:var(--c-faint)}
-    .pos-delta{font-size:11px;font-weight:700;margin-top:2px}
-    .pos-hist{display:flex;align-items:flex-end;gap:2px;height:24px}
+    .pos-hist{display:flex;align-items:flex-end;gap:2px;height:22px}
     .ph-bar{width:8px;border-radius:2px 2px 0 0;min-height:3px}
-    .rank-track{flex:1;height:4px;background:var(--c-border);border-radius:2px;overflow:hidden;margin-top:4px}
+    .rank-track{height:4px;background:var(--c-border);border-radius:2px;overflow:hidden;margin-top:4px}
     .rank-fill{height:100%;border-radius:2px}
 
-    /* ── 테이블 패널 ── */
+    /* 테이블 */
     .table-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
-    .table-meta{padding:8px 18px;background:var(--c-surface);border-bottom:1px solid var(--c-border);display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0;min-height:36px}
+    .table-meta{padding:7px 18px;background:var(--c-surface);border-bottom:1px solid var(--c-border);display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0;min-height:34px}
     .stat-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#475569;background:#f1f5f9;padding:2px 9px;border-radius:20px;font-weight:600}
     .table-rel{position:relative;flex:1;overflow:hidden;display:flex;flex-direction:column}
     .table-wrap{flex:1;overflow-y:auto;background:var(--c-surface)}
@@ -134,35 +126,24 @@
     th{padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--c-faint);text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid var(--c-border);white-space:nowrap}
     .result-row{cursor:pointer;border-bottom:1px solid #f8fafc;transition:background .1s}
     .result-row:hover{background:#f8faff}
-    .result-row:hover .row-actions{opacity:1}
-    .result-row.sel{background:var(--c-primary-lt)}
+    .result-row:hover .row-acts{opacity:1}
+    .result-row.sel{background:var(--stable-lt)}
     .result-row.sel td:first-child{border-left:3px solid var(--c-primary)}
-
-    /* 행 액션 버튼 */
-    .row-actions{opacity:0;display:flex;gap:3px;transition:opacity .15s}
+    .row-acts{opacity:0;display:flex;gap:3px;transition:opacity .15s}
     .ra-btn{padding:3px 7px;border-radius:5px;border:1px solid var(--c-border);background:#fff;font-size:10px;font-weight:600;cursor:pointer;color:var(--c-muted);transition:all .15s;white-space:nowrap}
     .ra-btn:hover{border-color:var(--c-primary);color:var(--c-primary)}
-
-    /* 스파크라인 */
+    .badge{display:inline-flex;align-items:center;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;white-space:nowrap}
     .sparkline{display:flex;align-items:flex-end;gap:1px;height:18px}
     .spark-bar{width:5px;border-radius:1px;min-height:2px}
+    .conf-dots{display:inline-flex;gap:2px;vertical-align:middle}
+    .conf-d{width:6px;height:6px;border-radius:50%;display:inline-block}
 
-    /* 상태 배지 */
-    .badge{display:inline-flex;align-items:center;gap:3px;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;white-space:nowrap}
-
-    /* 신뢰도 표시 */
-    .conf-dot{display:inline-flex;gap:2px}
-    .conf-d{width:6px;height:6px;border-radius:50%}
-
-    /* 상태 오버레이 */
     @keyframes spin{to{transform:rotate(360deg)}}
     .loading-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;background:rgba(240,244,255,.88);z-index:20}
     .spinner{width:30px;height:30px;border:3px solid var(--c-border);border-top:3px solid var(--c-primary);border-radius:50%;animation:spin .8s linear infinite}
     .empty-box{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:var(--c-faint);gap:10px;text-align:center}
     .error-wrap{padding:14px 18px}
     .error-box{background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px 16px;display:flex;align-items:flex-start;gap:8px;font-size:13px;color:#dc2626}
-
-    /* API 바 */
     .api-bar{padding:5px 18px;background:#f8fafc;border-top:1px solid var(--c-border);display:flex;align-items:center;gap:12px;flex-shrink:0;font-size:10px;color:var(--c-faint);overflow-x:auto;white-space:nowrap}
     .api-dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:3px;vertical-align:middle}
 
@@ -171,7 +152,6 @@
 </head>
 <body>
 
-<!-- NAV -->
 <nav>
   <a class="nav-logo" href="/index.html">Real<span>Pick</span></a>
   <div class="nav-links">
@@ -186,12 +166,12 @@
 <div class="page">
 
   <!-- 요약 카드 -->
-  <div class="summary-bar" id="summary-bar">
+  <div class="summary-bar">
     <div class="s-card"><div class="s-card-label">전체 후보</div><div class="s-card-val" id="sc-total" style="color:var(--c-primary)">–</div><div class="s-card-sub">탐색 결과</div></div>
-    <div class="s-card"><div class="s-card-label">🔥 급상승</div><div class="s-card-val" id="sc-rising" style="color:var(--c-rising)">–</div><div class="s-card-sub" id="sc-rising-sub">–</div></div>
-    <div class="s-card"><div class="s-card-label">🏆 A등급</div><div class="s-card-val" id="sc-agrade" style="color:var(--c-grade-a)">–</div><div class="s-card-sub">고신뢰 추천</div></div>
-    <div class="s-card"><div class="s-card-label">🛒 쇼핑 강세</div><div class="s-card-val" id="sc-shopping" style="color:var(--c-shorts)">–</div><div class="s-card-sub">쇼핑 소스 多</div></div>
-    <div class="s-card"><div class="s-card-label">📊 평균 점수</div><div class="s-card-val" id="sc-avg" style="color:var(--c-stable)">–</div><div class="s-card-sub">100점 만점</div></div>
+    <div class="s-card"><div class="s-card-label">🔥 급상승</div><div class="s-card-val" id="sc-rising" style="color:var(--rising)">–</div><div class="s-card-sub" id="sc-rising-sub">–</div></div>
+    <div class="s-card"><div class="s-card-label">🏆 A등급</div><div class="s-card-val" id="sc-agrade" style="color:var(--grade-a)">–</div><div class="s-card-sub">고신뢰 추천</div></div>
+    <div class="s-card"><div class="s-card-label">🛒 쇼핑 강세</div><div class="s-card-val" id="sc-shopping" style="color:var(--act-shorts)">–</div><div class="s-card-sub">쇼핑 소스 多</div></div>
+    <div class="s-card"><div class="s-card-label">📊 평균 점수</div><div class="s-card-val" id="sc-avg" style="color:var(--stable)">–</div><div class="s-card-sub">100점 만점</div></div>
     <div class="s-card"><div class="s-card-label">⚠️ 데이터 부족</div><div class="s-card-val" id="sc-low" style="color:var(--c-faint)">–</div><div class="s-card-sub">신뢰도 low</div></div>
   </div>
 
@@ -204,21 +184,18 @@
 
   <!-- 컨트롤 -->
   <div class="controls">
-    <!-- MODE 1 -->
     <div class="ctrl-panel active" id="ctrl-category">
       <div class="ctrl-row">
         <span class="ctrl-label">카테고리</span>
-        <div style="display:flex;flex-wrap:wrap;gap:5px">
-          <button class="cat-btn on" data-cat="50000003" onclick="onCat(this)">디지털/가전</button>
-          <button class="cat-btn" data-cat="50000002" onclick="onCat(this)">화장품/미용</button>
-          <button class="cat-btn" data-cat="50000008" onclick="onCat(this)">생활/건강</button>
-          <button class="cat-btn" data-cat="50000007" onclick="onCat(this)">스포츠/레저</button>
-          <button class="cat-btn" data-cat="50000006" onclick="onCat(this)">식품</button>
-          <button class="cat-btn" data-cat="50000004" onclick="onCat(this)">가구/인테리어</button>
-          <button class="cat-btn" data-cat="50000005" onclick="onCat(this)">출산/육아</button>
-          <button class="cat-btn" data-cat="50000000" onclick="onCat(this)">패션의류</button>
-          <button class="cat-btn" data-cat="50000001" onclick="onCat(this)">패션잡화</button>
-        </div>
+        <button class="cat-btn on" data-cat="50000003" onclick="onCat(this)">디지털/가전</button>
+        <button class="cat-btn" data-cat="50000002" onclick="onCat(this)">화장품/미용</button>
+        <button class="cat-btn" data-cat="50000008" onclick="onCat(this)">생활/건강</button>
+        <button class="cat-btn" data-cat="50000007" onclick="onCat(this)">스포츠/레저</button>
+        <button class="cat-btn" data-cat="50000006" onclick="onCat(this)">식품</button>
+        <button class="cat-btn" data-cat="50000004" onclick="onCat(this)">가구/인테리어</button>
+        <button class="cat-btn" data-cat="50000005" onclick="onCat(this)">출산/육아</button>
+        <button class="cat-btn" data-cat="50000000" onclick="onCat(this)">패션의류</button>
+        <button class="cat-btn" data-cat="50000001" onclick="onCat(this)">패션잡화</button>
       </div>
       <div class="ctrl-row">
         <span class="ctrl-label">기간</span>
@@ -229,7 +206,6 @@
         <button class="btn btn-ghost" onclick="onReset()">초기화</button>
       </div>
     </div>
-    <!-- MODE 2 -->
     <div class="ctrl-panel" id="ctrl-rising">
       <div class="ctrl-row">
         <span class="ctrl-label">변화율 기준</span>
@@ -246,11 +222,11 @@
         <button class="btn btn-ghost" onclick="onReset()">초기화</button>
       </div>
     </div>
-    <!-- MODE 3 -->
     <div class="ctrl-panel" id="ctrl-seed">
       <div class="ctrl-row">
         <span class="ctrl-label">시드 키워드</span>
-        <input id="seed-input" class="search-input" type="text" placeholder="예: 무선 청소기" maxlength="30" onkeydown="if(event.key==='Enter')runMode()"/>
+        <input id="seed-input" class="search-input" type="text" placeholder="예: 무선 청소기" maxlength="30"
+          onkeydown="if(event.key==='Enter')runMode()"/>
         <span class="ctrl-label">확장 깊이</span>
         <button class="cat-btn on" data-depth="1" onclick="onDepth(this)">1단계</button>
         <button class="cat-btn" data-depth="2" onclick="onDepth(this)">2단계</button>
@@ -263,17 +239,15 @@
   <!-- 필터 바 -->
   <div class="filter-bar">
     <span class="ctrl-label">트렌드</span>
-    <button class="filter-btn on" data-f="all" onclick="onFilter(this,'all')">전체</button>
-    <button class="filter-btn" data-f="rising" onclick="onFilter(this,'rising')">🔥 급상승</button>
-    <button class="filter-btn" data-f="stable" onclick="onFilter(this,'stable')">➡️ 보합</button>
-    <button class="filter-btn" data-f="new" onclick="onFilter(this,'new')">✨ 신규</button>
-    <button class="filter-btn" data-f="falling" onclick="onFilter(this,'falling')">📉 하락</button>
+    <button class="filter-btn on" data-f="all"       onclick="onFilter(this,'all')">전체</button>
+    <button class="filter-btn"    data-f="rising"    onclick="onFilter(this,'rising')">🔥 급상승</button>
+    <button class="filter-btn"    data-f="stable"    onclick="onFilter(this,'stable')">➡️ 보합</button>
+    <button class="filter-btn"    data-f="new"       onclick="onFilter(this,'new')">✨ 신규</button>
+    <button class="filter-btn"    data-f="falling"   onclick="onFilter(this,'falling')">📉 하락</button>
     <div class="sep"></div>
-    <span class="ctrl-label">등급</span>
-    <button class="filter-btn" data-f="grade_a" onclick="onFilter(this,'grade_a')">🏆 A등급만</button>
-    <div class="sep"></div>
-    <span class="ctrl-label">소스</span>
-    <button class="filter-btn" data-f="shopping" onclick="onFilter(this,'shopping')">🛒 쇼핑 강세</button>
+    <span class="ctrl-label">등급/소스</span>
+    <button class="filter-btn" data-f="grade_a"   onclick="onFilter(this,'grade_a')">🏆 A등급</button>
+    <button class="filter-btn" data-f="shopping"  onclick="onFilter(this,'shopping')">🛒 쇼핑 강세</button>
     <button class="filter-btn" data-f="blog_cafe" onclick="onFilter(this,'blog_cafe')">📝 블로그/카페</button>
     <button class="filter-btn" data-f="high_conf" onclick="onFilter(this,'high_conf')">✅ 신뢰도 high</button>
     <div class="sep"></div>
@@ -287,15 +261,14 @@
   </div>
 
   <!-- 바로가기 바 -->
-  <div class="quicklink-bar" id="quicklink-bar">
+  <div class="ql-bar" id="ql-bar">
     <span class="ql-label">바로가기</span>
-    <div id="quick-links" style="display:flex;gap:5px;align-items:center"></div>
+    <div id="quick-links" style="display:flex;gap:5px"></div>
   </div>
 
-  <!-- 바디 -->
   <div class="body-area">
 
-    <!-- 좌측 상세 패널 -->
+    <!-- 좌측 패널 -->
     <div class="detail-panel">
       <div class="dp-header">상세 분석</div>
       <div id="detail-body">
@@ -311,7 +284,6 @@
       <div class="table-meta" id="table-meta">
         <span class="stat-chip" style="color:var(--c-faint)">탐색 모드를 선택하고 시작하세요</span>
       </div>
-
       <div id="error-wrap" style="display:none" class="error-wrap">
         <div class="error-box">
           <span>⚠️</span>
@@ -319,7 +291,6 @@
           <button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="runMode()">재시도</button>
         </div>
       </div>
-
       <div class="table-rel">
         <div id="loading-overlay" class="loading-overlay" style="display:none">
           <div class="spinner"></div>
@@ -334,24 +305,23 @@
           <table id="result-table" style="display:none">
             <thead>
               <tr>
-                <th style="width:16%">제품 / 키워드</th>
+                <th style="width:16%">제품/키워드</th>
                 <th style="width:6%">점수</th>
                 <th style="width:5%">등급</th>
-                <th style="width:9%">변화율</th>
+                <th style="width:8%">변화율</th>
                 <th style="width:9%">트렌드</th>
                 <th style="width:7%">신뢰도</th>
-                <th style="width:8%">스파크</th>
-                <th style="width:10%">소스</th>
-                <th style="width:9%">추천액션</th>
+                <th style="width:7%">흐름</th>
+                <th style="width:9%">소스</th>
+                <th style="width:8%">추천액션</th>
                 <th>한 줄 결론</th>
-                <th style="width:18%;min-width:160px">액션</th>
+                <th style="width:14%">액션</th>
               </tr>
             </thead>
             <tbody id="result-tbody"></tbody>
           </table>
         </div>
       </div>
-
       <div class="api-bar" id="api-bar"><span>API 대기 중</span></div>
     </div>
   </div>
@@ -359,89 +329,92 @@
 
 <script>
 // ════════════════════════════════════════
-// CONSTANTS
+// CONSTANTS — 수정 시 이 블록만
 // ════════════════════════════════════════
 const TREND_LABEL = {rising:'🔥 급상승',stable:'➡️ 보합',falling:'📉 하락',new:'✨ 신규',unknown:'❓ 보류'};
-const TREND_VAR   = {rising:'--c-rising',stable:'--c-stable',falling:'--c-falling',new:'--c-new',unknown:'--c-unknown'};
-const TREND_LT    = {rising:'--c-rising-lt',stable:'--c-stable-lt',falling:'--c-falling-lt',new:'--c-new-lt',unknown:'--c-unknown-lt'};
-const GRADE_VAR   = {A:'--c-grade-a',B:'--c-grade-b',C:'--c-grade-c'};
-const ACTION_LABEL= {shorts:'📱 Shorts',blog:'📝 블로그',hold:'⏸ 관망',compare:'🔄 비교'};
-const ACTION_VAR  = {shorts:'--c-shorts',blog:'--c-blog',hold:'--c-hold',compare:'--c-compare'};
-const SCORE_MAX   = {shopping:25,blog:20,news:10,cafe:15,trend:30};
-const SRC_LABEL   = {shopping:'🛒 쇼핑',blog:'📝 블로그',news:'📰 뉴스',cafe:'☕ 카페',trend:'📈 트렌드'};
-const CONF_COLORS = {high:'#10b981',medium:'#f59e0b',low:'#e2e8f0'};
-const CAT_NAMES   = {
+
+// 색상을 CSS 변수 이름으로 매핑 (var() 없이)
+const TREND_COLOR  = {rising:'--rising',  stable:'--stable',  falling:'--falling',  new:'--new',  unknown:'--unknown'};
+const TREND_LT     = {rising:'--rising-lt',stable:'--stable-lt',falling:'--falling-lt',new:'--new-lt',unknown:'--unknown-lt'};
+const GRADE_COLOR  = {A:'--grade-a',B:'--grade-b',C:'--grade-c'};
+const GRADE_LT     = {A:'--grade-a-lt',B:'--grade-b-lt',C:'--grade-c-lt'};
+const ACTION_LABEL = {shorts:'📱 Shorts',blog:'📝 블로그',hold:'⏸ 관망',compare:'🔄 비교'};
+const ACTION_COLOR = {shorts:'--act-shorts',blog:'--act-blog',hold:'--act-hold',compare:'--act-compare'};
+const ACTION_LT    = {shorts:'--act-shorts-lt',blog:'--act-blog-lt',hold:'--act-hold-lt',compare:'--act-compare-lt'};
+const SCORE_MAX    = {shopping:25,blog:20,news:10,cafe:15,trend:30};
+const SRC_LABEL    = {shopping:'🛒쇼핑',blog:'📝블로그',news:'📰뉴스',cafe:'☕카페',trend:'📈트렌드'};
+const CAT_NAMES    = {
   '50000000':'패션의류','50000001':'패션잡화','50000002':'화장품/미용',
   '50000003':'디지털/가전','50000004':'가구/인테리어','50000005':'출산/육아',
   '50000006':'식품','50000007':'스포츠/레저','50000008':'생활/건강','all':'전체',
 };
 
-// 테이블 컬럼 설정 (배열 기반 — 컬럼 추가/삭제 여기서만)
-const TABLE_COLUMNS = [
-  {key:'name',    label:'제품/키워드',  w:'16%'},
-  {key:'score',   label:'점수',        w:'6%'},
-  {key:'grade',   label:'등급',        w:'5%'},
-  {key:'rate',    label:'변화율',      w:'9%'},
-  {key:'trend',   label:'트렌드',      w:'9%'},
-  {key:'conf',    label:'신뢰도',      w:'7%'},
-  {key:'spark',   label:'스파크',      w:'8%'},
-  {key:'sources', label:'소스',        w:'10%'},
-  {key:'action',  label:'추천액션',    w:'9%'},
-  {key:'summary', label:'한 줄 결론',  w:'auto'},
-  {key:'rowact',  label:'액션',        w:'18%'},
-];
+// 필터 함수 — 필터 추가 시 여기에 1줄 추가
+const FILTERS = {
+  all:       ()=>true,
+  rising:    c=>c.trend?.status==='rising',
+  stable:    c=>c.trend?.status==='stable',
+  new:       c=>c.trend?.status==='new',
+  falling:   c=>c.trend?.status==='falling',
+  grade_a:   c=>c.score?.grade==='A',
+  shopping:  c=>(c.sources||[]).includes('shopping'),
+  blog_cafe: c=>(c.sources||[]).some(s=>['blog','cafe'].includes(s)),
+  high_conf: c=>c.score?.confidence==='high',
+};
 
 // ════════════════════════════════════════
 // STATE
 // ════════════════════════════════════════
 const S = {
-  mode:'category', catId:'50000003', period:'week',
-  threshold:10, mcat:'all', seedKw:'', depth:1,
-  filterStatus:'all', sortBy:'score',
-  candidates:[], filtered:[], selected:null,
-  saved:{shorts:[],blog:[]}, favorites:new Set(),
-  loading:false, error:null, lastUpdated:null, apiStatus:{},
+  mode:'category',catId:'50000003',period:'week',
+  threshold:10,mcat:'all',seedKw:'',depth:1,
+  filterStatus:'all',sortBy:'score',
+  candidates:[],filtered:[],selected:null,
+  saved:{shorts:[],blog:[]},favorites:new Set(),
+  loading:false,error:null,lastUpdated:null,apiStatus:{},
 };
 
 // ════════════════════════════════════════
 // HELPERS
 // ════════════════════════════════════════
-function safeNum(v,fb=0){const n=Number(v);return isNaN(n)?fb:n;}
-function cssVar(name){return `var(${name})`;}
-function fmtDate(iso){try{return new Date(iso).toLocaleString('ko-KR',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}catch{return '-';}}
+const safeNum=(v,fb=0)=>{const n=Number(v);return isNaN(n)?fb:n;};
+const cv=name=>`var(${name})`;
+const fmtDate=iso=>{try{return new Date(iso).toLocaleString('ko-KR',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}catch{return '-';}};
 
 function rateHtml(rate){
-  if(rate===null||rate===undefined) return '<span style="color:var(--c-faint)">–</span>';
+  if(rate===null||rate===undefined) return `<span style="color:var(--c-faint)">–</span>`;
   const s=rate>0?'+':'';
-  const c=rate>=10?'var(--c-rising)':rate<=-10?'var(--c-falling)':'var(--c-faint)';
+  const c=rate>=10?'var(--rising)':rate<=-10?'var(--falling)':'var(--c-faint)';
   return `<span style="color:${c};font-weight:700">${s}${rate}%</span>`;
 }
-
 function badgeHtml(status){
   const lbl=TREND_LABEL[status]||'–';
-  const c=cssVar(TREND_VAR[status]||'--c-unknown');
-  const bg=cssVar(TREND_LT[status]||'--c-unknown-lt');
+  const c=cv(TREND_COLOR[status]||'--unknown');
+  const bg=cv(TREND_LT[status]||'--unknown-lt');
   return `<span class="badge" style="color:${c};background:${bg}">${lbl}</span>`;
 }
-
-function gradeHtml(grade){
-  const c=cssVar(GRADE_VAR[grade]||'--c-grade-c');
-  return `<span class="badge" style="color:${c};background:${c.replace(')','-lt)')||'#f1f5f9'}">${grade||'–'}</span>`;
+function gradeBadge(grade){
+  const c=cv(GRADE_COLOR[grade]||'--grade-c');
+  const bg=cv(GRADE_LT[grade]||'--grade-c-lt');
+  return `<span class="badge" style="color:${c};background:${bg}">${grade||'–'}</span>`;
 }
-
+function actionBadge(action){
+  const c=cv(ACTION_COLOR[action]||'--act-hold');
+  const bg=cv(ACTION_LT[action]||'--act-hold-lt');
+  return `<span class="badge" style="color:${c};background:${bg}">${ACTION_LABEL[action]||action||'–'}</span>`;
+}
 function confHtml(conf){
-  const levels=['low','medium','high'];
-  return `<span class="conf-dot">${levels.map(l=>`<span class="conf-d" style="background:${conf===l||levels.indexOf(l)<=levels.indexOf(conf)?CONF_COLORS[conf]||'#e2e8f0':'#e2e8f0'}"></span>`).join('')}</span> <span style="font-size:10px;color:var(--c-faint)">${conf||'–'}</span>`;
+  const map={low:1,medium:2,high:3};
+  const lvl=map[conf]||0;
+  const dots=[1,2,3].map(i=>`<span class="conf-d" style="background:${i<=lvl?'var(--rising)':'var(--c-border)'}"></span>`).join('');
+  return `<span class="conf-dots">${dots}</span> <span style="font-size:10px;color:var(--c-faint)">${conf||'–'}</span>`;
 }
-
-function sparkHtml(count, trendStatus){
-  // 데이터 수 기반 간단 스파크라인 (7개 바)
-  if(!count) return '<span style="color:var(--c-faint);font-size:10px">–</span>';
-  const c = trendStatus==='rising'?'var(--c-rising)':trendStatus==='falling'?'var(--c-falling)':'var(--c-stable)';
-  const bars = Array.from({length:7},(_,i)=>{
-    const ratio = trendStatus==='rising'  ? 0.4+(i/6)*0.6 :
-                  trendStatus==='falling' ? 1-(i/6)*0.5   : 0.5+(Math.sin(i)*0.1);
-    const h = Math.max(3, Math.round(ratio*18));
+function sparkHtml(count,status){
+  if(!count) return `<span style="color:var(--c-faint);font-size:10px">–</span>`;
+  const c=status==='rising'?'var(--rising)':status==='falling'?'var(--falling)':'var(--stable)';
+  const bars=Array.from({length:7},(_,i)=>{
+    const r=status==='rising'?0.3+(i/6)*0.7:status==='falling'?1-(i/6)*0.5:0.4+(Math.sin(i)*0.15+0.5)*0.4;
+    const h=Math.max(3,Math.round(r*18));
     return `<div class="spark-bar" style="height:${h}px;background:${c}"></div>`;
   }).join('');
   return `<div class="sparkline">${bars}</div>`;
@@ -468,27 +441,25 @@ async function apiFetch(url){
 }
 
 // ════════════════════════════════════════
-// MODE RUNNERS
+// RUNNERS
 // ════════════════════════════════════════
 async function runMode(){
   if(S.loading) return;
-  showError(null); S.selected=null;
-  if(S.mode==='category')      await runCategory();
-  else if(S.mode==='rising')   await runRising();
-  else                         await runSeed();
+  showError(null);S.selected=null;
+  if(S.mode==='category')    await runCategory();
+  else if(S.mode==='rising') await runRising();
+  else                       await runSeed();
 }
-
 async function runCategory(){
   setLoading(true,`카테고리 인기 키워드 수집 중... (${CAT_NAMES[S.catId]})`);
-  try{const d=await apiFetch(`/api/auto-discover?mode=category&categoryId=${S.catId}&period=${S.period}`);handleResult(d);}
+  try{handleResult(await apiFetch(`/api/auto-discover?mode=category&categoryId=${S.catId}&period=${S.period}`));}
   catch(e){showError(e.message);}finally{setLoading(false);}
 }
 async function runRising(){
   setLoading(true,`급상승 모니터링 중... (+${S.threshold}% 이상)`);
   try{
-    const cats=S.mcat==='all'?['50000003','50000002','50000008','50000007']:[S.mcat];
-    const d=await apiFetch(`/api/auto-discover?mode=rising&categories=${cats.join(',')}&threshold=${S.threshold}&period=${S.period}`);
-    handleResult(d);
+    const cats=S.mcat==='all'?'50000003,50000002,50000008,50000007':S.mcat;
+    handleResult(await apiFetch(`/api/auto-discover?mode=rising&categories=${cats}&threshold=${S.threshold}&period=${S.period}`));
   }catch(e){showError(e.message);}finally{setLoading(false);}
 }
 async function runSeed(){
@@ -496,73 +467,68 @@ async function runSeed(){
   if(!kw){showError('시드 키워드를 입력해주세요');return;}
   S.seedKw=kw;
   setLoading(true,`"${kw}" 연관 키워드 확장 중...`);
-  try{const d=await apiFetch(`/api/auto-discover?mode=seed&keyword=${encodeURIComponent(kw)}&depth=${S.depth}&period=${S.period}`);handleResult(d);}
+  try{handleResult(await apiFetch(`/api/auto-discover?mode=seed&keyword=${encodeURIComponent(kw)}&depth=${S.depth}&period=${S.period}`));}
   catch(e){showError(e.message);}finally{setLoading(false);}
 }
-
 function handleResult(data){
   if(!Array.isArray(data.candidates)) throw new Error('응답 형식 오류');
   S.candidates=data.candidates;
   S.apiStatus=data.apiStatus||{};
   S.lastUpdated=data.updatedAt||new Date().toISOString();
-  applySort(); renderAll();
+  applySort();renderAll();
 }
 
 // ════════════════════════════════════════
 // FILTER / SORT
 // ════════════════════════════════════════
-const FILTER_FNS = {
-  all:       ()=>true,
-  rising:    c=>c.trend?.status==='rising',
-  stable:    c=>c.trend?.status==='stable',
-  new:       c=>c.trend?.status==='new',
-  falling:   c=>c.trend?.status==='falling',
-  grade_a:   c=>c.score?.grade==='A',
-  shopping:  c=>(c.sources||[]).includes('shopping'),
-  blog_cafe: c=>(c.sources||[]).some(s=>['blog','cafe'].includes(s)),
-  high_conf: c=>c.score?.confidence==='high',
-};
-
 function applySort(){
   let list=[...S.candidates];
-  const fn=FILTER_FNS[S.filterStatus]||FILTER_FNS.all;
-  list=list.filter(fn);
-  if(S.sortBy==='score')  list.sort((a,b)=>safeNum(b.score?.totalScore)-safeNum(a.score?.totalScore));
-  else if(S.sortBy==='rate') list.sort((a,b)=>{
+  list=list.filter(FILTERS[S.filterStatus]||FILTERS.all);
+  if(S.sortBy==='score')      list.sort((a,b)=>safeNum(b.score?.totalScore)-safeNum(a.score?.totalScore));
+  else if(S.sortBy==='rate')  list.sort((a,b)=>{
     const ra=a.trend?.changeRate!=null?safeNum(a.trend.changeRate):-999;
     const rb=b.trend?.changeRate!=null?safeNum(b.trend.changeRate):-999;
     return rb-ra;
   });
   else if(S.sortBy==='count') list.sort((a,b)=>safeNum(b.count)-safeNum(a.count));
-  else list.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  else                        list.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
   S.filtered=list;
 }
 
 // ════════════════════════════════════════
-// RENDER — 전체
+// RENDER
 // ════════════════════════════════════════
-function renderAll(){renderSummaryCards();renderTable();renderDetail();renderMeta();renderApiBar();renderQuickLinks();}
-
-// ── 요약 카드
-function renderSummaryCards(){
-  const cs=S.candidates;
-  if(!cs.length){['sc-total','sc-rising','sc-rising-sub','sc-agrade','sc-shopping','sc-avg','sc-low'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='–';});return;}
-  const rising  = cs.filter(c=>c.trend?.status==='rising');
-  const aGrade  = cs.filter(c=>c.score?.grade==='A');
-  const shopping= cs.filter(c=>(c.sources||[]).includes('shopping'));
-  const low     = cs.filter(c=>c.score?.confidence==='low');
-  const avg     = Math.round(cs.reduce((s,c)=>s+safeNum(c.score?.totalScore),0)/cs.length);
-
-  document.getElementById('sc-total').textContent   = cs.length;
-  document.getElementById('sc-rising').textContent  = rising.length;
-  document.getElementById('sc-rising-sub').textContent = rising[0]?.name||'–';
-  document.getElementById('sc-agrade').textContent  = aGrade.length;
-  document.getElementById('sc-shopping').textContent= shopping.length;
-  document.getElementById('sc-avg').textContent     = avg;
-  document.getElementById('sc-low').textContent     = low.length;
+function renderAll(){
+  renderSummaryCards();
+  renderTable();
+  renderDetail();
+  renderMeta();
+  renderApiBar();
+  renderQuickLinks();
 }
 
-// ── 테이블
+function renderSummaryCards(){
+  const cs=S.candidates;
+  const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
+  if(!cs.length){
+    ['sc-total','sc-rising','sc-agrade','sc-shopping','sc-avg','sc-low'].forEach(id=>set(id,'–'));
+    set('sc-rising-sub','–');
+    return;
+  }
+  const rising  =cs.filter(c=>c.trend?.status==='rising');
+  const aGrade  =cs.filter(c=>c.score?.grade==='A');
+  const shopping=cs.filter(c=>(c.sources||[]).includes('shopping'));
+  const low     =cs.filter(c=>c.score?.confidence==='low');
+  const avg=Math.round(cs.reduce((s,c)=>s+safeNum(c.score?.totalScore),0)/cs.length);
+  set('sc-total',  cs.length);
+  set('sc-rising', rising.length);
+  set('sc-rising-sub', rising[0]?.name||'–');
+  set('sc-agrade', aGrade.length);
+  set('sc-shopping',shopping.length);
+  set('sc-avg',    avg);
+  set('sc-low',    low.length);
+}
+
 function renderTable(){
   const tbody=document.getElementById('result-tbody');
   const table=document.getElementById('result-table');
@@ -572,211 +538,217 @@ function renderTable(){
 
   tbody.innerHTML=S.filtered.map((c,i)=>{
     const sc=c.score||{},tr=c.trend||{};
-    const gc=cssVar(GRADE_VAR[sc.grade]||'--c-grade-c');
-    const ac=cssVar(ACTION_VAR[c.action]||'--c-hold');
+    const gc=cv(GRADE_COLOR[sc.grade]||'--grade-c');
     const isSel=S.selected?.id===c.id;
     const isFav=S.favorites.has(c.id);
     const tags=(c.keywords||[]).slice(0,2).map(k=>`<span style="background:#f1f5f9;color:#475569;border-radius:4px;padding:1px 5px;font-size:10px;margin-right:2px">${k}</span>`).join('');
     const srcs=(c.sources||[]).map(s=>`<span style="background:#f1f5f9;color:#475569;border-radius:4px;padding:1px 5px;font-size:10px;margin-right:2px">${s}</span>`).join('');
-
     return `<tr class="result-row${isSel?' sel':''}" onclick="selectItem(${i})">
       <td style="padding:9px 12px">
-        <div style="font-weight:700;font-size:13px;display:flex;align-items:center;gap:4px">
-          ${isFav?'⭐':''}${c.name||'–'}
-        </div>
+        <div style="font-weight:700;font-size:13px">${isFav?'⭐ ':''} ${c.name||'–'}</div>
         <div style="margin-top:2px">${tags}</div>
       </td>
       <td style="padding:9px 12px;font-weight:900;font-size:15px;color:${gc}">${Math.round(safeNum(sc.totalScore))}</td>
-      <td style="padding:9px 12px">${gradeHtml(sc.grade)}</td>
+      <td style="padding:9px 12px">${gradeBadge(sc.grade)}</td>
       <td style="padding:9px 12px">${rateHtml(tr.changeRate)}</td>
       <td style="padding:9px 12px">${badgeHtml(tr.status)}</td>
       <td style="padding:9px 12px">${confHtml(sc.confidence)}</td>
       <td style="padding:9px 12px">${sparkHtml(c.count,tr.status)}</td>
       <td style="padding:9px 12px">${srcs}</td>
-      <td style="padding:9px 12px"><span class="badge" style="color:${ac};background:${ac.replace(')','-lt)')||'#f1f5f9'}">${ACTION_LABEL[c.action]||'–'}</span></td>
+      <td style="padding:9px 12px">${actionBadge(c.action)}</td>
       <td style="padding:9px 12px;font-size:11px;color:var(--c-muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.summary||'–'}</td>
       <td style="padding:9px 12px">
-        <div class="row-actions">
-          <button class="ra-btn" onclick="event.stopPropagation();saveItem(${i},'shorts')" title="쇼츠 소재로 저장">📱 쇼츠</button>
-          <button class="ra-btn" onclick="event.stopPropagation();saveItem(${i},'blog')" title="블로그 소재로 저장">📝 블로그</button>
-          <button class="ra-btn" onclick="event.stopPropagation();toggleFav(${i})" title="즐겨찾기">${isFav?'⭐':'☆'}</button>
+        <div class="row-acts">
+          <button class="ra-btn" onclick="event.stopPropagation();saveItem(${i},'shorts')">📱</button>
+          <button class="ra-btn" onclick="event.stopPropagation();saveItem(${i},'blog')">📝</button>
+          <button class="ra-btn" onclick="event.stopPropagation();toggleFav(${i})">${isFav?'⭐':'☆'}</button>
         </div>
       </td>
     </tr>`;
   }).join('');
 }
 
-// ── 상세 패널
 function renderDetail(){
   const panel=document.getElementById('detail-body');
   const c=S.selected;
-  if(!c){panel.innerHTML=`<div class="dp-empty"><div style="font-size:36px">📋</div><div>항목을 클릭하면<br/>상세 분석이 표시됩니다</div></div>`;return;}
-
+  if(!c){
+    panel.innerHTML=`<div class="dp-empty"><div style="font-size:36px">📋</div><div>항목을 클릭하면<br/>상세 분석이 표시됩니다</div></div>`;
+    return;
+  }
   const sc=c.score||{},tr=c.trend||{},bd=sc.breakdown||{};
-  const gc=cssVar(GRADE_VAR[sc.grade]||'--c-grade-c');
-  const tc=cssVar(TREND_VAR[tr.status]||'--c-unknown');
-  const ac=cssVar(ACTION_VAR[c.action]||'--c-hold');
+  const gc=cv(GRADE_COLOR[sc.grade]||'--grade-c');
+  const tc=cv(TREND_COLOR[tr.status]||'--unknown');
+  const ac=cv(ACTION_COLOR[c.action]||'--act-hold');
+  const acBg=cv(ACTION_LT[c.action]||'--act-hold-lt');
 
   // 위치 추적
   const rank=S.filtered.findIndex(x=>x.id===c.id)+1;
   const total=S.filtered.length;
   const pct=total?Math.round((1-(rank-1)/total)*100):100;
-  if(!c._rankHistory) c._rankHistory=[];
-  const last=c._rankHistory[c._rankHistory.length-1];
-  if(last!==rank) c._rankHistory.push(rank);
-  if(c._rankHistory.length>6) c._rankHistory.shift();
-  const hist=c._rankHistory;
-  const prev=hist.length>=2?hist[hist.length-2]:null;
+  if(!c._rh) c._rh=[];
+  if(c._rh[c._rh.length-1]!==rank) c._rh.push(rank);
+  if(c._rh.length>6) c._rh.shift();
+  const prev=c._rh.length>=2?c._rh[c._rh.length-2]:null;
   const delta=prev!==null?prev-rank:null;
-  const deltaHtml=delta===null?'<span style="color:var(--c-faint)">첫 조회</span>':delta>0?`<span style="color:var(--c-rising)">▲ ${delta}위 상승</span>`:delta<0?`<span style="color:var(--c-falling)">▼ ${Math.abs(delta)}위 하락</span>`:'<span style="color:var(--c-faint)">── 유지</span>';
-  const histBars=hist.map((r,i)=>{const h=Math.round((1-(r-1)/(total||1))*22)+3;const isL=i===hist.length-1;return `<div class="ph-bar" style="width:8px;height:${h}px;background:${isL?`var(${GRADE_VAR[sc.grade]||'--c-primary'})':'#c7d2fe'}"></div>`;}).join('');
+  const deltaHtml=delta===null
+    ?'<span style="color:var(--c-faint)">첫 조회</span>'
+    :delta>0?`<span style="color:var(--rising)">▲ ${delta}위 상승</span>`
+    :delta<0?`<span style="color:var(--falling)">▼ ${Math.abs(delta)}위 하락</span>`
+    :'<span style="color:var(--c-faint)">── 유지</span>';
 
-  // 소스별 breakdown 바
-  const bars=Object.entries(bd).map(([k,v])=>{
-    const max=SCORE_MAX[k]||25,pct2=Math.round((safeNum(v)/max)*100);
-    return `<div class="bar-item"><div class="bar-lrow"><span style="color:var(--c-muted)">${SRC_LABEL[k]||k}</span><span style="font-weight:700">${safeNum(v)}/${max}</span></div><div class="bar-track"><div class="bar-fill" style="width:${pct2}%"></div></div></div>`;
+  const histBars=c._rh.map((r,i)=>{
+    const h=Math.round((1-(r-1)/(total||1))*22)+3;
+    const isL=i===c._rh.length-1;
+    return `<div class="ph-bar" style="width:8px;height:${h}px;background:${isL?gc:'#c7d2fe'}"></div>`;
   }).join('');
 
-  // 주의 요소 생성
+  // 주의 요소
   const warns=[];
-  if(sc.confidence==='low') warns.push('데이터 부족 — 판단 신뢰도 낮음');
-  if(tr.source==='count') warns.push('Datalab 변화율 미수집 — 수량 기반 판정');
+  if(sc.confidence==='low')    warns.push('데이터 부족 — 판단 신뢰도 낮음');
+  if(tr.source==='count')      warns.push('Datalab 미수집 — 수량 기반 판정');
   if((c.sources||[]).length<2) warns.push('단일 소스 — 교차 검증 필요');
 
-  // 추천 활용 방향
-  const dirMap={shorts:'📱 YouTube Shorts 소재로 즉시 활용 가능',blog:'📝 블로그 리뷰/비교 포스팅 추천',hold:'⏸ 데이터 추이 관망 후 재판단',compare:'🔄 유사 제품과 비교 분석 후 선택'};
+  const dirMap={
+    shorts:'📱 YouTube Shorts 소재로 즉시 활용',
+    blog:'📝 블로그 리뷰/비교 포스팅 추천',
+    hold:'⏸ 추이 관망 후 재판단',
+    compare:'🔄 유사 제품과 비교 분석 후 선택',
+  };
+
+  const bars=Object.entries(bd).map(([k,v])=>{
+    const max=SCORE_MAX[k]||25;
+    const pct2=Math.round((safeNum(v)/max)*100);
+    return `<div class="bar-item">
+      <div class="bar-lrow"><span style="color:var(--c-muted)">${SRC_LABEL[k]||k}</span><span style="font-weight:700">${safeNum(v)}/${max}</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct2}%"></div></div>
+    </div>`;
+  }).join('');
 
   const kwtags=(c.keywords||[]).map(k=>`<span class="dp-kwtag">${k}</span>`).join('');
-  const samples=(c.sampleItems||[]).map(it=>`<a href="${it.link||'#'}" target="_blank" rel="noopener" style="display:block;padding:6px 9px;background:#f8fafc;border-radius:7px;text-decoration:none;margin-bottom:4px;border:1px solid var(--c-border)"><div style="font-size:11px;color:var(--c-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${it.title||''}</div><div style="font-size:10px;color:var(--c-faint)">${it.source||''}</div></a>`).join('');
+  const samples=(c.sampleItems||[]).map(it=>`
+    <a href="${it.link||'#'}" target="_blank" rel="noopener"
+      style="display:block;padding:6px 9px;background:#f8fafc;border-radius:7px;text-decoration:none;margin-bottom:4px;border:1px solid var(--c-border)">
+      <div style="font-size:11px;color:var(--c-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${it.title||''}</div>
+      <div style="font-size:10px;color:var(--c-faint)">${it.source||''}</div>
+    </a>`).join('');
+
+  // 현재 항목의 filtered 인덱스
+  const idx=S.filtered.findIndex(x=>x.id===c.id);
+  const isFav=S.favorites.has(c.id);
 
   panel.innerHTML=`<div class="dp-body">
     <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:6px">
       <div class="dp-name" style="flex:1">${c.name}</div>
-      <span class="badge" style="color:var(${GRADE_VAR[sc.grade]||'--c-grade-c'});background:var(${(GRADE_VAR[sc.grade]||'--c-grade-c').replace(')','-lt)')})">등급 ${sc.grade||'–'}</span>
+      ${gradeBadge(sc.grade)}
     </div>
     ${kwtags?`<div class="dp-kwtags">${kwtags}</div>`:''}
 
-    <!-- 위치 추적 -->
     <div class="pos-wrap">
-      <div>
-        <div class="pos-rank" style="color:var(${GRADE_VAR[sc.grade]||'--c-grade-c'})">${rank}</div>
-        <div class="pos-total">/ ${total}위</div>
+      <div style="text-align:center">
+        <div class="pos-rank" style="color:${gc}">${rank}</div>
+        <div style="font-size:10px;color:var(--c-faint)">/ ${total}위</div>
       </div>
       <div style="flex:1">
-        <div class="pos-delta">${deltaHtml}</div>
-        <div class="pos-hist" style="margin-top:4px">${histBars||''}</div>
-        <div class="rank-track"><div class="rank-fill" style="width:${pct}%;background:var(${GRADE_VAR[sc.grade]||'--c-primary'})"></div></div>
+        <div style="font-size:11px;font-weight:700;margin-bottom:4px">${deltaHtml}</div>
+        <div class="pos-hist">${histBars||''}</div>
+        <div class="rank-track"><div class="rank-fill" style="width:${pct}%;background:${gc}"></div></div>
         <div style="font-size:9px;color:var(--c-faint);margin-top:2px">상위 ${100-pct+1}%</div>
       </div>
     </div>
 
-    <!-- 한 줄 결론 -->
-    <div class="dp-section"><div class="dp-sec-lbl">한 줄 결론</div><div class="dp-box">${c.summary||'–'}</div></div>
+    <div class="dp-sec"><div class="dp-sec-lbl">한 줄 결론</div><div class="dp-box">${c.summary||'–'}</div></div>
 
-    <!-- 주의 요소 -->
-    ${warns.length?`<div class="dp-section"><div class="dp-sec-lbl">⚠️ 주의 요소</div><div class="dp-warn-box">${warns.map(w=>`• ${w}`).join('<br>')}</div></div>`:''}
+    ${warns.length?`<div class="dp-sec"><div class="dp-sec-lbl">⚠️ 주의 요소</div><div class="dp-warn">${warns.map(w=>`• ${w}`).join('<br>')}</div></div>`:''}
 
-    <!-- 추천 활용 방향 -->
-    <div class="dp-section"><div class="dp-sec-lbl">추천 활용 방향</div><div class="dp-box" style="color:var(${ACTION_VAR[c.action]||'--c-hold'})">${dirMap[c.action]||'–'}</div></div>
+    <div class="dp-sec"><div class="dp-sec-lbl">추천 활용 방향</div><div class="dp-box" style="color:${ac};background:${acBg}">${dirMap[c.action]||'–'}</div></div>
 
-    <!-- 스코어 그리드 -->
-    <div class="score-grid">
-      <div class="sc"><div class="sc-big" style="color:var(${GRADE_VAR[sc.grade]||'--c-grade-c'})">${Math.round(safeNum(sc.totalScore))}</div><div class="sc-lbl">종합점수</div></div>
-      <div class="sc"><div class="sc-big" style="font-size:13px;color:var(${TREND_VAR[tr.status]||'--c-unknown'})">${TREND_LABEL[tr.status]||'–'}</div><div class="sc-lbl">트렌드</div></div>
-      <div class="sc"><div class="sc-big" style="font-size:14px">${tr.changeRate!=null?rateHtml(tr.changeRate):'–'}</div><div class="sc-lbl">변화율</div></div>
-      <div class="sc"><div class="sc-big" style="font-size:12px;color:var(--c-muted)">${sc.confidence||'–'}</div><div class="sc-lbl">신뢰도</div></div>
+    <div class="sc-grid">
+      <div class="sc-cell"><div class="sc-big" style="color:${gc}">${Math.round(safeNum(sc.totalScore))}</div><div class="sc-lbl">종합점수</div></div>
+      <div class="sc-cell"><div class="sc-big" style="font-size:13px;color:${tc}">${TREND_LABEL[tr.status]||'–'}</div><div class="sc-lbl">트렌드</div></div>
+      <div class="sc-cell"><div class="sc-big" style="font-size:14px">${rateHtml(tr.changeRate)}</div><div class="sc-lbl">변화율</div></div>
+      <div class="sc-cell"><div class="sc-big" style="font-size:12px;color:var(--c-muted)">${sc.confidence||'–'}</div><div class="sc-lbl">신뢰도</div></div>
     </div>
 
-    <!-- 소스별 점수 -->
-    <div class="dp-section"><div class="dp-sec-lbl">소스별 점수</div>${bars||'<div style="color:var(--c-faint);font-size:12px">데이터 없음</div>'}</div>
+    <div class="dp-sec"><div class="dp-sec-lbl">소스별 점수</div>${bars||'<div style="color:var(--c-faint);font-size:12px">데이터 없음</div>'}</div>
 
-    <!-- 샘플 -->
-    ${samples?`<div class="dp-section"><div class="dp-sec-lbl">샘플 항목</div>${samples}</div>`:''}
+    ${samples?`<div class="dp-sec"><div class="dp-sec-lbl">샘플 항목</div>${samples}</div>`:''}
 
-    <!-- 액션 버튼 -->
     <div class="action-box">
       <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">빠른 액션</div>
-      <div class="dp-action-btns">
-        <button class="dp-action-btn" style="background:var(--c-shorts)22;color:var(--c-shorts)" onclick="saveItem(S.filtered.findIndex(x=>x.id==='${c.id}'),'shorts')">📱 쇼츠 소재로 저장</button>
-        <button class="dp-action-btn" style="background:var(--c-blog)22;color:var(--c-blog)" onclick="saveItem(S.filtered.findIndex(x=>x.id==='${c.id}'),'blog')">📝 블로그 소재로 저장</button>
-        <button class="dp-action-btn" style="background:var(--c-compare)22;color:var(--c-compare)" onclick="toggleFav(S.filtered.findIndex(x=>x.id==='${c.id}'))">⭐ 즐겨찾기 ${S.favorites.has(c.id)?'해제':'추가'}</button>
-      </div>
+      <button class="act-btn" style="background:var(--act-shorts-lt);color:var(--act-shorts)" onclick="saveItem(${idx},'shorts')">📱 쇼츠 소재로 저장</button>
+      <button class="act-btn" style="background:var(--act-blog-lt);color:var(--act-blog)" onclick="saveItem(${idx},'blog')">📝 블로그 소재로 저장</button>
+      <button class="act-btn" style="background:var(--act-compare-lt);color:var(--act-compare)" onclick="toggleFav(${idx})">${isFav?'⭐ 즐겨찾기 해제':'☆ 즐겨찾기 추가'}</button>
     </div>
   </div>`;
 }
 
-// ── 테이블 메타
 function renderMeta(){
   const el=document.getElementById('table-meta');
   if(!S.candidates.length){el.innerHTML=`<span class="stat-chip" style="color:var(--c-faint)">탐색 결과가 표시됩니다</span>`;return;}
-  const modeLabel={category:`카테고리 탐색 · ${CAT_NAMES[S.catId]||''}`,rising:'급상승 모니터링',seed:`"${S.seedKw}" 확장`};
+  const mLabel={category:`카테고리·${CAT_NAMES[S.catId]||''}`,rising:'급상승 모니터링',seed:`"${S.seedKw}" 확장`};
+  const r=S.candidates.filter(c=>c.trend?.status==='rising').length;
+  const a=S.candidates.filter(c=>c.score?.grade==='A').length;
   el.innerHTML=`
-    <span class="stat-chip">🔍 ${modeLabel[S.mode]||''}</span>
-    <span class="stat-chip">📦 ${S.candidates.length}개 후보</span>
-    <span class="stat-chip">🔥 급상승 ${S.candidates.filter(c=>c.trend?.status==='rising').length}개</span>
-    <span class="stat-chip">🏆 A등급 ${S.candidates.filter(c=>c.score?.grade==='A').length}개</span>
-    <span class="stat-chip">⭐ 즐겨찾기 ${S.favorites.size}개</span>
-    ${S.lastUpdated?`<span class="stat-chip" style="margin-left:auto;color:var(--c-faint)">🕐 ${fmtDate(S.lastUpdated)}</span>`:''}
-  `;
+    <span class="stat-chip">🔍 ${mLabel[S.mode]||''}</span>
+    <span class="stat-chip">📦 ${S.candidates.length}개</span>
+    <span class="stat-chip">🔥 급상승 ${r}개</span>
+    <span class="stat-chip">🏆 A등급 ${a}개</span>
+    <span class="stat-chip">⭐ 즐겨찾기 ${S.favorites.size}</span>
+    ${S.lastUpdated?`<span class="stat-chip" style="margin-left:auto;color:var(--c-faint)">🕐 ${fmtDate(S.lastUpdated)}</span>`:''}`;
 }
 
-// ── 바로가기 버튼
 function renderQuickLinks(){
-  const bar=document.getElementById('quicklink-bar');
+  const bar=document.getElementById('ql-bar');
   const el =document.getElementById('quick-links');
   const c  =S.selected;
   if(!c){bar.style.display='none';return;}
   const q=encodeURIComponent(c.name);
   const links=[
-    {icon:'🛒',label:'네이버 쇼핑', hc:'--c-primary', url:`https://search.shopping.naver.com/search/all?query=${q}`},
-    {icon:'📝',label:'네이버 블로그',hc:'--c-blog',    url:`https://search.naver.com/search.naver?where=blog&query=${q}`},
-    {icon:'🟡',label:'쿠팡',        hc:'--c-shorts',  url:`https://www.coupang.com/np/search?q=${q}`},
-    {icon:'▶️',label:'유튜브',       hc:'--c-falling', url:`https://www.youtube.com/results?search_query=${encodeURIComponent(c.name+' 추천')}`},
+    {icon:'🛒',label:'네이버 쇼핑', url:`https://search.shopping.naver.com/search/all?query=${q}`},
+    {icon:'📝',label:'네이버 블로그',url:`https://search.naver.com/search.naver?where=blog&query=${q}`},
+    {icon:'🟡',label:'쿠팡',         url:`https://www.coupang.com/np/search?q=${q}`},
+    {icon:'▶️',label:'유튜브',        url:`https://www.youtube.com/results?search_query=${encodeURIComponent(c.name+' 추천')}`},
   ];
   bar.style.display='flex';
   el.innerHTML=links.map(l=>`
     <a href="${l.url}" target="_blank" rel="noopener" class="ql-btn"
-      onmouseover="this.style.borderColor='var(${l.hc})';this.style.color='var(${l.hc})'"
+      onmouseover="this.style.borderColor='var(--c-primary)';this.style.color='var(--c-primary)'"
       onmouseout="this.style.borderColor='var(--c-border)';this.style.color='#475569'">
       ${l.icon} ${l.label}
     </a>`).join('');
 }
 
-// ── API 상태
 function renderApiBar(){
   const el=document.getElementById('api-bar');
-  const s=S.apiStatus;
-  const items=Object.entries(s).map(([k,v])=>{
-    const ok=v==='fulfilled'||(typeof v==='string'&&v.includes('/'));
-    return `<span><span class="api-dot" style="background:${ok?'#34d399':'#f43f5e'}"></span>${k}: ${v||'–'}</span>`;
-  });
+  const items=Object.entries(S.apiStatus).map(([k,v])=>`<span><span class="api-dot" style="background:${v==='fulfilled'||String(v).includes('/')? '#34d399':'#f43f5e'}"></span>${k}: ${v||'–'}</span>`);
   el.innerHTML=items.length?items.join(''):'<span>API 대기 중</span>';
 }
 
 // ════════════════════════════════════════
 // ACTIONS
 // ════════════════════════════════════════
-function saveItem(i, type){
+function saveItem(i,type){
   const c=S.filtered[i];
   if(!c) return;
   if(!S.saved[type].find(x=>x.id===c.id)) S.saved[type].push(c);
-  showToast(`"${c.name}" → ${type==='shorts'?'📱 쇼츠':'📝 블로그'} 소재 저장됨`);
+  showToast(`"${c.name}" → ${type==='shorts'?'📱 쇼츠':'📝 블로그'} 저장됨`);
   renderTable();
 }
-
 function toggleFav(i){
   const c=S.filtered[i];
   if(!c) return;
-  if(S.favorites.has(c.id)) S.favorites.delete(c.id);
-  else S.favorites.add(c.id);
+  S.favorites.has(c.id)?S.favorites.delete(c.id):S.favorites.add(c.id);
   renderTable();renderMeta();renderDetail();
 }
-
 function showToast(msg){
-  let t=document.getElementById('toast');
-  if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:999;transition:opacity .3s';document.body.appendChild(t);}
+  let t=document.getElementById('_toast');
+  if(!t){
+    t=document.createElement('div');t.id='_toast';
+    t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;transition:opacity .3s;pointer-events:none';
+    document.body.appendChild(t);
+  }
   t.textContent=msg;t.style.opacity='1';
-  clearTimeout(t._timer);t._timer=setTimeout(()=>t.style.opacity='0',2000);
+  clearTimeout(t._t);t._t=setTimeout(()=>t.style.opacity='0',2000);
 }
 
 // ════════════════════════════════════════
