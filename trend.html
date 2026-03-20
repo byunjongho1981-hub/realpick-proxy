@@ -618,10 +618,19 @@ function renderDetail(){
 
   var rankPct = Math.max(1, 100 - pct + 1);
 
-  var warns=[];
-  if(sc.confidence==='low') warns.push('데이터 부족 — 판단 신뢰도 낮음');
-  if(tr.source==='count')   warns.push('Datalab 미수집 — 수량 기반 판정');
-  if((c.sources||[]).length<2) warns.push('단일 소스 — 교차 검증 필요');
+  var warns = [];
+  // 1. 데이터 부족 — 실제로 수집량이 적을 때만
+  if (sc.confidence === 'low') {
+    warns.push('수집 데이터 부족 — 결과 신뢰도 낮음');
+  }
+  // 2. 점수 매우 낮음
+  if (safeNum(sc.totalScore) < 20) {
+    warns.push('점수 20점 미만 — 관심도 낮은 제품');
+  }
+  // 3. 트렌드 하락
+  if (tr.status === 'falling') {
+    warns.push('하락 추세 — 콘텐츠 제작 시 시장 축소 가능성 고려');
+  }
 
   var dirMap={shorts:'📱 YouTube Shorts 소재로 즉시 활용',blog:'📝 블로그 리뷰/비교 포스팅 추천',hold:'⏸ 추이 관망 후 재판단',compare:'🔄 유사 제품과 비교 분석 후 선택'};
   var bars=Object.keys(bd).map(function(k){var v=bd[k];var max=SCORE_MAX[k]||25;var p2=Math.round((safeNum(v)/max)*100);return '<div class="bar-item"><div class="bar-lrow"><span style="color:var(--c-muted)">'+(SRC_LABEL[k]||k)+'</span><span style="font-weight:700">'+safeNum(v)+'/'+max+'</span></div><div class="bar-track"><div class="bar-fill" style="width:'+p2+'%"></div></div></div>';}).join('');
