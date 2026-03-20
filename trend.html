@@ -580,43 +580,43 @@ function renderDetail(){
   var ac=cv(ACTION_COLOR[c.action]||'--act-hold');
   var acBg=cv(ACTION_LT[c.action]||'--act-hold-lt');
 
-  // ── 위치 추적 (RANK_HISTORY로 영구 보존)
-  var rank  = 0;
-  for(var ri=0; ri<S.filtered.length; ri++){
-    if(S.filtered[ri].id===c.id){ rank=ri+1; break; }
+  // ── 위치 추적
+  var rank = i + 1; // selectItem에서 전달된 인덱스 기반
+  // filtered에서 현재 순위 재계산
+  var curRank = 1;
+  for (var ri = 0; ri < S.filtered.length; ri++) {
+    if (S.filtered[ri].id === c.id) { curRank = ri + 1; break; }
   }
-  if(rank===0) rank=1;
   var total = S.filtered.length || 1;
-  var pct   = Math.round((1-(rank-1)/total)*100);
+  var info  = getRankInfo(c.id, curRank, total);
+  var rh    = info.rh;
+  var delta = info.delta;
+  var pct   = info.pct;
 
-  // 히스토리 기록
-  if(!RANK_HISTORY[c.id]) RANK_HISTORY[c.id] = [];
-  var rh = RANK_HISTORY[c.id];
-  if(rh[rh.length-1] !== rank) rh.push(rank);
-  if(rh.length > 8) rh.shift();
-
-  // 변화 계산
-  var prev      = rh.length >= 2 ? rh[rh.length-2] : null;
-  var delta     = prev !== null ? prev - rank : null;
-  var deltaHtml = delta===null
-    ? '<span style="color:var(--c-faint);font-size:11px">첫 조회</span>'
-    : delta>0
-      ? '<span style="color:var(--rising);font-size:11px;font-weight:700">▲ '+delta+'위 상승</span>'
-      : delta<0
-        ? '<span style="color:var(--falling);font-size:11px;font-weight:700">▼ '+Math.abs(delta)+'위 하락</span>'
-        : '<span style="color:var(--c-faint);font-size:11px">── 유지</span>';
-
-  // 히스토리 바 (최대 8개)
-  var histBars = '';
-  for(var hi=0; hi<rh.length; hi++){
-    var rr  = rh[hi];
-    var barH = Math.max(4, Math.round((1-(rr-1)/(total))*28));
-    var isLast = hi===rh.length-1;
-    histBars += '<div class="ph-bar" style="width:10px;height:'+barH+'px;background:'+(isLast?gc:'#c7d2fe')+';border-radius:2px 2px 0 0"></div>';
+  var deltaHtml;
+  if (delta === null) {
+    deltaHtml = '<span style="color:var(--c-faint);font-size:11px">첫 조회</span>';
+  } else if (delta > 0) {
+    deltaHtml = '<span style="color:var(--rising);font-size:11px;font-weight:700">▲ '+delta+'위 상승</span>';
+  } else if (delta < 0) {
+    deltaHtml = '<span style="color:var(--falling);font-size:11px;font-weight:700">▼ '+Math.abs(delta)+'위 하락</span>';
+  } else {
+    deltaHtml = '<span style="color:var(--c-faint);font-size:11px">── 유지</span>';
   }
 
-  // 현재 순위 백분위 바
-  var rankPct = Math.max(1, 100-pct+1);
+  var histBars = '';
+  if (rh.length > 0) {
+    for (var hi = 0; hi < rh.length; hi++) {
+      var rr   = rh[hi];
+      var barH = Math.max(4, Math.round((1 - (rr-1)/total) * 28));
+      var isLast = (hi === rh.length - 1);
+      histBars += '<div style="width:10px;height:'+barH+'px;background:'+(isLast?gc:'#c7d2fe')+';border-radius:2px 2px 0 0;display:inline-block;margin-right:2px"></div>';
+    }
+  } else {
+    histBars = '<span style="font-size:10px;color:var(--c-faint)">기록 없음</span>';
+  }
+
+  var rankPct = Math.max(1, 100 - pct + 1);
 
   var warns=[];
   if(sc.confidence==='low') warns.push('데이터 부족 — 판단 신뢰도 낮음');
@@ -757,8 +757,14 @@ function onReset(){
   renderDetail();renderMeta();renderApiBar();renderSummaryCards();renderQuickLinks();
 }
 function selectItem(i){
-  S.selected=S.filtered[i]||null;
-  renderTable(); renderDetail(); renderQuickLinks();
+  S.selected = S.filtered[i] || null;
+  // 클릭 시점의 순위를 즉시 기록
+  if (S.selected) {
+    recordRank(S.selected.id, i + 1);
+  }
+  renderTable();
+  renderDetail();
+  renderQuickLinks();
 }
 function switchMode(m){
   S.mode=m; S.selected=null;
