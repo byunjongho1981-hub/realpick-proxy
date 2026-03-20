@@ -103,6 +103,20 @@
     .kw-tags{display:flex;flex-wrap:wrap;gap:5px}
     .kw-tag{background:#eff0ff;color:#6366f1;border-radius:6px;padding:3px 9px;font-size:11px;font-weight:600}
 
+    /* 위치추적 */
+    .position-row{display:flex;gap:8px;margin-bottom:16px}
+    .pos-card{flex:1;background:#f8fafc;border-radius:10px;padding:10px 12px;text-align:center;border:1px solid #e2e8f0}
+    .pos-num{font-size:20px;font-weight:900;line-height:1.2}
+    .pos-lbl{font-size:10px;color:#94a3b8;margin-top:2px}
+    .pos-delta{font-size:11px;font-weight:700;margin-top:3px}
+    .delta-up{color:#10b981}
+    .delta-dn{color:#f43f5e}
+    .delta-eq{color:#94a3b8}
+    .rank-bar{height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden;margin-top:8px}
+    .rank-fill{height:100%;border-radius:3px;transition:width .5s}
+    .position-history{display:flex;align-items:flex-end;gap:3px;height:40px;margin-top:8px}
+    .ph-bar{flex:1;border-radius:2px 2px 0 0;min-height:4px;transition:height .3s}
+
     /* API 바 */
     .api-bar{padding:6px 20px;background:#f8fafc;border-top:1px solid #e2e8f0;display:flex;align-items:center;gap:14px;flex-wrap:wrap;flex-shrink:0;font-size:11px;color:#94a3b8}
     .api-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:middle}
@@ -488,6 +502,45 @@ function renderDetail(){
   const tc=TREND_COLOR[tr.status]||'#94a3b8';
   const ac=ACTION_COLOR[c.action]||'#94a3b8';
 
+  // ── 현재 순위 계산
+  const currentRank = S.filtered.findIndex(x=>x.id===c.id) + 1;
+  const totalCount  = S.filtered.length;
+  const rankPct     = totalCount ? Math.round((1 - (currentRank-1)/totalCount)*100) : 100;
+
+  // ── 순위 변화 (전체 candidates 기준 score 순위 vs 현재 필터 순위)
+  const globalRank  = S.candidates.sort((a,b)=>b.score.totalScore-a.score.totalScore).findIndex(x=>x.id===c.id)+1;
+  const rankDelta   = null; // 실시간 추적은 세션 내 이전 순위 기록 필요 (아래 history로 처리)
+
+  // ── 세션 내 순위 히스토리 (최대 6개 기록)
+  if(!c._rankHistory) c._rankHistory=[];
+  const lastRank = c._rankHistory[c._rankHistory.length-1];
+  if(lastRank !== currentRank) c._rankHistory.push(currentRank);
+  if(c._rankHistory.length>6) c._rankHistory.shift();
+  const hist = c._rankHistory;
+  const prevRank = hist.length>=2 ? hist[hist.length-2] : null;
+  const delta    = prevRank!==null ? prevRank - currentRank : null; // 양수=상승
+
+  // 순위 변화 텍스트
+  const deltaHtml = delta===null
+    ? '<span class="delta-eq">첫 조회</span>'
+    : delta>0
+      ? `<span class="delta-up">▲ ${delta}위 상승</span>`
+      : delta<0
+        ? `<span class="delta-dn">▼ ${Math.abs(delta)}위 하락</span>`
+        : '<span class="delta-eq">── 유지</span>';
+
+  // 히스토리 바 차트
+  const maxH=hist.length?Math.max(...hist):1;
+  const histBars = hist.map((r,i)=>{
+    const h = Math.round((1-(r-1)/(totalCount||1))*36)+4;
+    const isLast = i===hist.length-1;
+    return `<div class="ph-bar" style="height:${h}px;background:${isLast?gc:'#c7d2fe'}" title="${r}위"></div>`;
+  }).join('');
+
+  // 소스별 아이템 수
+  const srcCounts = {};
+  (c.sampleItems||[]).forEach(i=>{ srcCounts[i.source]=(srcCounts[i.source]||0)+1; });
+
   const bars=Object.entries(bd).map(([k,v])=>{
     const max=SCORE_MAX[k]||25, pct=Math.round((safeNum(v)/max)*100);
     return `<div class="bar-item">
@@ -503,20 +556,57 @@ function renderDetail(){
   </a>`).join('');
 
   panel.innerHTML=`<div class="d-body">
+
+    <!-- 헤더 -->
     <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:14px">
       <div style="flex:1;font-size:14px;font-weight:700;line-height:1.4">${c.name}</div>
       <span style="background:${gc}22;color:${gc};border-radius:8px;padding:3px 10px;font-size:12px;font-weight:700;white-space:nowrap">등급 ${sc.grade||'-'}</span>
     </div>
+
     ${kwtags?`<div class="d-sec"><div class="d-lbl">연관 키워드</div><div class="kw-tags">${kwtags}</div></div>`:''}
-    <div class="d-sec"><div class="d-lbl">한 줄 결론</div><div class="d-box">${c.summary||'-'}</div></div>
+
+    <!-- 한 줄 결론 + 위치추적 나란히 -->
+    <div class="d-sec">
+      <div class="d-lbl">한 줄 결론 &amp; 위치 추적</div>
+      <div style="display:flex;gap:8px;align-items:stretch">
+
+        <!-- 한 줄 결론 -->
+        <div class="d-box" style="flex:1;font-size:12px">${c.summary||'-'}</div>
+
+        <!-- 위치 추적 카드 -->
+        <div style="width:100px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 8px;text-align:center;flex-shrink:0">
+          <div style="font-size:10px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">위치</div>
+          <div style="font-size:22px;font-weight:900;color:${gc};line-height:1">${currentRank}</div>
+          <div style="font-size:10px;color:#94a3b8;margin-bottom:4px">/ ${totalCount}위</div>
+          <div style="font-size:11px;font-weight:700;margin-bottom:6px">${deltaHtml}</div>
+          <!-- 히스토리 미니 바 -->
+          <div style="display:flex;align-items:flex-end;gap:2px;height:28px;justify-content:center">
+            ${histBars||'<span style="font-size:10px;color:#cbd5e1">–</span>'}
+          </div>
+          <div style="font-size:9px;color:#cbd5e1;margin-top:3px">순위 히스토리</div>
+          <!-- 순위 백분위 바 -->
+          <div class="rank-bar" style="margin-top:6px">
+            <div class="rank-fill" style="width:${rankPct}%;background:${gc}"></div>
+          </div>
+          <div style="font-size:9px;color:#94a3b8;margin-top:2px">상위 ${100-rankPct+1}%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 스코어 그리드 -->
     <div class="score-grid">
       <div class="score-cell"><div class="score-big" style="color:${gc}">${Math.round(safeNum(sc.totalScore))}</div><div class="score-sub">종합점수</div></div>
       <div class="score-cell"><div class="score-big" style="font-size:14px;color:${tc}">${TREND_LABEL[tr.status]||'-'}</div><div class="score-sub">트렌드</div></div>
       <div class="score-cell"><div class="score-big" style="font-size:16px">${tr.changeRate!=null?rateHtml(tr.changeRate):'–'}</div><div class="score-sub">변화율 (${tr.source==='datalab'?'Datalab':'수량기반'})</div></div>
       <div class="score-cell"><div class="score-big" style="font-size:13px;color:#475569">${sc.confidence||'-'}</div><div class="score-sub">신뢰도</div></div>
     </div>
+
+    <!-- 점수 분석 -->
     <div class="d-sec"><div class="d-lbl">점수 분석</div>${bars||'<div style="font-size:12px;color:#94a3b8">데이터 없음</div>'}</div>
+
     ${samples?`<div class="d-sec"><div class="d-lbl">샘플 항목</div>${samples}</div>`:''}
+
+    <!-- 추천 액션 -->
     <div class="action-box">
       <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">추천 액션</div>
       <div style="font-size:14px;font-weight:700;color:${ac};margin-bottom:4px">${ACTION_LABEL[c.action]||c.action||'-'}</div>
