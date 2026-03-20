@@ -114,6 +114,59 @@ function extractKeywords(title = '') {
     .slice(0, 5);
 }
 
+// ── 광고성 패턴 (제목에 포함 시 제거)
+const AD_PATTERNS = [
+  /\[광고\]/i, /\[협찬\]/i, /\[유료\]/i, /AD\b/i,
+  /쿠폰/,  /최저가/, /특가/, /이벤트/, /당일배송/,
+  /무료배송/, /사은품/, /공동구매/, /한정수량/,
+  /클릭.*지급/, /지급.*클릭/, /후기.*작성/,
+];
+
+// ── 저품질 패턴 (스팸/어뷰징 의심)
+const SPAM_PATTERNS = [
+  /(.)\1{4,}/,        // 같은 글자 5회 이상 반복
+  /[\u3040-\u30FF]/,  // 일본어
+  /[\u4E00-\u9FFF]/,  // 중국어
+  /http[s]?:\/\//,    // URL 포함
+  /전화번호.*\d{3,}/,
+];
+
+// ── 키워드 관련도 검사
+// 검색 키워드의 핵심 단어가 제목에 하나라도 포함되는지 확인
+function isRelevant(title, keyword) {
+  if (!keyword || keyword === CONFIG.DEFAULT_KEYWORD) return true;
+  const kwTokens = extractKeywords(keyword);
+  if (!kwTokens.length) return true;
+  const t = title.toLowerCase();
+  // 핵심 토큰 중 1개 이상 포함 시 관련 있음
+  return kwTokens.some(tok => t.includes(tok.toLowerCase()));
+}
+
+/**
+ * 아이템 품질 검사
+ * @returns {boolean} true = 통과 / false = 제거
+ */
+function isValidItem(item, keyword) {
+  const title = item.title || '';
+
+  // 1. 너무 짧은 제목 제거
+  if (title.length < 2) return false;
+
+  // 2. 광고 패턴 제거
+  if (AD_PATTERNS.some(p => p.test(title))) return false;
+
+  // 3. 스팸 패턴 제거
+  if (SPAM_PATTERNS.some(p => p.test(title))) return false;
+
+  // 4. 키워드 관련도 검사
+  if (!isRelevant(title, keyword)) return false;
+
+  // 5. 쇼핑 한정: 가격 0원 제거 (광고성 상품)
+  if (item.source === 'shopping' && item.price === 0) return false;
+
+  return true;
+}
+
 // ════════════════════════════════════════
 // HTTP 공통 헬퍼
 // ════════════════════════════════════════
@@ -219,16 +272,21 @@ async function fetchWithRetry(fn, retries = CONFIG.RETRY_COUNT) {
 // ════════════════════════════════════════
 // RESPONSE NORMALIZER
 // ════════════════════════════════════════
-function normalize(data, source) {
+/**
+ * 소스별 응답을 통일 구조로 변환 + 품질 필터 적용
+ */
+function normalize(data, source, keyword = '') {
   if (!data || !Array.isArray(data.items)) return [];
-  return data.items.map(item => ({
-    source,
-    title:       cleanText(item.title         || ''),
-    link:        item.link                    || '',
-    price:       safeNum(item.lprice || item.price, 0),
-    pubDate:     item.pubdate || item.postdate || '',
-    description: cleanText(item.description   || ''),
-  })).filter(item => item.title.length > 0);
+  return data.items
+    .map(item => ({
+      source,
+      title:       cleanText(item.title         || ''),
+      link:        item.link                    || '',
+      price:       safeNum(item.lprice || item.price, 0),
+      pubDate:     item.pubdate || item.postdate || '',
+      description: cleanText(item.description   || ''),
+    }))
+    .filter(item => isValidItem(item, keyword));
 }
 
 // ════════════════════════════════════════
@@ -379,10 +437,10 @@ module.exports = async (req, res) => {
 
     // ── 2. 정규화 + 기간 필터
     const allItems = filterByPeriod([
-      ...normalize(get(shopping), 'shopping'),
-      ...normalize(get(blog),     'blog'),
-      ...normalize(get(news),     'news'),
-      ...normalize(get(cafe),     'cafe'),
+      ...normalize(get(shopping), 'shopping', keyword),
+      ...normalize(get(blog),     'blog',     keyword),
+      ...normalize(get(news),     'news',     keyword),
+      ...normalize(get(cafe),     'cafe',     keyword),
     ], dateRange.startDate);
 
     if (!allItems.length) {
