@@ -480,12 +480,11 @@ async function runQuickSearch(){
 }
 function handleResult(data){
   if(!Array.isArray(data.candidates)) throw new Error('응답 형식 오류');
-  S.candidates=data.candidates;
-  S.apiStatus=data.apiStatus||{};
-  S.lastUpdated=data.updatedAt||new Date().toISOString();
+  S.candidates = data.candidates;
+  S.apiStatus  = data.apiStatus || {};
+  S.lastUpdated= data.updatedAt || new Date().toISOString();
   applySort();
-  try { renderAll(); }
-  catch(e) { console.error('[renderAll]', e); }
+  renderAll();
 }
 
 // ── FILTER/SORT
@@ -500,7 +499,14 @@ function applySort(){
 }
 
 // ── RENDER
-function renderAll(){renderSummaryCards();renderTable();renderDetail();renderMeta();renderApiBar();renderQuickLinks();}
+function renderAll(){
+  try{renderSummaryCards();}catch(e){console.error('[renderSummaryCards]',e);}
+  try{renderTable();}catch(e){console.error('[renderTable]',e);}
+  try{renderDetail();}catch(e){console.error('[renderDetail]',e);}
+  try{renderMeta();}catch(e){console.error('[renderMeta]',e);}
+  try{renderApiBar();}catch(e){console.error('[renderApiBar]',e);}
+  try{renderQuickLinks();}catch(e){console.error('[renderQuickLinks]',e);}
+}
 
 function renderSummaryCards(){
   const cs=S.candidates;
@@ -522,12 +528,13 @@ function renderTable(){
   if(!S.filtered.length){table.style.display='none';empty.style.display='flex';return;}
   empty.style.display='none';table.style.display='table';
   tbody.innerHTML=S.filtered.map((c,i)=>{
+    if(!c) return '';
     const sc=c.score||{},tr=c.trend||{};
     const gc=cv(GRADE_COLOR[sc.grade]||'--grade-c');
-    const isSel=S.selected?.id===c.id;
+    const isSel=S.selected&&S.selected.id===c.id;
     const isFav=S.favorites.has(c.id);
-    const tags=(c.keywords||[]).slice(0,2).map(k=>`<span style="background:#f1f5f9;color:#475569;border-radius:4px;padding:1px 5px;font-size:10px;margin-right:2px">${k}</span>`).join('');
-    const srcs=(c.sources||[]).map(s=>`<span style="background:#f1f5f9;color:#475569;border-radius:4px;padding:1px 5px;font-size:10px;margin-right:2px">${s}</span>`).join('');
+    const tags=((c.keywords)||[]).slice(0,2).map(k=>`<span style="background:#f1f5f9;color:#475569;border-radius:4px;padding:1px 5px;font-size:10px;margin-right:2px">${k||''}</span>`).join('');
+    const srcs=((c.sources)||[]).map(s=>`<span style="background:#f1f5f9;color:#475569;border-radius:4px;padding:1px 5px;font-size:10px;margin-right:2px">${s||''}</span>`).join('');
     return `<tr class="result-row${isSel?' sel':''}" onclick="selectItem(${i})">
       <td style="padding:9px 12px"><div style="font-weight:700;font-size:13px">${isFav?'⭐ ':''}${c.name||'–'}</div><div style="margin-top:2px">${tags}</div></td>
       <td style="padding:9px 12px;font-weight:900;font-size:15px;color:${gc}">${Math.round(safeNum(sc.totalScore))}</td>
