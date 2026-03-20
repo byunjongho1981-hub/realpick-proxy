@@ -297,15 +297,36 @@ module.exports = async (req, res) => {
     if (mode==='category') {
       const catId = req.query.categoryId || '50000003';
 
-      // ── 전체 탐색: 카테고리별 시드 앞 2개씩 (API 1회 호출로 처리)
+      // ── 전체 탐색: 카테고리별 키워드 수집 후 합산
       if (catId === 'all') {
-        const keywords = ALL_SEEDS; // 파일 상단 상수 사용
-        const {candidates, apiStatus} = await buildCandidates(keywords, range, null);
+        const allCatIds = Object.keys(CAT_SEEDS);
+
+        // 1단계: 카테고리별 인기 키워드 수집 (병렬, 부분 실패 허용)
+        const kwResults = await Promise.allSettled(
+          allCatIds.map(id => fetchCatKeywords(id))
+        );
+
+        // 2단계: 수집 실패한 카테고리는 seed fallback 사용, 각 카테고리 상위 3개만
+        const allKeywords = [];
+        allCatIds.forEach((id, i) => {
+          const r = kwResults[i];
+          const kws = (r.status === 'fulfilled' && Array.isArray(r.value) && r.value.length)
+            ? r.value.slice(0, 3)
+            : CAT_SEEDS[id].slice(0, 3);
+          allKeywords.push(...kws);
+        });
+
+        // 3단계: 중복 제거
+        const unique = [...new Set(allKeywords.map(k => String(k).trim()).filter(Boolean))];
+
+        // 4단계: 전체 키워드 일괄 검색 & 점수화 (catId=null 로 카테고리 무관 검색)
+        const {candidates, apiStatus} = await buildCandidates(unique, range, null);
+
         return res.status(200).json({
           candidates, mode,
-          categoryId:'all', categoryName:'전체',
-          keywords, period, total:candidates.length,
-          apiStatus, updatedAt:new Date().toISOString(),
+          categoryId: 'all', categoryName: '전체',
+          keywords: unique, period, total: candidates.length,
+          apiStatus, updatedAt: new Date().toISOString(),
         });
       }
 
@@ -319,9 +340,9 @@ module.exports = async (req, res) => {
       const {candidates, apiStatus} = await buildCandidates(keywords, range, catId);
       return res.status(200).json({
         candidates, mode,
-        categoryId:catId, categoryName:CAT_NAMES[catId]||catId,
-        keywords, period, total:candidates.length,
-        apiStatus, updatedAt:new Date().toISOString(),
+        categoryId: catId, categoryName: CAT_NAMES[catId] || catId,
+        keywords, period, total: candidates.length,
+        apiStatus, updatedAt: new Date().toISOString(),
       });
     }
 
