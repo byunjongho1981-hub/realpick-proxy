@@ -240,7 +240,7 @@
       <option value="name">이름순</option>
     </select>
     <!-- 관련 링크 버튼 (항목 선택 시 활성화) -->
-    <div id="quick-links" style="display:none;margin-left:8px;gap:5px;align-items:center"></div>
+    <div id="quick-links" style="display:none;gap:5px;align-items:center"></div>
   </div>
 
   <!-- 바디 -->
@@ -261,6 +261,11 @@
     <div class="table-panel">
       <div class="table-meta" id="summary-stats">
         <span class="stat-chip" style="color:#94a3b8">탐색 모드를 선택하고 시작하세요</span>
+      </div>
+      <!-- 관련 링크 바 -->
+      <div id="quick-links-bar" style="display:none;background:#fff;border-bottom:1px solid #e2e8f0;padding:7px 20px;gap:6px;align-items:center;flex-shrink:0">
+        <span style="font-size:11px;font-weight:700;color:#94a3b8;white-space:nowrap;text-transform:uppercase;letter-spacing:1px;margin-right:4px">바로가기</span>
+        <div id="quick-links" style="display:flex;gap:6px;align-items:center"></div>
       </div>
 
       <div id="error-wrap" style="display:none" class="error-wrap">
@@ -464,9 +469,10 @@ function applySort(){
 function renderAll(){ renderTable(); renderDetail(); renderStats(); renderApiBar(); renderQuickLinks(); }
 
 function renderQuickLinks(){
-  const el = document.getElementById('quick-links');
-  const c  = S.selected;
-  if(!c){ el.style.display='none'; return; }
+  const bar = document.getElementById('quick-links-bar');
+  const el  = document.getElementById('quick-links');
+  const c   = S.selected;
+  if(!c){ bar.style.display='none'; return; }
   const q = encodeURIComponent(c.name);
   const links = [
     { icon:'🛒', label:'네이버 쇼핑', color:'#6366f1', url:`https://search.shopping.naver.com/search/all?query=${q}` },
@@ -474,14 +480,13 @@ function renderQuickLinks(){
     { icon:'🟡', label:'쿠팡',         color:'#f59e0b', url:`https://www.coupang.com/np/search?q=${q}` },
     { icon:'▶️', label:'유튜브',        color:'#f43f5e', url:`https://www.youtube.com/results?search_query=${encodeURIComponent(c.name+' 추천')}` },
   ];
-  el.style.display='flex';
+  bar.style.display='flex';
   el.innerHTML = links.map(l=>`
     <a href="${l.url}" target="_blank" rel="noopener"
-      title="${l.label}"
-      style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;text-decoration:none;font-size:14px;flex-shrink:0;transition:all .15s"
-      onmouseover="this.style.borderColor='${l.color}';this.style.transform='scale(1.12)'"
-      onmouseout="this.style.borderColor='#e2e8f0';this.style.transform='scale(1)'">
-      ${l.icon}
+      style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;text-decoration:none;font-size:12px;font-weight:600;color:#1e293b;white-space:nowrap;transition:all .15s"
+      onmouseover="this.style.borderColor='${l.color}';this.style.color='${l.color}';this.style.background='${l.color}11'"
+      onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#1e293b';this.style.background='#fff'">
+      <span>${l.icon}</span>${l.label}
     </a>`).join('');
 }
 
