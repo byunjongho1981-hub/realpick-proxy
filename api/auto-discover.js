@@ -7,8 +7,8 @@
 const https = require('https');
 
 const CFG = {
-  TIMEOUT_MS: 7000,
-  RETRY:      1,
+  TIMEOUT_MS: 3500, // 5초 제한 내 여유있게
+  RETRY:      0,    // 재시도 없음 (시간 절약)
   GRADE: { A:70, B:50 },
   CHANGE: { RISING:10, FALLING:-10 },
   SCORE: { shopping:40, blog:20, news:10, cafe:15, trend:15 },
@@ -154,51 +154,53 @@ async function discoverCategory(catId, period){
   };
 }
 
-// ── 전체 탐색 (카테고리 순차 처리)
+// ── 전체 탐색 (카테고리 병렬 처리 — 5초 제한 대응)
 async function discoverAll(){
   const completed=[], failed=[], allPool=[];
 
-  for(const catId of CAT_ORDER){
-    const catName=CAT_NAMES[catId]||catId;
-    try{
-      const keywords=CAT_SEEDS[catId]||[];
-      const topKw=keywords[0]||''; // 카테고리 대표 키워드 1개
-      if(!topKw){ failed.push({catId,catName,reason:'키워드 없음'}); continue; }
+  // 15개 카테고리 동시 병렬 처리 (순차 → 병렬로 변경)
+  const tasks = CAT_ORDER.map(catId => {
+    const catName = CAT_NAMES[catId] || catId;
+    const topKw   = (CAT_SEEDS[catId] || [])[0] || '';
+    if(!topKw) return Promise.resolve({ catId, catName, items:[], ok:false, reason:'키워드 없음' });
+    return shopSearch(topKw, catId)
+      .then(items => ({ catId, catName, topKw, items, ok:true }))
+      .catch(e   => ({ catId, catName, topKw, items:[], ok:false, reason:e.message }));
+  });
 
-      const items=await shopSearch(topKw, catId);
-      if(!items.length){ failed.push({catId,catName,reason:'검색 결과 없음'}); continue; }
+  const results = await Promise.allSettled(tasks);
 
-      // 카테고리별 후보 생성
-      const score=calcScore(items.length, 20); // 최대 20 기준
-      const trend=judgeT(items.length);
-      const {summary,action}=makeSummary(topKw, score, trend);
-      allPool.push({
-        id:catId+'__'+topKw, name:topKw, category:catName, catId,
-        keywords:[topKw], sources:['shopping'], count:items.length,
-        score, trend, summary, action,
-        sampleItems:items.slice(0,3).map(i=>({title:i.title,link:i.link,source:'shopping'})),
-      });
-      completed.push(catName);
-    }catch(e){
-      failed.push({catId,catName,reason:e.message||'오류'});
+  results.forEach(r => {
+    if(r.status !== 'fulfilled') return;
+    const { catId, catName, topKw, items, ok, reason } = r.value;
+    if(!ok || !items.length){
+      failed.push({ catId, catName, reason: reason||'결과 없음' });
+      return;
     }
-  }
+    const score = calcScore(items.length, 20);
+    const trend = judgeT(items.length);
+    const { summary, action } = makeSummary(topKw, score, trend);
+    allPool.push({
+      id:catId+'__'+topKw, name:topKw, category:catName, catId,
+      keywords:[topKw], sources:['shopping'], count:items.length,
+      score, trend, summary, action,
+      sampleItems:items.slice(0,3).map(i=>({title:i.title,link:i.link,source:'shopping'})),
+    });
+    completed.push(catName);
+  });
 
   // 종합 재평가 (동일 고정 공식)
-  const globalMax=Math.max(...allPool.map(c=>c.count),1);
-  allPool.forEach(c=>{
-    const s=calcScore(c.count, globalMax);
-    c.score=s;
-  });
-  allPool.sort((a,b)=>b.score.totalScore-a.score.totalScore);
+  const globalMax = Math.max(...allPool.map(c=>c.count), 1);
+  allPool.forEach(c => { c.score = calcScore(c.count, globalMax); });
+  allPool.sort((a,b) => b.score.totalScore - a.score.totalScore);
 
   return {
-    candidates: allPool.slice(0,10),
-    apiStatus:{
+    candidates: allPool.slice(0, 10),
+    apiStatus: {
       completed: completed.length+'/'+CAT_ORDER.length+' 카테고리',
-      failed: failed.length?failed.map(f=>f.catName+'('+f.reason+')').join(', '):'없음',
+      failed:    failed.length ? failed.map(f=>f.catName+'('+f.reason+')').join(', ') : '없음',
     },
-    processLog:{completed, failed},
+    processLog: { completed, failed },
   };
 }
 
