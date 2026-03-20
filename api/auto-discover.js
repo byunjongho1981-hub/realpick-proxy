@@ -132,11 +132,21 @@ function judgeT(count) {
 }
 
 function makeSummary(name, score, trend) {
-  if (score.confidence === 'low') return { summary: name + ' — 데이터 부족, 판단 보류', action: 'hold' };
-  var action = score.grade === 'A' ? 'shorts' : score.grade === 'B' ? 'blog' : 'compare';
+  // confidence 무관하게 grade + trend 기준으로 액션 결정
+  var action;
+  if (trend.status === 'rising' && score.grade === 'A') {
+    action = 'shorts';
+  } else if (trend.status === 'rising' || score.grade === 'A' || score.grade === 'B') {
+    action = 'blog';
+  } else if (trend.status === 'falling') {
+    action = 'hold';
+  } else {
+    action = 'compare';
+  }
   var labels = { rising: '🔥 급상승', stable: '➡️ 보합', falling: '📉 하락', new: '✨ 신규' };
   var lbl = labels[trend.status] || '';
-  return { summary: name + ' ' + lbl + ' · ' + score.totalScore + '점 · ' + action.toUpperCase() + ' 추천', action: action };
+  var note = score.confidence === 'low' ? ' (데이터 부족)' : '';
+  return { summary: name + ' ' + lbl + ' · ' + score.totalScore + '점 · ' + action.toUpperCase() + ' 추천' + note, action: action };
 }
 
 function buildCandidate(kw, items, maxCount) {
