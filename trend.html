@@ -65,7 +65,7 @@
     .btn-primary:hover:not(:disabled){background:#4f46e5}
     .btn-ghost{background:#f1f5f9;color:#475569}
     .btn-ghost:hover:not(:disabled){background:#e2e8f0}
-    .cat-btn{padding:4px 11px;border-radius:20px;border:1.5px solid var(--c-border);font-size:12px;font-weight:600;color:var(--c-muted);cursor:pointer;background:#fff;transition:all .15s}
+    .cat-btn{padding:4px 11px;border-radius:20px;border:1.5px solid var(--c-border);font-size:12px;font-weight:600;color:var(--c-muted);cursor:pointer;background:#fff;transition:all .15s;display:inline-flex;align-items:center;white-space:nowrap;flex-shrink:0}
     .cat-btn.on{border-color:var(--c-primary);background:var(--c-primary);color:#fff}
 
     /* 필터 바 */
@@ -221,7 +221,6 @@
 
   <!-- 컨트롤 -->
   <div class="controls">
-    <!-- MODE 1: 카테고리 -->
     <div class="ctrl-panel active" id="ctrl-category">
       <div class="ctrl-row">
         <span class="ctrl-label">카테고리</span>
@@ -236,7 +235,6 @@
         <button class="cat-btn" data-cat="50000001" onclick="onCat(this)">패션잡화</button>
       </div>
     </div>
-    <!-- MODE 2: 급상승 -->
     <div class="ctrl-panel" id="ctrl-rising">
       <div class="ctrl-row">
         <span class="ctrl-label">변화율</span>
@@ -244,13 +242,13 @@
         <button class="cat-btn" data-threshold="20" onclick="onThreshold(this)">+20%</button>
         <button class="cat-btn" data-threshold="30" onclick="onThreshold(this)">+30%</button>
         <div class="sep"></div>
+        <span class="ctrl-label">감시 카테고리</span>
         <button class="cat-btn on" data-mcat="all" onclick="onMcat(this)">전체</button>
         <button class="cat-btn" data-mcat="50000003" onclick="onMcat(this)">디지털</button>
         <button class="cat-btn" data-mcat="50000002" onclick="onMcat(this)">뷰티</button>
         <button class="cat-btn" data-mcat="50000008" onclick="onMcat(this)">생활</button>
       </div>
     </div>
-    <!-- MODE 3: 시드 -->
     <div class="ctrl-panel" id="ctrl-seed">
       <div class="ctrl-row">
         <span class="ctrl-label">시드 키워드</span>
