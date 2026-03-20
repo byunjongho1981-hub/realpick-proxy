@@ -53,7 +53,7 @@ const ALL_SEEDS = Object.keys(CAT_SEEDS).flatMap(id => CAT_SEEDS[id].slice(0, 2)
 const ALL_CACHE = {
   data:      null,
   updatedAt: null,
-  TTL_MS:    30 * 60 * 1000, // 30분
+  TTL_MS:    24 * 60 * 60 * 1000, // 24시간 (일관성 우선)
 };
 
 function getAllCache() {
