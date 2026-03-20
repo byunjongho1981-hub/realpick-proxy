@@ -328,35 +328,18 @@ module.exports = async (req, res) => {
           });
         }
 
-        console.log('[all] 전체 카테고리 수집 시작');
-        const allCatIds = Object.keys(CAT_SEEDS);
+        console.log('[all] 전체 카테고리 탐색 시작 —', Object.keys(CAT_SEEDS).length, '개 카테고리');
 
-        // 1단계: Shopping Insight 대신 seed fallback 바로 사용 (속도 최우선)
-        // fetchCatKeywords는 Datalab API 실패가 잦으므로 전체 탐색엔 seed 사용
-        const allKeywords = [];
-        allCatIds.forEach(id => {
-          // 카테고리당 상위 2개만 (15 * 2 = 30개)
-          CAT_SEEDS[id].slice(0, 2).forEach(kw => allKeywords.push(kw));
-        });
-
-        // 2단계: 중복 제거
-        const unique = [...new Set(allKeywords.map(k => String(k).trim()).filter(Boolean))];
-        console.log('[all] 키워드 수:', unique.length);
-
-        // 3단계: 검색 (catId=null — 카테고리 무관)
-        const {candidates, apiStatus} = await buildCandidates(unique, range, null);
-
-        // 4단계: 상위 10개
-        const top10 = candidates.slice(0, 10);
+        // 전체 탐색 전용 함수 호출
+        const { candidates, apiStatus } = await searchAllCategories(range);
 
         const result = {
-          candidates: top10,
+          candidates,
           mode,
           categoryId:   'all',
           categoryName: '전체',
-          keywords:     unique,
           period,
-          total:        top10.length,
+          total:        candidates.length,
           apiStatus,
           updatedAt:    new Date().toISOString(),
           fromCache:    false,
