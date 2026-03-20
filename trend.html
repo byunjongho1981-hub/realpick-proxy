@@ -619,25 +619,37 @@ function renderDetail(){
   var rankPct = Math.max(1, 100 - pct + 1);
 
   var warns = [];
-  // 1. 데이터 부족 — 실제로 수집량이 적을 때만
-  if (sc.confidence === 'low') {
-    warns.push('수집 데이터 부족 — 결과 신뢰도 낮음');
-  }
-  // 2. 점수 매우 낮음
-  if (safeNum(sc.totalScore) < 20) {
-    warns.push('점수 20점 미만 — 관심도 낮은 제품');
-  }
-  // 3. 트렌드 하락
-  if (tr.status === 'falling') {
-    warns.push('하락 추세 — 콘텐츠 제작 시 시장 축소 가능성 고려');
-  }
+  if(sc.confidence==='low') warns.push('수집 데이터 부족 — 결과 신뢰도 낮음');
+  if(safeNum(sc.totalScore) < 20) warns.push('점수 20점 미만 — 관심도 낮은 제품');
+  if(tr.status==='falling') warns.push('하락 추세 — 콘텐츠 제작 시 시장 축소 가능성 고려');
 
   var dirMap={shorts:'📱 YouTube Shorts 소재로 즉시 활용',blog:'📝 블로그 리뷰/비교 포스팅 추천',hold:'⏸ 추이 관망 후 재판단',compare:'🔄 유사 제품과 비교 분석 후 선택'};
   var bars=Object.keys(bd).map(function(k){var v=bd[k];var max=SCORE_MAX[k]||25;var p2=Math.round((safeNum(v)/max)*100);return '<div class="bar-item"><div class="bar-lrow"><span style="color:var(--c-muted)">'+(SRC_LABEL[k]||k)+'</span><span style="font-weight:700">'+safeNum(v)+'/'+max+'</span></div><div class="bar-track"><div class="bar-fill" style="width:'+p2+'%"></div></div></div>';}).join('');
   var kwtags=(c.keywords||[]).map(function(k){return '<span class="dp-kwtag">'+k+'</span>';}).join('');
   var samples=(c.sampleItems||[]).map(function(it){return '<a href="'+(it.link||'#')+'" target="_blank" rel="noopener" style="display:block;padding:6px 9px;background:#f8fafc;border-radius:7px;text-decoration:none;margin-bottom:4px;border:1px solid var(--c-border)"><div style="font-size:11px;color:var(--c-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(it.title||'')+'</div><div style="font-size:10px;color:var(--c-faint)">'+(it.source||'')+'</div></a>';}).join('');
-  var idx=S.filtered.findIndex(function(x){return x.id===c.id;});
-  var isFav=S.favorites.has(c.id);
+  // idx: filtered에서 현재 아이템 위치 (못 찾으면 선택 항목 직접 사용)
+  var idx = -1;
+  for(var fi=0; fi<S.filtered.length; fi++){
+    if(S.filtered[fi].id===c.id){ idx=fi; break; }
+  }
+
+  var isFav = S.favorites.has(c.id);
+
+  // 액션 버튼 — idx=-1이면 id 기반으로 직접 저장
+  function makeActBtn(type, label, styleStr){
+    if(idx >= 0){
+      return '<button class="act-btn" style="'+styleStr+'" onclick="saveItem('+idx+',\''+type+'\')">'+label+'</button>';
+    } else {
+      return '<button class="act-btn" style="'+styleStr+'" onclick="saveById(\''+c.id+'\',\''+type+'\')">'+label+'</button>';
+    }
+  }
+  function makeFavBtn(){
+    if(idx >= 0){
+      return '<button class="act-btn" style="background:var(--act-compare-lt);color:var(--act-compare)" onclick="toggleFav('+idx+')">'+(isFav?'⭐ 즐겨찾기 해제':'☆ 즐겨찾기 추가')+'</button>';
+    } else {
+      return '<button class="act-btn" style="background:var(--act-compare-lt);color:var(--act-compare)" onclick="toggleFavById(\''+c.id+'\')">'+(isFav?'⭐ 즐겨찾기 해제':'☆ 즐겨찾기 추가')+'</button>';
+    }
+  }
 
   panel.innerHTML='<div class="dp-body">'
     +'<div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:6px"><div class="dp-name" style="flex:1">'+c.name+'</div>'+gradeBadge(sc.grade)+'</div>'
@@ -668,9 +680,9 @@ function renderDetail(){
     +(samples?'<div class="dp-sec"><div class="dp-sec-lbl">샘플 항목</div>'+samples+'</div>':'')
     +'<div class="action-box">'
       +'<div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">빠른 액션</div>'
-      +'<button class="act-btn" style="background:var(--act-shorts-lt);color:var(--act-shorts)" onclick="saveItem('+idx+',\'shorts\')">📱 쇼츠 소재로 저장</button>'
-      +'<button class="act-btn" style="background:var(--act-blog-lt);color:var(--act-blog)" onclick="saveItem('+idx+',\'blog\')">📝 블로그 소재로 저장</button>'
-      +'<button class="act-btn" style="background:var(--act-compare-lt);color:var(--act-compare)" onclick="toggleFav('+idx+')">'+(isFav?'⭐ 즐겨찾기 해제':'☆ 즐겨찾기 추가')+'</button>'
+      +makeActBtn('shorts','📱 쇼츠 소재로 저장','background:var(--act-shorts-lt);color:var(--act-shorts)')
+      +makeActBtn('blog',  '📝 블로그 소재로 저장','background:var(--act-blog-lt);color:var(--act-blog)')
+      +makeFavBtn()
     +'</div>'
   +'</div>';
 }
@@ -723,6 +735,22 @@ function renderApiBar(){
 }
 
 // ── ACTIONS
+function saveById(id, type){
+  var c = null;
+  for(var i=0; i<S.candidates.length; i++){ if(S.candidates[i].id===id){c=S.candidates[i];break;} }
+  if(!c) return;
+  if(!S.saved[type].some(function(x){return x.id===c.id;})) S.saved[type].push(c);
+  showToast('"'+c.name+'" → '+(type==='shorts'?'📱 쇼츠':'📝 블로그')+' 저장됨');
+  renderTable();
+}
+function toggleFavById(id){
+  var c = null;
+  for(var i=0; i<S.filtered.length; i++){ if(S.filtered[i].id===id){c=S.filtered[i];break;} }
+  if(!c) return;
+  if(S.favorites.has(id)) S.favorites.delete(id);
+  else S.favorites.add(id);
+  renderTable(); renderMeta(); renderDetail();
+}
 function saveItem(i,type){
   var c=S.filtered[i]; if(!c) return;
   if(!S.saved[type].some(function(x){return x.id===c.id;})) S.saved[type].push(c);
