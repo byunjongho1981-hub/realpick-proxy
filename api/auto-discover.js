@@ -47,7 +47,25 @@ const CAT_SEEDS = {
 // 전체 탐색용: 각 카테고리 시드 앞 2개씩
 const ALL_SEEDS = Object.keys(CAT_SEEDS).flatMap(id => CAT_SEEDS[id].slice(0, 2));
 
-function checkEnv() {
+// ════════════════════════════════════════
+// 전체 탐색 메모리 캐시 (30분)
+// ════════════════════════════════════════
+const ALL_CACHE = {
+  data:      null,
+  updatedAt: null,
+  TTL_MS:    30 * 60 * 1000, // 30분
+};
+
+function getAllCache() {
+  if (!ALL_CACHE.data) return null;
+  if (Date.now() - ALL_CACHE.updatedAt > ALL_CACHE.TTL_MS) return null;
+  return ALL_CACHE.data;
+}
+
+function setAllCache(data) {
+  ALL_CACHE.data      = data;
+  ALL_CACHE.updatedAt = Date.now();
+}
   const miss = ['NAVER_CLIENT_ID','NAVER_CLIENT_SECRET'].filter(k=>!process.env[k]);
   if (miss.length) throw new Error('환경변수 누락: ' + miss.join(', '));
 }
@@ -297,37 +315,55 @@ module.exports = async (req, res) => {
     if (mode==='category') {
       const catId = req.query.categoryId || '50000003';
 
-      // ── 전체 탐색: 카테고리별 키워드 수집 후 합산
+      // ── 전체 탐색
       if (catId === 'all') {
+        // 캐시 확인
+        const cached = getAllCache();
+        if (cached) {
+          console.log('[all] 캐시 히트');
+          return res.status(200).json({
+            ...cached,
+            fromCache: true,
+            cacheAge: Math.round((Date.now() - ALL_CACHE.updatedAt) / 1000) + '초 전',
+          });
+        }
+
+        console.log('[all] 전체 카테고리 수집 시작');
         const allCatIds = Object.keys(CAT_SEEDS);
 
-        // 1단계: 카테고리별 인기 키워드 수집 (병렬, 부분 실패 허용)
-        const kwResults = await Promise.allSettled(
-          allCatIds.map(id => fetchCatKeywords(id))
-        );
-
-        // 2단계: 수집 실패한 카테고리는 seed fallback 사용, 각 카테고리 상위 3개만
+        // 1단계: Shopping Insight 대신 seed fallback 바로 사용 (속도 최우선)
+        // fetchCatKeywords는 Datalab API 실패가 잦으므로 전체 탐색엔 seed 사용
         const allKeywords = [];
-        allCatIds.forEach((id, i) => {
-          const r = kwResults[i];
-          const kws = (r.status === 'fulfilled' && Array.isArray(r.value) && r.value.length)
-            ? r.value.slice(0, 3)
-            : CAT_SEEDS[id].slice(0, 3);
-          allKeywords.push(...kws);
+        allCatIds.forEach(id => {
+          // 카테고리당 상위 2개만 (15 * 2 = 30개)
+          CAT_SEEDS[id].slice(0, 2).forEach(kw => allKeywords.push(kw));
         });
 
-        // 3단계: 중복 제거
+        // 2단계: 중복 제거
         const unique = [...new Set(allKeywords.map(k => String(k).trim()).filter(Boolean))];
+        console.log('[all] 키워드 수:', unique.length);
 
-        // 4단계: 전체 키워드 일괄 검색 & 점수화 (catId=null 로 카테고리 무관 검색)
+        // 3단계: 검색 (catId=null — 카테고리 무관)
         const {candidates, apiStatus} = await buildCandidates(unique, range, null);
 
-        return res.status(200).json({
-          candidates, mode,
-          categoryId: 'all', categoryName: '전체',
-          keywords: unique, period, total: candidates.length,
-          apiStatus, updatedAt: new Date().toISOString(),
-        });
+        // 4단계: 상위 10개
+        const top10 = candidates.slice(0, 10);
+
+        const result = {
+          candidates: top10,
+          mode,
+          categoryId:   'all',
+          categoryName: '전체',
+          keywords:     unique,
+          period,
+          total:        top10.length,
+          apiStatus,
+          updatedAt:    new Date().toISOString(),
+          fromCache:    false,
+        };
+
+        setAllCache(result);
+        return res.status(200).json(result);
       }
 
       // ── 개별 카테고리 탐색
