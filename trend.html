@@ -571,7 +571,40 @@ function renderDetail(){
       <div style="display:flex;gap:8px;align-items:stretch">
 
         <!-- 한 줄 결론 -->
-        <div class="d-box" style="flex:1;font-size:12px">${c.summary||'-'}</div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+          <div class="d-box" style="font-size:12px">${c.summary||'-'}</div>
+          <!-- 관련 링크 버튼 -->
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <a href="https://search.shopping.naver.com/search/all?query=${encodeURIComponent(c.name)}" target="_blank" rel="noopener"
+              style="display:flex;align-items:center;gap:7px;padding:7px 10px;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;text-decoration:none;transition:border .15s"
+              onmouseover="this.style.borderColor='#6366f1'" onmouseout="this.style.borderColor='#e2e8f0'">
+              <span style="font-size:14px">🛒</span>
+              <span style="font-size:12px;font-weight:600;color:#1e293b">네이버 쇼핑</span>
+              <span style="margin-left:auto;font-size:10px;color:#94a3b8">→</span>
+            </a>
+            <a href="https://search.naver.com/search.naver?where=blog&query=${encodeURIComponent(c.name)}" target="_blank" rel="noopener"
+              style="display:flex;align-items:center;gap:7px;padding:7px 10px;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;text-decoration:none;transition:border .15s"
+              onmouseover="this.style.borderColor='#22d3ee'" onmouseout="this.style.borderColor='#e2e8f0'">
+              <span style="font-size:14px">📝</span>
+              <span style="font-size:12px;font-weight:600;color:#1e293b">네이버 블로그</span>
+              <span style="margin-left:auto;font-size:10px;color:#94a3b8">→</span>
+            </a>
+            <a href="https://www.coupang.com/np/search?q=${encodeURIComponent(c.name)}" target="_blank" rel="noopener"
+              style="display:flex;align-items:center;gap:7px;padding:7px 10px;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;text-decoration:none;transition:border .15s"
+              onmouseover="this.style.borderColor='#f59e0b'" onmouseout="this.style.borderColor='#e2e8f0'">
+              <span style="font-size:14px">🟡</span>
+              <span style="font-size:12px;font-weight:600;color:#1e293b">쿠팡</span>
+              <span style="margin-left:auto;font-size:10px;color:#94a3b8">→</span>
+            </a>
+            <a href="https://www.youtube.com/results?search_query=${encodeURIComponent(c.name+' 추천')}" target="_blank" rel="noopener"
+              style="display:flex;align-items:center;gap:7px;padding:7px 10px;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;text-decoration:none;transition:border .15s"
+              onmouseover="this.style.borderColor='#f43f5e'" onmouseout="this.style.borderColor='#e2e8f0'">
+              <span style="font-size:14px">▶️</span>
+              <span style="font-size:12px;font-weight:600;color:#1e293b">유튜브</span>
+              <span style="margin-left:auto;font-size:10px;color:#94a3b8">→</span>
+            </a>
+          </div>
+        </div>
 
         <!-- 위치 추적 카드 -->
         <div style="width:100px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 8px;text-align:center;flex-shrink:0">
