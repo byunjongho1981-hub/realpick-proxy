@@ -239,14 +239,18 @@ async function getDatalabRate(keyword, range) {
 }
 
 // ════════════════════════════════════════
-// 네이버 검색 4소스
+// 네이버 검색 4소스 (카테고리 필터 포함)
 // ════════════════════════════════════════
-async function searchAll(keyword) {
+async function searchAll(keyword, categoryId) {
+  // 쇼핑은 카테고리 ID로 필터링
+  const shopParams = { query: keyword, display: 15, sort: 'sim' };
+  if (categoryId && categoryId !== 'all') shopParams.category = categoryId;
+
   const [sh,bl,nw,ca] = await Promise.allSettled([
-    withRetry(()=>naverGet('/v1/search/shop.json',        {query:keyword,display:15,sort:'sim'})),
-    withRetry(()=>naverGet('/v1/search/blog.json',        {query:keyword,display:15,sort:'date'})),
-    withRetry(()=>naverGet('/v1/search/news.json',        {query:keyword,display:10,sort:'date'})),
-    withRetry(()=>naverGet('/v1/search/cafearticle.json', {query:keyword,display:10})),
+    withRetry(()=>naverGet('/v1/search/shop.json',        shopParams)),
+    withRetry(()=>naverGet('/v1/search/blog.json',        {query: keyword + ' ' + (CAT_NAMES[categoryId]||''), display:15, sort:'date'})),
+    withRetry(()=>naverGet('/v1/search/news.json',        {query: keyword, display:10, sort:'date'})),
+    withRetry(()=>naverGet('/v1/search/cafearticle.json', {query: keyword, display:10})),
   ]);
   const get  = r => r.status==='fulfilled' ? r.value : null;
   const norm = (d, src) => {
@@ -420,7 +424,7 @@ module.exports = async (req, res) => {
 
       console.log(`[category] ${CAT_NAMES[catId]} 키워드 ${keywords.length}개:`, keywords);
 
-      const {candidates, apiStatus} = await buildCandidates(keywords, range);
+      const {candidates, apiStatus} = await buildCandidates(keywords, range, catId);
       return res.status(200).json({
         candidates, mode, categoryId:catId,
         categoryName: CAT_NAMES[catId]||catId,
@@ -464,7 +468,7 @@ module.exports = async (req, res) => {
       const keywords = await expandSeed(seedKw, depth);
       console.log(`[seed] "${seedKw}" 확장 키워드 ${keywords.length}개:`, keywords);
 
-      const {candidates, apiStatus} = await buildCandidates(keywords, range);
+      const {candidates, apiStatus} = await buildCandidates(keywords, range, null);
       return res.status(200).json({
         candidates, mode, seedKeyword:seedKw,
         expandedKeywords:keywords, period,
