@@ -9,32 +9,30 @@
       --c-bg:#f0f4ff;--c-surface:#fff;--c-border:#e2e8f0;
       --c-text:#1e293b;--c-muted:#64748b;--c-faint:#94a3b8;
       --c-primary:#6366f1;
-      --rising:#10b981;  --rising-lt:#ecfdf5;
-      --stable:#6366f1;  --stable-lt:#eff0ff;
-      --falling:#f43f5e; --falling-lt:#fff1f2;
-      --new:#f59e0b;     --new-lt:#fffbeb;
-      --unknown:#94a3b8; --unknown-lt:#f8fafc;
-      --grade-a:#10b981; --grade-a-lt:#ecfdf5;
-      --grade-b:#6366f1; --grade-b-lt:#eff0ff;
-      --grade-c:#94a3b8; --grade-c-lt:#f8fafc;
-      --act-shorts:#f59e0b; --act-shorts-lt:#fffbeb;
-      --act-blog:#0891b2;   --act-blog-lt:#ecfeff;
-      --act-hold:#94a3b8;   --act-hold-lt:#f8fafc;
+      --rising:#10b981;--rising-lt:#ecfdf5;
+      --stable:#6366f1;--stable-lt:#eff0ff;
+      --falling:#f43f5e;--falling-lt:#fff1f2;
+      --new:#f59e0b;--new-lt:#fffbeb;
+      --unknown:#94a3b8;--unknown-lt:#f8fafc;
+      --grade-a:#10b981;--grade-a-lt:#ecfdf5;
+      --grade-b:#6366f1;--grade-b-lt:#eff0ff;
+      --grade-c:#94a3b8;--grade-c-lt:#f8fafc;
+      --act-shorts:#f59e0b;--act-shorts-lt:#fffbeb;
+      --act-blog:#0891b2;--act-blog-lt:#ecfeff;
+      --act-hold:#94a3b8;--act-hold-lt:#f8fafc;
       --act-compare:#a78bfa;--act-compare-lt:#f5f3ff;
     }
     *{box-sizing:border-box;margin:0;padding:0}
     body{background:var(--c-bg);color:var(--c-text);font-family:'Noto Sans KR',sans-serif;min-height:100vh;font-size:13px}
-
     nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--c-border);height:52px;display:flex;align-items:center;padding:0 24px}
     .nav-logo{font-size:16px;font-weight:900;color:var(--c-primary);text-decoration:none;margin-right:28px}
     .nav-logo span{color:var(--c-text)}
     .nav-links{display:flex;gap:2px}
-    .nav-link{padding:6px 13px;border-radius:8px;font-size:13px;font-weight:500;color:var(--c-faint);text-decoration:none;display:inline-block;transition:all .15s}
+    .nav-link{padding:6px 13px;border-radius:8px;font-size:13px;font-weight:500;color:var(--c-faint);text-decoration:none;transition:all .15s}
     .nav-link:hover{background:#f1f5f9;color:var(--c-text)}
     .nav-link.active{background:var(--c-primary);color:#fff;font-weight:700}
     .nav-right{margin-left:auto}
     .nav-badge{background:var(--c-primary);color:#fff;font-size:10px;padding:2px 9px;border-radius:20px;font-weight:700}
-
     .page{margin-top:52px;display:flex;flex-direction:column;height:calc(100vh - 52px);overflow:hidden}
 
     /* 요약 카드 */
@@ -59,8 +57,6 @@
     .search-input:focus{border-color:var(--c-primary);background:#fff}
     .btn{padding:8px 16px;border-radius:10px;border:none;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap}
     .btn:disabled{opacity:.5;cursor:not-allowed}
-    .btn-primary{background:var(--c-primary);color:#fff}
-    .btn-primary:hover:not(:disabled){background:#4f46e5}
     .btn-ghost{background:#f1f5f9;color:#475569}
     .btn-ghost:hover:not(:disabled){background:#e2e8f0}
     .cat-btn{padding:4px 11px;border-radius:20px;border:1.5px solid var(--c-border);font-size:12px;font-weight:600;color:var(--c-muted);cursor:pointer;background:#fff;transition:all .15s;white-space:nowrap;flex-shrink:0}
@@ -77,7 +73,6 @@
     .ql-bar{background:#fff;border-bottom:1px solid var(--c-border);padding:6px 24px;display:none;align-items:center;gap:6px;flex-shrink:0}
     .ql-label{font-size:10px;font-weight:700;color:var(--c-faint);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap}
     .ql-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:#fff;border:1.5px solid var(--c-border);border-radius:7px;text-decoration:none;font-size:12px;font-weight:600;color:#475569;white-space:nowrap;transition:all .15s}
-    .ql-btn:hover{transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,.08)}
 
     /* 바디 */
     .body-area{display:flex;flex:1;overflow:hidden}
@@ -104,10 +99,7 @@
     .bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--c-primary),#818cf8)}
     .action-box{background:#1e293b;border-radius:8px;padding:12px;margin-top:4px}
     .act-btn{display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:8px;border:none;cursor:pointer;font-size:12px;font-weight:600;transition:all .15s;text-align:left;width:100%;margin-bottom:5px}
-
-    /* 위치 추적 */
     .pos-wrap{display:flex;align-items:center;gap:10px;background:#f8fafc;border-radius:8px;padding:10px 12px;margin-bottom:12px}
-    .pos-rank{font-size:22px;font-weight:900;line-height:1}
     .pos-hist{display:flex;align-items:flex-end;gap:2px;height:22px}
     .ph-bar{width:8px;border-radius:2px 2px 0 0;min-height:3px}
     .rank-track{height:4px;background:var(--c-border);border-radius:2px;overflow:hidden;margin-top:4px}
@@ -128,14 +120,13 @@
     .result-row.sel{background:var(--stable-lt)}
     .result-row.sel td:first-child{border-left:3px solid var(--c-primary)}
     .row-acts{opacity:0;display:flex;gap:3px;transition:opacity .15s}
-    .ra-btn{padding:3px 7px;border-radius:5px;border:1px solid var(--c-border);background:#fff;font-size:10px;font-weight:600;cursor:pointer;color:var(--c-muted);transition:all .15s;white-space:nowrap}
+    .ra-btn{padding:3px 7px;border-radius:5px;border:1px solid var(--c-border);background:#fff;font-size:10px;font-weight:600;cursor:pointer;color:var(--c-muted);transition:all .15s}
     .ra-btn:hover{border-color:var(--c-primary);color:var(--c-primary)}
     .badge{display:inline-flex;align-items:center;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;white-space:nowrap}
     .sparkline{display:flex;align-items:flex-end;gap:1px;height:18px}
     .spark-bar{width:5px;border-radius:1px;min-height:2px}
     .conf-dots{display:inline-flex;gap:2px;vertical-align:middle}
     .conf-d{width:6px;height:6px;border-radius:50%;display:inline-block}
-
     @keyframes spin{to{transform:rotate(360deg)}}
     .loading-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;background:rgba(240,244,255,.88);z-index:20}
     .spinner{width:30px;height:30px;border:3px solid var(--c-border);border-top:3px solid var(--c-primary);border-radius:50%;animation:spin .8s linear infinite}
@@ -144,12 +135,10 @@
     .error-box{background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px 16px;display:flex;align-items:flex-start;gap:8px;font-size:13px;color:#dc2626}
     .api-bar{padding:5px 18px;background:#f8fafc;border-top:1px solid var(--c-border);display:flex;align-items:center;gap:12px;flex-shrink:0;font-size:10px;color:var(--c-faint);overflow-x:auto;white-space:nowrap}
     .api-dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:3px;vertical-align:middle}
-
     @media(max-width:960px){.detail-panel{display:none}}
   </style>
 </head>
 <body>
-
 <nav>
   <a class="nav-logo" href="/index.html">Real<span>Pick</span></a>
   <div class="nav-links">
@@ -163,11 +152,9 @@
 
 <div class="page">
 
-  <!-- 요약 카드 + 검색/탐색 버튼 -->
+  <!-- 요약 카드 + 검색 -->
   <div class="summary-bar">
-    <!-- 왼쪽: 검색 + 자동탐색 + 기간 -->
     <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;margin-right:16px">
-      <!-- 검색 행 -->
       <div style="display:flex;align-items:center;gap:6px">
         <div style="display:flex;align-items:center;background:#f1f5f9;border:1.5px solid var(--c-border);border-radius:10px;overflow:hidden;flex:1">
           <span style="padding:0 8px;font-size:15px;color:var(--c-faint)">🔎</span>
@@ -176,10 +163,9 @@
             onkeydown="if(event.key==='Enter')runQuickSearch()"/>
         </div>
         <button onclick="runQuickSearch()" id="btn-quick-search"
-          style="padding:8px 12px;background:var(--c-primary);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:14px;font-weight:700;transition:background .15s"
+          style="padding:8px 12px;background:var(--c-primary);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:14px;font-weight:700"
           onmouseover="this.style.background='#4f46e5'" onmouseout="this.style.background='var(--c-primary)'">›</button>
       </div>
-      <!-- 자동탐색 + 기간 행 -->
       <div style="display:flex;align-items:center;gap:5px">
         <button id="btn-auto-big" onclick="runMode()"
           style="display:flex;align-items:center;gap:5px;padding:7px 14px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:12px;font-weight:800;box-shadow:0 4px 14px rgba(99,102,241,.3);transition:all .2s;white-space:nowrap"
@@ -192,8 +178,6 @@
         <button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="onReset()">초기화</button>
       </div>
     </div>
-
-    <!-- 가운데: 요약 카드 -->
     <div style="display:flex;gap:8px;overflow-x:auto">
       <div class="s-card"><div class="s-card-label">전체 후보</div><div class="s-card-val" id="sc-total" style="color:var(--c-primary)">–</div><div class="s-card-sub">탐색 결과</div></div>
       <div class="s-card"><div class="s-card-label">🔥 급상승</div><div class="s-card-val" id="sc-rising" style="color:var(--rising)">–</div><div class="s-card-sub" id="sc-rising-sub">–</div></div>
@@ -215,7 +199,7 @@
     <div id="ctrl-category" style="display:flex;flex-direction:column;gap:8px">
       <div class="ctrl-row">
         <span class="ctrl-label">카테고리</span>
-        <button class="cat-btn" data-cat="all" onclick="onCat(this)">🔍 전체</button>
+        <button class="cat-btn" data-cat="all"      onclick="onCat(this)">🔍 전체</button>
         <button class="cat-btn on" data-cat="50000003" onclick="onCat(this)">디지털/가전</button>
         <button class="cat-btn" data-cat="50000002" onclick="onCat(this)">화장품/미용</button>
         <button class="cat-btn" data-cat="50000008" onclick="onCat(this)">생활/건강</button>
@@ -280,14 +264,11 @@
     <div class="detail-panel">
       <div class="dp-header">상세 분석</div>
       <div id="detail-body">
-        <div class="dp-empty">
-          <div style="font-size:36px">📋</div>
-          <div>항목을 클릭하면<br/>상세 분석이 표시됩니다</div>
-        </div>
+        <div class="dp-empty"><div style="font-size:36px">📋</div><div>항목을 클릭하면<br/>상세 분석이 표시됩니다</div></div>
       </div>
     </div>
 
-    <!-- 테이블 패널 -->
+    <!-- 테이블 -->
     <div class="table-panel">
       <div class="table-meta" id="table-meta">
         <span class="stat-chip" style="color:var(--c-faint)">탐색 모드를 선택하고 시작하세요</span>
@@ -308,7 +289,7 @@
           <div id="empty-state" class="empty-box">
             <div style="font-size:40px">🔍</div>
             <div>탐색 모드를 선택하고 시작하세요</div>
-            <div style="font-size:11px;color:#c4cad4">카테고리 자동탐색 · 급상승 모니터링 · 시드 키워드 확장</div>
+            <div style="font-size:11px;color:#c4cad4">카테고리 자동탐색 · 시드 키워드 확장</div>
           </div>
           <table id="result-table" style="display:none">
             <thead>
@@ -347,337 +328,363 @@ const ACTION_COLOR= {shorts:'--act-shorts',blog:'--act-blog',hold:'--act-hold',c
 const ACTION_LT   = {shorts:'--act-shorts-lt',blog:'--act-blog-lt',hold:'--act-hold-lt',compare:'--act-compare-lt'};
 const SCORE_MAX   = {shopping:25,blog:20,news:10,cafe:15,trend:30};
 const SRC_LABEL   = {shopping:'🛒쇼핑',blog:'📝블로그',news:'📰뉴스',cafe:'☕카페',trend:'📈트렌드'};
-const CAT_NAMES   = {'50000000':'패션의류','50000001':'패션잡화','50000002':'화장품/미용','50000003':'디지털/가전','50000004':'가구/인테리어','50000005':'출산/육아','50000006':'식품','50000007':'스포츠/레저','50000008':'생활/건강'};
+const CAT_NAMES   = {
+  'all':'전체',
+  '50000000':'패션의류','50000001':'패션잡화','50000002':'화장품/미용',
+  '50000003':'디지털/가전','50000004':'가구/인테리어','50000005':'출산/육아',
+  '50000006':'식품','50000007':'스포츠/레저','50000008':'생활/건강',
+  '50000009':'도서/음반','50000010':'완구/취미','50000011':'문구/오피스',
+  '50000012':'반려동물','50000013':'자동차용품','50000014':'여행/티켓',
+};
 const FILTERS = {
-  all:()=>true, rising:c=>c.trend?.status==='rising', stable:c=>c.trend?.status==='stable',
-  new:c=>c.trend?.status==='new', falling:c=>c.trend?.status==='falling',
-  grade_a:c=>c.score?.grade==='A', shopping:c=>(c.sources||[]).includes('shopping'),
-  blog_cafe:c=>(c.sources||[]).some(s=>['blog','cafe'].includes(s)),
-  high_conf:c=>c.score?.confidence==='high',
+  all:       function(c){return true;},
+  rising:    function(c){return c&&c.trend&&c.trend.status==='rising';},
+  stable:    function(c){return c&&c.trend&&c.trend.status==='stable';},
+  new:       function(c){return c&&c.trend&&c.trend.status==='new';},
+  falling:   function(c){return c&&c.trend&&c.trend.status==='falling';},
+  grade_a:   function(c){return c&&c.score&&c.score.grade==='A';},
+  shopping:  function(c){return c&&Array.isArray(c.sources)&&c.sources.indexOf('shopping')>-1;},
+  blog_cafe: function(c){return c&&Array.isArray(c.sources)&&c.sources.some(function(s){return s==='blog'||s==='cafe';});},
+  high_conf: function(c){return c&&c.score&&c.score.confidence==='high';},
 };
 
 // ── STATE
-const S={
-  mode:'category',catId:'50000003',period:'week',
-  threshold:10,mcat:'all',seedKw:'',depth:1,
-  filterStatus:'all',sortBy:'score',
-  candidates:[],filtered:[],selected:null,
-  saved:{shorts:[],blog:[]},favorites:new Set(),
-  loading:false,error:null,lastUpdated:null,apiStatus:{},
+var S = {
+  mode:'category', catId:'50000003', period:'week',
+  seedKw:'', depth:1,
+  filterStatus:'all', sortBy:'score',
+  candidates:[], filtered:[], selected:null,
+  saved:{shorts:[],blog:[]}, favorites:new Set(),
+  loading:false, error:null, lastUpdated:null, apiStatus:{},
 };
 
 // ── HELPERS
-const safeNum=(v,fb=0)=>{const n=Number(v);return isNaN(n)?fb:n;};
-const cv=n=>`var(${n})`;
-const fmtDate=iso=>{try{return new Date(iso).toLocaleString('ko-KR',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}catch{return '-';}};
+function safeNum(v,fb){if(fb===undefined)fb=0;var n=Number(v);return isNaN(n)?fb:n;}
+function cv(n){return 'var('+n+')';}
+function fmtDate(iso){try{return new Date(iso).toLocaleString('ko-KR',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}catch(e){return '-';}}
 
 function rateHtml(rate){
-  if(rate===null||rate===undefined) return `<span style="color:var(--c-faint)">–</span>`;
-  const s=rate>0?'+':'';
-  const c=rate>=10?'var(--rising)':rate<=-10?'var(--falling)':'var(--c-faint)';
-  return `<span style="color:${c};font-weight:700">${s}${rate}%</span>`;
+  if(rate===null||rate===undefined) return '<span style="color:var(--c-faint)">–</span>';
+  var s=rate>0?'+':'';
+  var c=rate>=10?'var(--rising)':rate<=-10?'var(--falling)':'var(--c-faint)';
+  return '<span style="color:'+c+';font-weight:700">'+s+rate+'%</span>';
 }
 function badgeHtml(status){
-  return `<span class="badge" style="color:${cv(TREND_COLOR[status]||'--unknown')};background:${cv(TREND_LT[status]||'--unknown-lt')}">${TREND_LABEL[status]||'–'}</span>`;
+  var lbl=TREND_LABEL[status]||'–';
+  var c=cv(TREND_COLOR[status]||'--unknown');
+  var bg=cv(TREND_LT[status]||'--unknown-lt');
+  return '<span class="badge" style="color:'+c+';background:'+bg+'">'+lbl+'</span>';
 }
 function gradeBadge(grade){
-  return `<span class="badge" style="color:${cv(GRADE_COLOR[grade]||'--grade-c')};background:${cv(GRADE_LT[grade]||'--grade-c-lt')}">${grade||'–'}</span>`;
+  var c=cv(GRADE_COLOR[grade]||'--grade-c');
+  var bg=cv(GRADE_LT[grade]||'--grade-c-lt');
+  return '<span class="badge" style="color:'+c+';background:'+bg+'">'+(grade||'–')+'</span>';
 }
 function actionBadge(action){
-  return `<span class="badge" style="color:${cv(ACTION_COLOR[action]||'--act-hold')};background:${cv(ACTION_LT[action]||'--act-hold-lt')}">${ACTION_LABEL[action]||action||'–'}</span>`;
+  var c=cv(ACTION_COLOR[action]||'--act-hold');
+  var bg=cv(ACTION_LT[action]||'--act-hold-lt');
+  return '<span class="badge" style="color:'+c+';background:'+bg+'">'+(ACTION_LABEL[action]||action||'–')+'</span>';
 }
 function confHtml(conf){
-  const m={low:1,medium:2,high:3},lvl=m[conf]||0;
-  const dots=[1,2,3].map(i=>`<span class="conf-d" style="background:${i<=lvl?'var(--rising)':'var(--c-border)'}"></span>`).join('');
-  return `<span class="conf-dots">${dots}</span> <span style="font-size:10px;color:var(--c-faint)">${conf||'–'}</span>`;
+  var m={low:1,medium:2,high:3};
+  var lvl=m[conf]||0;
+  var dots='';
+  for(var i=1;i<=3;i++) dots+='<span class="conf-d" style="background:'+(i<=lvl?'var(--rising)':'var(--c-border)')+'"></span>';
+  return '<span class="conf-dots">'+dots+'</span> <span style="font-size:10px;color:var(--c-faint)">'+(conf||'–')+'</span>';
 }
 function sparkHtml(count,status){
-  if(!count) return `<span style="color:var(--c-faint);font-size:10px">–</span>`;
-  const c=status==='rising'?'var(--rising)':status==='falling'?'var(--falling)':'var(--stable)';
-  const bars=Array.from({length:7},(_,i)=>{
-    const r=status==='rising'?0.3+(i/6)*0.7:status==='falling'?1-(i/6)*0.5:0.4+(Math.sin(i)*0.1+0.5)*0.4;
-    return `<div class="spark-bar" style="height:${Math.max(3,Math.round(r*18))}px;background:${c}"></div>`;
-  }).join('');
-  return `<div class="sparkline">${bars}</div>`;
+  if(!count) return '<span style="color:var(--c-faint);font-size:10px">–</span>';
+  var c=status==='rising'?'var(--rising)':status==='falling'?'var(--falling)':'var(--stable)';
+  var bars='';
+  for(var i=0;i<7;i++){
+    var r=status==='rising'?0.3+(i/6)*0.7:status==='falling'?1-(i/6)*0.5:0.4+(Math.sin(i)*0.1+0.5)*0.4;
+    bars+='<div class="spark-bar" style="height:'+Math.max(3,Math.round(r*18))+'px;background:'+c+'"></div>';
+  }
+  return '<div class="sparkline">'+bars+'</div>';
 }
 
 // ── API
-async function apiFetch(url){
-  const ctrl=new AbortController();
-  const t=setTimeout(()=>ctrl.abort(),15000);
-  try{
-    const r=await fetch(url,{signal:ctrl.signal});
+function apiFetch(url){
+  var ctrl=new AbortController();
+  var t=setTimeout(function(){ctrl.abort();},15000);
+  return fetch(url,{signal:ctrl.signal}).then(function(r){
     clearTimeout(t);
-    if(!r.ok) throw new Error(`HTTP ${r.status}`);
-    const d=await r.json();
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.json();
+  }).then(function(d){
     if(d.error) throw new Error(d.error);
     return d;
-  }catch(e){clearTimeout(t);if(e.name==='AbortError')throw new Error('요청 시간 초과');throw e;}
+  }).catch(function(e){
+    clearTimeout(t);
+    if(e.name==='AbortError') throw new Error('요청 시간 초과');
+    throw e;
+  });
 }
 
 // ── RUNNERS
-async function runMode(){
-  if(S.loading)return;
-  showError(null);S.selected=null;
-  if(S.mode==='category')    await runCategory();
-  else if(S.mode==='rising') await runRising();
-  else                       await runSeed();
+function runMode(){
+  if(S.loading) return;
+  showError(null);
+  S.selected=null;
+  if(S.mode==='category') runCategory();
+  else                    runSeed();
 }
-async function runCategory(){
-  // 전체 선택 시 모든 카테고리 병렬 탐색 후 병합
-  if(S.catId==='all'){
-    setLoading(true,'전체 카테고리 탐색 중... (잠시 기다려 주세요)');
-    try{
-      const results = await Promise.allSettled(
-        ALL_CAT_IDS.map(id => apiFetch(`/api/auto-discover?mode=category&categoryId=${id}&period=${S.period}`))
-      );
-      // 성공한 결과만 병합
-      const allCandidates = results
-        .filter(r=>r.status==='fulfilled')
-        .flatMap(r=>r.value.candidates||[]);
-      // id 기준 중복 제거
-      const seen = new Set();
-      const unique = allCandidates.filter(c=>{ if(seen.has(c.id)) return false; seen.add(c.id); return true; });
-      // 점수순 정렬
-      unique.sort((a,b)=>safeNum(b.score?.totalScore)-safeNum(a.score?.totalScore));
-      handleResult({
-        candidates: unique.slice(0,50),
-        apiStatus: {전체카테고리:`${results.filter(r=>r.status==='fulfilled').length}/${ALL_CAT_IDS.length} 성공`},
-        updatedAt: new Date().toISOString(),
-      });
-    }catch(e){showError(e.message);}
-    finally{setLoading(false);}
-    return;
-  }
-  setLoading(true,`카테고리 인기 키워드 수집 중... (${CAT_NAMES[S.catId]||''})`);
-  try{handleResult(await apiFetch(`/api/auto-discover?mode=category&categoryId=${S.catId}&period=${S.period}`));}
-  catch(e){showError(e.message);}finally{setLoading(false);}
+
+function runCategory(){
+  var label = S.catId==='all' ? '전체 카테고리 탐색 중...' : '카테고리 인기 키워드 수집 중... ('+(CAT_NAMES[S.catId]||'')+')';
+  setLoading(true, label);
+  apiFetch('/api/auto-discover?mode=category&categoryId='+S.catId+'&period='+S.period)
+    .then(function(d){ handleResult(d); })
+    .catch(function(e){ showError(e.message); })
+    .finally(function(){ setLoading(false); });
 }
-async function runRising(){
-  setLoading(true,`급상승 모니터링 중... (+${S.threshold}% 이상)`);
-  try{
-    const cats=S.mcat==='all'?'50000003,50000002,50000008,50000007':S.mcat;
-    handleResult(await apiFetch(`/api/auto-discover?mode=rising&categories=${cats}&threshold=${S.threshold}&period=${S.period}`));
-  }catch(e){showError(e.message);}finally{setLoading(false);}
+
+function runSeed(){
+  var kw = document.getElementById('seed-input').value.trim();
+  if(!kw){ showError('시드 키워드를 입력해주세요'); return; }
+  S.seedKw = kw;
+  setLoading(true, '"'+kw+'" 연관 키워드 확장 중...');
+  apiFetch('/api/auto-discover?mode=seed&keyword='+encodeURIComponent(kw)+'&depth='+S.depth+'&period='+S.period)
+    .then(function(d){ handleResult(d); })
+    .catch(function(e){ showError(e.message); })
+    .finally(function(){ setLoading(false); });
 }
-async function runSeed(){
-  const kw=document.getElementById('seed-input').value.trim();
-  if(!kw){showError('시드 키워드를 입력해주세요');return;}
-  S.seedKw=kw;
-  setLoading(true,`"${kw}" 연관 키워드 확장 중...`);
-  try{handleResult(await apiFetch(`/api/auto-discover?mode=seed&keyword=${encodeURIComponent(kw)}&depth=${S.depth}&period=${S.period}`));}
-  catch(e){showError(e.message);}finally{setLoading(false);}
-}
-async function runQuickSearch(){
-  const kw=document.getElementById('quick-search-input').value.trim();
-  if(!kw){document.getElementById('quick-search-input').focus();return;}
+
+function runQuickSearch(){
+  var kw = document.getElementById('quick-search-input').value.trim();
+  if(!kw){ document.getElementById('quick-search-input').focus(); return; }
   switchMode('seed');
-  document.getElementById('seed-input').value=kw;
-  S.seedKw=kw;
-  setLoading(true,`"${kw}" 직접 검색 중...`);
-  try{handleResult(await apiFetch(`/api/auto-discover?mode=seed&keyword=${encodeURIComponent(kw)}&depth=1&period=${S.period}`));}
-  catch(e){showError(e.message);}finally{setLoading(false);}
+  document.getElementById('seed-input').value = kw;
+  S.seedKw = kw;
+  setLoading(true, '"'+kw+'" 직접 검색 중...');
+  apiFetch('/api/auto-discover?mode=seed&keyword='+encodeURIComponent(kw)+'&depth=1&period='+S.period)
+    .then(function(d){ handleResult(d); })
+    .catch(function(e){ showError(e.message); })
+    .finally(function(){ setLoading(false); });
 }
+
 function handleResult(data){
-  if(!Array.isArray(data.candidates)) throw new Error('응답 형식 오류');
-  S.candidates = data.candidates;
-  S.apiStatus  = data.apiStatus || {};
-  S.lastUpdated= data.updatedAt || new Date().toISOString();
+  showError(null);
+  if(!data || !Array.isArray(data.candidates)) throw new Error('응답 형식 오류');
+  S.candidates  = data.candidates;
+  S.apiStatus   = data.apiStatus  || {};
+  S.lastUpdated = data.updatedAt  || new Date().toISOString();
   applySort();
   renderAll();
 }
 
 // ── FILTER/SORT
 function applySort(){
-  let list=[...S.candidates];
-  list=list.filter(FILTERS[S.filterStatus]||FILTERS.all);
-  if(S.sortBy==='score')      list.sort((a,b)=>safeNum(b.score?.totalScore)-safeNum(a.score?.totalScore));
-  else if(S.sortBy==='rate')  list.sort((a,b)=>{const ra=a.trend?.changeRate!=null?safeNum(a.trend.changeRate):-999,rb=b.trend?.changeRate!=null?safeNum(b.trend.changeRate):-999;return rb-ra;});
-  else if(S.sortBy==='count') list.sort((a,b)=>safeNum(b.count)-safeNum(a.count));
-  else                        list.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
-  S.filtered=list;
+  var list = S.candidates.slice();
+  var fn = FILTERS[S.filterStatus] || FILTERS.all;
+  list = list.filter(fn);
+  if(S.sortBy==='score')      list.sort(function(a,b){return safeNum((b.score||{}).totalScore)-safeNum((a.score||{}).totalScore);});
+  else if(S.sortBy==='rate')  list.sort(function(a,b){var ra=(a.trend&&a.trend.changeRate!=null)?safeNum(a.trend.changeRate):-999,rb=(b.trend&&b.trend.changeRate!=null)?safeNum(b.trend.changeRate):-999;return rb-ra;});
+  else if(S.sortBy==='count') list.sort(function(a,b){return safeNum(b.count)-safeNum(a.count);});
+  else                        list.sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
+  S.filtered = list;
 }
 
 // ── RENDER
 function renderAll(){
-  try{renderSummaryCards();}catch(e){console.error('[renderSummaryCards]',e);}
-  try{renderTable();}catch(e){console.error('[renderTable]',e);}
-  try{renderDetail();}catch(e){console.error('[renderDetail]',e);}
-  try{renderMeta();}catch(e){console.error('[renderMeta]',e);}
-  try{renderApiBar();}catch(e){console.error('[renderApiBar]',e);}
-  try{renderQuickLinks();}catch(e){console.error('[renderQuickLinks]',e);}
+  renderSummaryCards();
+  renderTable();
+  renderDetail();
+  renderMeta();
+  renderApiBar();
+  renderQuickLinks();
 }
 
 function renderSummaryCards(){
-  const cs=S.candidates;
-  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
-  if(!cs.length){['sc-total','sc-rising','sc-agrade','sc-shopping','sc-avg','sc-low'].forEach(id=>set(id,'–'));set('sc-rising-sub','–');return;}
+  var cs = Array.isArray(S.candidates) ? S.candidates : [];
+  function set(id,v){var el=document.getElementById(id);if(el)el.textContent=v;}
+  if(!cs.length){
+    ['sc-total','sc-rising','sc-agrade','sc-shopping','sc-avg','sc-low'].forEach(function(id){set(id,'–');});
+    set('sc-rising-sub','–');
+    return;
+  }
+  var rising   = cs.filter(function(c){return c&&c.trend&&c.trend.status==='rising';});
+  var aGrade   = cs.filter(function(c){return c&&c.score&&c.score.grade==='A';});
+  var shopping = cs.filter(function(c){return c&&Array.isArray(c.sources)&&c.sources.indexOf('shopping')>-1;});
+  var low      = cs.filter(function(c){return c&&c.score&&c.score.confidence==='low';});
+  var avg = cs.length ? Math.round(cs.reduce(function(s,c){return s+safeNum(c&&c.score&&c.score.totalScore);},0)/cs.length) : 0;
   set('sc-total',   cs.length);
-  set('sc-rising',  cs.filter(c=>c.trend?.status==='rising').length);
-  set('sc-rising-sub', cs.find(c=>c.trend?.status==='rising')?.name||'–');
-  set('sc-agrade',  cs.filter(c=>c.score?.grade==='A').length);
-  set('sc-shopping',cs.filter(c=>(c.sources||[]).includes('shopping')).length);
-  set('sc-avg',     Math.round(cs.reduce((s,c)=>s+safeNum(c.score?.totalScore),0)/cs.length));
-  set('sc-low',     cs.filter(c=>c.score?.confidence==='low').length);
+  set('sc-rising',  rising.length);
+  set('sc-rising-sub', (rising[0]&&rising[0].name)||'–');
+  set('sc-agrade',  aGrade.length);
+  set('sc-shopping',shopping.length);
+  set('sc-avg',     avg);
+  set('sc-low',     low.length);
 }
 
 function renderTable(){
-  const tbody=document.getElementById('result-tbody');
-  const table=document.getElementById('result-table');
-  const empty=document.getElementById('empty-state');
+  var tbody=document.getElementById('result-tbody');
+  var table=document.getElementById('result-table');
+  var empty=document.getElementById('empty-state');
   if(!S.filtered.length){table.style.display='none';empty.style.display='flex';return;}
   empty.style.display='none';table.style.display='table';
-  tbody.innerHTML=S.filtered.map((c,i)=>{
+  tbody.innerHTML=S.filtered.map(function(c,i){
     if(!c) return '';
-    const sc=c.score||{},tr=c.trend||{};
-    const gc=cv(GRADE_COLOR[sc.grade]||'--grade-c');
-    const isSel=S.selected&&S.selected.id===c.id;
-    const isFav=S.favorites.has(c.id);
-    const tags=((c.keywords)||[]).slice(0,2).map(k=>`<span style="background:#f1f5f9;color:#475569;border-radius:4px;padding:1px 5px;font-size:10px;margin-right:2px">${k||''}</span>`).join('');
-    const srcs=((c.sources)||[]).map(s=>`<span style="background:#f1f5f9;color:#475569;border-radius:4px;padding:1px 5px;font-size:10px;margin-right:2px">${s||''}</span>`).join('');
-    return `<tr class="result-row${isSel?' sel':''}" onclick="selectItem(${i})">
-      <td style="padding:9px 12px"><div style="font-weight:700;font-size:13px">${isFav?'⭐ ':''}${c.name||'–'}</div><div style="margin-top:2px">${tags}</div></td>
-      <td style="padding:9px 12px;font-weight:900;font-size:15px;color:${gc}">${Math.round(safeNum(sc.totalScore))}</td>
-      <td style="padding:9px 12px">${gradeBadge(sc.grade)}</td>
-      <td style="padding:9px 12px">${rateHtml(tr.changeRate)}</td>
-      <td style="padding:9px 12px">${badgeHtml(tr.status)}</td>
-      <td style="padding:9px 12px">${confHtml(sc.confidence)}</td>
-      <td style="padding:9px 12px">${sparkHtml(c.count,tr.status)}</td>
-      <td style="padding:9px 12px">${srcs}</td>
-      <td style="padding:9px 12px">${actionBadge(c.action)}</td>
-      <td style="padding:9px 12px;font-size:11px;color:var(--c-muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.summary||'–'}</td>
-      <td style="padding:9px 12px"><div class="row-acts">
-        <button class="ra-btn" onclick="event.stopPropagation();saveItem(${i},'shorts')">📱</button>
-        <button class="ra-btn" onclick="event.stopPropagation();saveItem(${i},'blog')">📝</button>
-        <button class="ra-btn" onclick="event.stopPropagation();toggleFav(${i})">${isFav?'⭐':'☆'}</button>
-      </div></td>
-    </tr>`;
+    var sc=c.score||{},tr=c.trend||{};
+    var gc=cv(GRADE_COLOR[sc.grade]||'--grade-c');
+    var isSel=S.selected&&S.selected.id===c.id;
+    var isFav=S.favorites.has(c.id);
+    var tags=(c.keywords||[]).slice(0,2).map(function(k){return '<span style="background:#f1f5f9;color:#475569;border-radius:4px;padding:1px 5px;font-size:10px;margin-right:2px">'+(k||'')+'</span>';}).join('');
+    var srcs=(c.sources||[]).map(function(s){return '<span style="background:#f1f5f9;color:#475569;border-radius:4px;padding:1px 5px;font-size:10px;margin-right:2px">'+(s||'')+'</span>';}).join('');
+    return '<tr class="result-row'+(isSel?' sel':'')+'" onclick="selectItem('+i+')">'
+      +'<td style="padding:9px 12px"><div style="font-weight:700;font-size:13px">'+(isFav?'⭐ ':'')+' '+(c.name||'–')+'</div><div style="margin-top:2px">'+tags+'</div></td>'
+      +'<td style="padding:9px 12px;font-weight:900;font-size:15px;color:'+gc+'">'+Math.round(safeNum(sc.totalScore))+'</td>'
+      +'<td style="padding:9px 12px">'+gradeBadge(sc.grade)+'</td>'
+      +'<td style="padding:9px 12px">'+rateHtml(tr.changeRate)+'</td>'
+      +'<td style="padding:9px 12px">'+badgeHtml(tr.status)+'</td>'
+      +'<td style="padding:9px 12px">'+confHtml(sc.confidence)+'</td>'
+      +'<td style="padding:9px 12px">'+sparkHtml(c.count,tr.status)+'</td>'
+      +'<td style="padding:9px 12px">'+srcs+'</td>'
+      +'<td style="padding:9px 12px">'+actionBadge(c.action)+'</td>'
+      +'<td style="padding:9px 12px;font-size:11px;color:var(--c-muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(c.summary||'–')+'</td>'
+      +'<td style="padding:9px 12px"><div class="row-acts">'
+        +'<button class="ra-btn" onclick="event.stopPropagation();saveItem('+i+',\'shorts\')">📱</button>'
+        +'<button class="ra-btn" onclick="event.stopPropagation();saveItem('+i+',\'blog\')">📝</button>'
+        +'<button class="ra-btn" onclick="event.stopPropagation();toggleFav('+i+')">'+(isFav?'⭐':'☆')+'</button>'
+      +'</div></td>'
+    +'</tr>';
   }).join('');
 }
 
 function renderDetail(){
-  const panel=document.getElementById('detail-body');
-  const c=S.selected;
-  if(!c){panel.innerHTML=`<div class="dp-empty"><div style="font-size:36px">📋</div><div>항목을 클릭하면<br/>상세 분석이 표시됩니다</div></div>`;return;}
-  const sc=c.score||{},tr=c.trend||{},bd=sc.breakdown||{};
-  const gc=cv(GRADE_COLOR[sc.grade]||'--grade-c');
-  const tc=cv(TREND_COLOR[tr.status]||'--unknown');
-  const ac=cv(ACTION_COLOR[c.action]||'--act-hold');
-  const acBg=cv(ACTION_LT[c.action]||'--act-hold-lt');
+  var panel=document.getElementById('detail-body');
+  var c=S.selected;
+  if(!c){panel.innerHTML='<div class="dp-empty"><div style="font-size:36px">📋</div><div>항목을 클릭하면<br/>상세 분석이 표시됩니다</div></div>';return;}
+  var sc=c.score||{},tr=c.trend||{},bd=sc.breakdown||{};
+  var gc=cv(GRADE_COLOR[sc.grade]||'--grade-c');
+  var tc=cv(TREND_COLOR[tr.status]||'--unknown');
+  var ac=cv(ACTION_COLOR[c.action]||'--act-hold');
+  var acBg=cv(ACTION_LT[c.action]||'--act-hold-lt');
 
-  // 위치 추적
-  const rank=S.filtered.findIndex(x=>x.id===c.id)+1;
-  const total=S.filtered.length;
-  const pct=total?Math.round((1-(rank-1)/total)*100):100;
+  var rank=S.filtered.findIndex(function(x){return x.id===c.id;})+1;
+  var total=S.filtered.length;
+  var pct=total?Math.round((1-(rank-1)/total)*100):100;
   if(!c._rh) c._rh=[];
   if(c._rh[c._rh.length-1]!==rank) c._rh.push(rank);
   if(c._rh.length>6) c._rh.shift();
-  const prev=c._rh.length>=2?c._rh[c._rh.length-2]:null;
-  const delta=prev!==null?prev-rank:null;
-  const deltaHtml=delta===null?'<span style="color:var(--c-faint)">첫 조회</span>':delta>0?`<span style="color:var(--rising)">▲ ${delta}위 상승</span>`:delta<0?`<span style="color:var(--falling)">▼ ${Math.abs(delta)}위 하락</span>`:'<span style="color:var(--c-faint)">── 유지</span>';
-  const histBars=c._rh.map((r,i)=>{const h=Math.round((1-(r-1)/(total||1))*22)+3;const isL=i===c._rh.length-1;return `<div class="ph-bar" style="width:8px;height:${h}px;background:${isL?gc:'#c7d2fe'}"></div>`;}).join('');
+  var prev=c._rh.length>=2?c._rh[c._rh.length-2]:null;
+  var delta=prev!==null?prev-rank:null;
+  var deltaHtml=delta===null?'<span style="color:var(--c-faint)">첫 조회</span>':delta>0?'<span style="color:var(--rising)">▲ '+delta+'위 상승</span>':delta<0?'<span style="color:var(--falling)">▼ '+Math.abs(delta)+'위 하락</span>':'<span style="color:var(--c-faint)">── 유지</span>';
+  var histBars=c._rh.map(function(r,i){var h=Math.round((1-(r-1)/(total||1))*22)+3;var isL=i===c._rh.length-1;return '<div class="ph-bar" style="width:8px;height:'+h+'px;background:'+(isL?gc:'#c7d2fe')+'"></div>';}).join('');
 
-  const warns=[];
+  var warns=[];
   if(sc.confidence==='low') warns.push('데이터 부족 — 판단 신뢰도 낮음');
   if(tr.source==='count')   warns.push('Datalab 미수집 — 수량 기반 판정');
   if((c.sources||[]).length<2) warns.push('단일 소스 — 교차 검증 필요');
 
-  const dirMap={shorts:'📱 YouTube Shorts 소재로 즉시 활용',blog:'📝 블로그 리뷰/비교 포스팅 추천',hold:'⏸ 추이 관망 후 재판단',compare:'🔄 유사 제품과 비교 분석 후 선택'};
-  const bars=Object.entries(bd).map(([k,v])=>{const max=SCORE_MAX[k]||25,pct2=Math.round((safeNum(v)/max)*100);return `<div class="bar-item"><div class="bar-lrow"><span style="color:var(--c-muted)">${SRC_LABEL[k]||k}</span><span style="font-weight:700">${safeNum(v)}/${max}</span></div><div class="bar-track"><div class="bar-fill" style="width:${pct2}%"></div></div></div>`;}).join('');
-  const kwtags=(c.keywords||[]).map(k=>`<span class="dp-kwtag">${k}</span>`).join('');
-  const samples=(c.sampleItems||[]).map(it=>`<a href="${it.link||'#'}" target="_blank" rel="noopener" style="display:block;padding:6px 9px;background:#f8fafc;border-radius:7px;text-decoration:none;margin-bottom:4px;border:1px solid var(--c-border)"><div style="font-size:11px;color:var(--c-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${it.title||''}</div><div style="font-size:10px;color:var(--c-faint)">${it.source||''}</div></a>`).join('');
-  const idx=S.filtered.findIndex(x=>x.id===c.id);
-  const isFav=S.favorites.has(c.id);
+  var dirMap={shorts:'📱 YouTube Shorts 소재로 즉시 활용',blog:'📝 블로그 리뷰/비교 포스팅 추천',hold:'⏸ 추이 관망 후 재판단',compare:'🔄 유사 제품과 비교 분석 후 선택'};
+  var bars=Object.keys(bd).map(function(k){var v=bd[k];var max=SCORE_MAX[k]||25;var p2=Math.round((safeNum(v)/max)*100);return '<div class="bar-item"><div class="bar-lrow"><span style="color:var(--c-muted)">'+(SRC_LABEL[k]||k)+'</span><span style="font-weight:700">'+safeNum(v)+'/'+max+'</span></div><div class="bar-track"><div class="bar-fill" style="width:'+p2+'%"></div></div></div>';}).join('');
+  var kwtags=(c.keywords||[]).map(function(k){return '<span class="dp-kwtag">'+k+'</span>';}).join('');
+  var samples=(c.sampleItems||[]).map(function(it){return '<a href="'+(it.link||'#')+'" target="_blank" rel="noopener" style="display:block;padding:6px 9px;background:#f8fafc;border-radius:7px;text-decoration:none;margin-bottom:4px;border:1px solid var(--c-border)"><div style="font-size:11px;color:var(--c-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(it.title||'')+'</div><div style="font-size:10px;color:var(--c-faint)">'+(it.source||'')+'</div></a>';}).join('');
+  var idx=S.filtered.findIndex(function(x){return x.id===c.id;});
+  var isFav=S.favorites.has(c.id);
 
-  panel.innerHTML=`<div class="dp-body">
-    <div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:6px"><div class="dp-name" style="flex:1">${c.name}</div>${gradeBadge(sc.grade)}</div>
-    ${kwtags?`<div class="dp-kwtags">${kwtags}</div>`:''}
-    <div class="pos-wrap">
-      <div style="text-align:center"><div class="pos-rank" style="color:${gc}">${rank}</div><div style="font-size:10px;color:var(--c-faint)">/ ${total}위</div></div>
-      <div style="flex:1"><div style="font-size:11px;font-weight:700;margin-bottom:4px">${deltaHtml}</div><div class="pos-hist">${histBars||''}</div><div class="rank-track"><div class="rank-fill" style="width:${pct}%;background:${gc}"></div></div><div style="font-size:9px;color:var(--c-faint);margin-top:2px">상위 ${100-pct+1}%</div></div>
-    </div>
-    <div class="dp-sec"><div class="dp-sec-lbl">한 줄 결론</div><div class="dp-box">${c.summary||'–'}</div></div>
-    ${warns.length?`<div class="dp-sec"><div class="dp-sec-lbl">⚠️ 주의 요소</div><div class="dp-warn">${warns.map(w=>`• ${w}`).join('<br>')}</div></div>`:''}
-    <div class="dp-sec"><div class="dp-sec-lbl">추천 활용 방향</div><div class="dp-box" style="color:${ac};background:${acBg}">${dirMap[c.action]||'–'}</div></div>
-    <div class="sc-grid">
-      <div class="sc-cell"><div class="sc-big" style="color:${gc}">${Math.round(safeNum(sc.totalScore))}</div><div class="sc-lbl">종합점수</div></div>
-      <div class="sc-cell"><div class="sc-big" style="font-size:13px;color:${tc}">${TREND_LABEL[tr.status]||'–'}</div><div class="sc-lbl">트렌드</div></div>
-      <div class="sc-cell"><div class="sc-big" style="font-size:14px">${rateHtml(tr.changeRate)}</div><div class="sc-lbl">변화율</div></div>
-      <div class="sc-cell"><div class="sc-big" style="font-size:12px;color:var(--c-muted)">${sc.confidence||'–'}</div><div class="sc-lbl">신뢰도</div></div>
-    </div>
-    <div class="dp-sec"><div class="dp-sec-lbl">소스별 점수</div>${bars||'<div style="color:var(--c-faint);font-size:12px">데이터 없음</div>'}</div>
-    ${samples?`<div class="dp-sec"><div class="dp-sec-lbl">샘플 항목</div>${samples}</div>`:''}
-    <div class="action-box">
-      <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">빠른 액션</div>
-      <button class="act-btn" style="background:var(--act-shorts-lt);color:var(--act-shorts)" onclick="saveItem(${idx},'shorts')">📱 쇼츠 소재로 저장</button>
-      <button class="act-btn" style="background:var(--act-blog-lt);color:var(--act-blog)" onclick="saveItem(${idx},'blog')">📝 블로그 소재로 저장</button>
-      <button class="act-btn" style="background:var(--act-compare-lt);color:var(--act-compare)" onclick="toggleFav(${idx})">${isFav?'⭐ 즐겨찾기 해제':'☆ 즐겨찾기 추가'}</button>
-    </div>
-  </div>`;
+  panel.innerHTML='<div class="dp-body">'
+    +'<div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:6px"><div class="dp-name" style="flex:1">'+c.name+'</div>'+gradeBadge(sc.grade)+'</div>'
+    +(kwtags?'<div class="dp-kwtags">'+kwtags+'</div>':'')
+    +'<div class="pos-wrap"><div style="text-align:center"><div style="font-size:22px;font-weight:900;color:'+gc+'">'+rank+'</div><div style="font-size:10px;color:var(--c-faint)">/ '+total+'위</div></div><div style="flex:1"><div style="font-size:11px;font-weight:700;margin-bottom:4px">'+deltaHtml+'</div><div class="pos-hist">'+histBars+'</div><div class="rank-track"><div class="rank-fill" style="width:'+pct+'%;background:'+gc+'"></div></div><div style="font-size:9px;color:var(--c-faint);margin-top:2px">상위 '+(100-pct+1)+'%</div></div></div>'
+    +'<div class="dp-sec"><div class="dp-sec-lbl">한 줄 결론</div><div class="dp-box">'+(c.summary||'–')+'</div></div>'
+    +(warns.length?'<div class="dp-sec"><div class="dp-sec-lbl">⚠️ 주의 요소</div><div class="dp-warn">'+warns.map(function(w){return '• '+w;}).join('<br>')+'</div></div>':'')
+    +'<div class="dp-sec"><div class="dp-sec-lbl">추천 활용 방향</div><div class="dp-box" style="color:'+ac+';background:'+acBg+'">'+(dirMap[c.action]||'–')+'</div></div>'
+    +'<div class="sc-grid">'
+      +'<div class="sc-cell"><div class="sc-big" style="color:'+gc+'">'+Math.round(safeNum(sc.totalScore))+'</div><div class="sc-lbl">종합점수</div></div>'
+      +'<div class="sc-cell"><div class="sc-big" style="font-size:13px;color:'+tc+'">'+(TREND_LABEL[tr.status]||'–')+'</div><div class="sc-lbl">트렌드</div></div>'
+      +'<div class="sc-cell"><div class="sc-big" style="font-size:14px">'+rateHtml(tr.changeRate)+'</div><div class="sc-lbl">변화율</div></div>'
+      +'<div class="sc-cell"><div class="sc-big" style="font-size:12px;color:var(--c-muted)">'+(sc.confidence||'–')+'</div><div class="sc-lbl">신뢰도</div></div>'
+    +'</div>'
+    +'<div class="dp-sec"><div class="dp-sec-lbl">소스별 점수</div>'+(bars||'<div style="color:var(--c-faint);font-size:12px">데이터 없음</div>')+'</div>'
+    +(samples?'<div class="dp-sec"><div class="dp-sec-lbl">샘플 항목</div>'+samples+'</div>':'')
+    +'<div class="action-box">'
+      +'<div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">빠른 액션</div>'
+      +'<button class="act-btn" style="background:var(--act-shorts-lt);color:var(--act-shorts)" onclick="saveItem('+idx+',\'shorts\')">📱 쇼츠 소재로 저장</button>'
+      +'<button class="act-btn" style="background:var(--act-blog-lt);color:var(--act-blog)" onclick="saveItem('+idx+',\'blog\')">📝 블로그 소재로 저장</button>'
+      +'<button class="act-btn" style="background:var(--act-compare-lt);color:var(--act-compare)" onclick="toggleFav('+idx+')">'+(isFav?'⭐ 즐겨찾기 해제':'☆ 즐겨찾기 추가')+'</button>'
+    +'</div>'
+  +'</div>';
 }
 
 function renderMeta(){
-  const el=document.getElementById('table-meta');
-  if(!S.candidates.length){el.innerHTML=`<span class="stat-chip" style="color:var(--c-faint)">탐색 결과가 표시됩니다</span>`;return;}
-  const mLabel={category:`카테고리·${CAT_NAMES[S.catId]||''}`,rising:'급상승 모니터링',seed:`"${S.seedKw}" 확장`};
-  el.innerHTML=`
-    <span class="stat-chip">🔍 ${mLabel[S.mode]||''}</span>
-    <span class="stat-chip">📦 ${S.candidates.length}개</span>
-    <span class="stat-chip">🔥 급상승 ${S.candidates.filter(c=>c.trend?.status==='rising').length}개</span>
-    <span class="stat-chip">🏆 A등급 ${S.candidates.filter(c=>c.score?.grade==='A').length}개</span>
-    <span class="stat-chip">⭐ 즐겨찾기 ${S.favorites.size}</span>
-    ${S.lastUpdated?`<span class="stat-chip" style="margin-left:auto;color:var(--c-faint)">🕐 ${fmtDate(S.lastUpdated)}</span>`:''}`;
+  var el=document.getElementById('table-meta');
+  if(!el) return;
+  var cs=Array.isArray(S.candidates)?S.candidates:[];
+  if(!cs.length){el.innerHTML='<span class="stat-chip" style="color:var(--c-faint)">탐색 결과가 표시됩니다</span>';return;}
+  var mLabel={category:'카테고리·'+(CAT_NAMES[S.catId]||''),seed:'"'+S.seedKw+'" 확장'};
+  var r=cs.filter(function(c){return c&&c.trend&&c.trend.status==='rising';}).length;
+  var a=cs.filter(function(c){return c&&c.score&&c.score.grade==='A';}).length;
+  el.innerHTML=''
+    +'<span class="stat-chip">🔍 '+(mLabel[S.mode]||'')+'</span>'
+    +'<span class="stat-chip">📦 '+cs.length+'개</span>'
+    +'<span class="stat-chip">🔥 급상승 '+r+'개</span>'
+    +'<span class="stat-chip">🏆 A등급 '+a+'개</span>'
+    +'<span class="stat-chip">⭐ 즐겨찾기 '+S.favorites.size+'</span>'
+    +(S.lastUpdated?'<span class="stat-chip" style="margin-left:auto;color:var(--c-faint)">🕐 '+fmtDate(S.lastUpdated)+'</span>':'');
 }
 
 function renderQuickLinks(){
-  const bar=document.getElementById('ql-bar');
-  const el=document.getElementById('quick-links');
-  const c=S.selected;
+  var bar=document.getElementById('ql-bar');
+  var el=document.getElementById('quick-links');
+  var c=S.selected;
   if(!c){bar.style.display='none';return;}
-  const q=encodeURIComponent(c.name);
-  const links=[
-    {icon:'🛒',label:'네이버 쇼핑', url:`https://search.shopping.naver.com/search/all?query=${q}`},
-    {icon:'📝',label:'네이버 블로그',url:`https://search.naver.com/search.naver?where=blog&query=${q}`},
-    {icon:'🟡',label:'쿠팡',         url:`https://www.coupang.com/np/search?q=${q}`},
-    {icon:'▶️',label:'유튜브',        url:`https://www.youtube.com/results?search_query=${encodeURIComponent(c.name+' 추천')}`},
+  var q=encodeURIComponent(c.name);
+  var links=[
+    {icon:'🛒',label:'네이버 쇼핑', url:'https://search.shopping.naver.com/search/all?query='+q},
+    {icon:'📝',label:'네이버 블로그',url:'https://search.naver.com/search.naver?where=blog&query='+q},
+    {icon:'🟡',label:'쿠팡',         url:'https://www.coupang.com/np/search?q='+q},
+    {icon:'▶️',label:'유튜브',        url:'https://www.youtube.com/results?search_query='+encodeURIComponent(c.name+' 추천')},
   ];
   bar.style.display='flex';
-  el.innerHTML=links.map(l=>`<a href="${l.url}" target="_blank" rel="noopener" class="ql-btn"
-    onmouseover="this.style.borderColor='var(--c-primary)';this.style.color='var(--c-primary)'"
-    onmouseout="this.style.borderColor='var(--c-border)';this.style.color='#475569'">${l.icon} ${l.label}</a>`).join('');
+  el.innerHTML=links.map(function(l){
+    return '<a href="'+l.url+'" target="_blank" rel="noopener" class="ql-btn"'
+      +' onmouseover="this.style.borderColor=\'var(--c-primary)\';this.style.color=\'var(--c-primary)\'"'
+      +' onmouseout="this.style.borderColor=\'var(--c-border)\';this.style.color=\'#475569\'">'+l.icon+' '+l.label+'</a>';
+  }).join('');
 }
 
 function renderApiBar(){
-  const el=document.getElementById('api-bar');
-  const items=Object.entries(S.apiStatus).map(([k,v])=>`<span><span class="api-dot" style="background:${v==='fulfilled'||String(v).includes('/')?'#34d399':'#f43f5e'}"></span>${k}: ${v||'–'}</span>`);
+  var el=document.getElementById('api-bar');
+  var items=Object.keys(S.apiStatus).map(function(k){
+    var v=S.apiStatus[k];
+    var ok=v==='fulfilled'||String(v).indexOf('/')>-1;
+    return '<span><span class="api-dot" style="background:'+(ok?'#34d399':'#f43f5e')+'"></span>'+k+': '+(v||'–')+'</span>';
+  });
   el.innerHTML=items.length?items.join(''):'<span>API 대기 중</span>';
 }
 
 // ── ACTIONS
 function saveItem(i,type){
-  const c=S.filtered[i];if(!c)return;
-  if(!S.saved[type].find(x=>x.id===c.id)) S.saved[type].push(c);
-  showToast(`"${c.name}" → ${type==='shorts'?'📱 쇼츠':'📝 블로그'} 저장됨`);
+  var c=S.filtered[i]; if(!c) return;
+  if(!S.saved[type].some(function(x){return x.id===c.id;})) S.saved[type].push(c);
+  showToast('"'+c.name+'" → '+(type==='shorts'?'📱 쇼츠':'📝 블로그')+' 저장됨');
   renderTable();
 }
 function toggleFav(i){
-  const c=S.filtered[i];if(!c)return;
-  S.favorites.has(c.id)?S.favorites.delete(c.id):S.favorites.add(c.id);
-  renderTable();renderMeta();renderDetail();
+  var c=S.filtered[i]; if(!c) return;
+  if(S.favorites.has(c.id)) S.favorites.delete(c.id);
+  else S.favorites.add(c.id);
+  renderTable(); renderMeta(); renderDetail();
 }
 function showToast(msg){
-  let t=document.getElementById('_toast');
-  if(!t){t=document.createElement('div');t.id='_toast';t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;transition:opacity .3s;pointer-events:none';document.body.appendChild(t);}
-  t.textContent=msg;t.style.opacity='1';
-  clearTimeout(t._t);t._t=setTimeout(()=>t.style.opacity='0',2000);
+  var t=document.getElementById('_toast');
+  if(!t){
+    t=document.createElement('div'); t.id='_toast';
+    t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;transition:opacity .3s;pointer-events:none';
+    document.body.appendChild(t);
+  }
+  t.textContent=msg; t.style.opacity='1';
+  clearTimeout(t._t); t._t=setTimeout(function(){t.style.opacity='0';},2000);
 }
 
 // ── UI CONTROL
-function setLoading(on,msg=''){
+function setLoading(on,msg){
   S.loading=on;
   document.getElementById('loading-overlay').style.display=on?'flex':'none';
   if(msg) document.getElementById('loading-msg').textContent=msg;
-  ['btn-auto-big','btn-quick-search'].forEach(id=>{const b=document.getElementById(id);if(b)b.disabled=on;});
+  ['btn-auto-big','btn-quick-search'].forEach(function(id){var b=document.getElementById(id);if(b)b.disabled=on;});
 }
 function showError(msg){
   S.error=msg;
@@ -693,24 +700,21 @@ function onReset(){
 }
 function selectItem(i){
   S.selected=S.filtered[i]||null;
-  try { renderTable(); renderDetail(); renderQuickLinks(); }
-  catch(e) { console.error('[selectItem render]', e); }
+  renderTable(); renderDetail(); renderQuickLinks();
 }
 function switchMode(m){
-  S.mode=m;S.selected=null;
-  document.querySelectorAll('.mode-tab').forEach((t,i)=>t.classList.toggle('active',['category','seed'][i]===m));
-  ['ctrl-category','ctrl-seed'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el) el.style.display=id===`ctrl-${m}`?'flex':'none';
+  S.mode=m; S.selected=null;
+  document.querySelectorAll('.mode-tab').forEach(function(t,i){t.classList.toggle('active',['category','seed'][i]===m);});
+  ['ctrl-category','ctrl-seed'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el) el.style.display=(id==='ctrl-'+m)?'flex':'none';
   });
   onReset();
 }
-function onCat(el){document.querySelectorAll('[data-cat]').forEach(b=>b.classList.remove('on'));el.classList.add('on');S.catId=el.dataset.cat;}
-function onPeriod(el){document.querySelectorAll('[data-period]').forEach(b=>b.classList.remove('on'));el.classList.add('on');S.period=el.dataset.period;}
-function onThreshold(el){document.querySelectorAll('[data-threshold]').forEach(b=>b.classList.remove('on'));el.classList.add('on');S.threshold=Number(el.dataset.threshold);}
-function onMcat(el){document.querySelectorAll('[data-mcat]').forEach(b=>b.classList.remove('on'));el.classList.add('on');S.mcat=el.dataset.mcat;}
-function onDepth(el){document.querySelectorAll('[data-depth]').forEach(b=>b.classList.remove('on'));el.classList.add('on');S.depth=Number(el.dataset.depth);}
-function onFilter(el,val){document.querySelectorAll('[data-f]').forEach(b=>b.classList.remove('on'));el.classList.add('on');S.filterStatus=val;S.selected=null;applySort();renderTable();renderDetail();renderQuickLinks();}
+function onCat(el){document.querySelectorAll('[data-cat]').forEach(function(b){b.classList.remove('on');});el.classList.add('on');S.catId=el.dataset.cat;}
+function onPeriod(el){document.querySelectorAll('[data-period]').forEach(function(b){b.classList.remove('on');});el.classList.add('on');S.period=el.dataset.period;}
+function onDepth(el){document.querySelectorAll('[data-depth]').forEach(function(b){b.classList.remove('on');});el.classList.add('on');S.depth=Number(el.dataset.depth);}
+function onFilter(el,val){document.querySelectorAll('[data-f]').forEach(function(b){b.classList.remove('on');});el.classList.add('on');S.filterStatus=val;S.selected=null;applySort();renderTable();renderDetail();renderQuickLinks();}
 function onSort(val){S.sortBy=val;applySort();renderTable();}
 </script>
 </body>
