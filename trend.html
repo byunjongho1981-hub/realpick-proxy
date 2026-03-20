@@ -317,7 +317,8 @@
 </div>
 
 <script>
-// ── CONSTANTS
+// 위치 추적 히스토리 — 후보 객체와 분리해 영구 보존
+var RANK_HISTORY = {}; // { id: [rank1, rank2, ...] }
 const TREND_LABEL = {rising:'🔥 급상승',stable:'➡️ 보합',falling:'📉 하락',new:'✨ 신규',unknown:'❓ 보류'};
 const TREND_COLOR = {rising:'--rising',stable:'--stable',falling:'--falling',new:'--new',unknown:'--unknown'};
 const TREND_LT    = {rising:'--rising-lt',stable:'--stable-lt',falling:'--falling-lt',new:'--new-lt',unknown:'--unknown-lt'};
@@ -483,20 +484,10 @@ function runQuickSearch(){
 function handleResult(data){
   showError(null);
   if(!data || !Array.isArray(data.candidates)) throw new Error('응답 형식 오류');
-
-  // 이전 후보의 _rh(순위 히스토리) 보존
-  var prevMap = {};
-  S.candidates.forEach(function(c){ if(c && c.id && c._rh) prevMap[c.id] = c._rh; });
-
+  // RANK_HISTORY는 건드리지 않음 — 검색이 바뀌어도 히스토리 유지
   S.candidates  = data.candidates;
   S.apiStatus   = data.apiStatus  || {};
   S.lastUpdated = data.updatedAt  || new Date().toISOString();
-
-  // 동일 id 후보에 이전 히스토리 복원
-  S.candidates.forEach(function(c){
-    if(c && c.id && prevMap[c.id]) c._rh = prevMap[c.id];
-  });
-
   applySort();
   renderAll();
 }
@@ -589,33 +580,43 @@ function renderDetail(){
   var ac=cv(ACTION_COLOR[c.action]||'--act-hold');
   var acBg=cv(ACTION_LT[c.action]||'--act-hold-lt');
 
+  // ── 위치 추적 (RANK_HISTORY로 영구 보존)
   var rank  = 0;
-  for(var ri=0; ri<S.filtered.length; ri++){ if(S.filtered[ri].id===c.id){ rank=ri+1; break; } }
+  for(var ri=0; ri<S.filtered.length; ri++){
+    if(S.filtered[ri].id===c.id){ rank=ri+1; break; }
+  }
   if(rank===0) rank=1;
   var total = S.filtered.length || 1;
   var pct   = Math.round((1-(rank-1)/total)*100);
 
-  if(!c._rh) c._rh = [];
-  if(c._rh[c._rh.length-1] !== rank) c._rh.push(rank);
-  if(c._rh.length > 6) c._rh.shift();
+  // 히스토리 기록
+  if(!RANK_HISTORY[c.id]) RANK_HISTORY[c.id] = [];
+  var rh = RANK_HISTORY[c.id];
+  if(rh[rh.length-1] !== rank) rh.push(rank);
+  if(rh.length > 8) rh.shift();
 
-  var prev      = c._rh.length >= 2 ? c._rh[c._rh.length-2] : null;
+  // 변화 계산
+  var prev      = rh.length >= 2 ? rh[rh.length-2] : null;
   var delta     = prev !== null ? prev - rank : null;
   var deltaHtml = delta===null
-    ? '<span style="color:var(--c-faint)">첫 조회</span>'
+    ? '<span style="color:var(--c-faint);font-size:11px">첫 조회</span>'
     : delta>0
-      ? '<span style="color:var(--rising)">▲ '+delta+'위 상승</span>'
+      ? '<span style="color:var(--rising);font-size:11px;font-weight:700">▲ '+delta+'위 상승</span>'
       : delta<0
-        ? '<span style="color:var(--falling)">▼ '+Math.abs(delta)+'위 하락</span>'
-        : '<span style="color:var(--c-faint)">── 유지</span>';
+        ? '<span style="color:var(--falling);font-size:11px;font-weight:700">▼ '+Math.abs(delta)+'위 하락</span>'
+        : '<span style="color:var(--c-faint);font-size:11px">── 유지</span>';
 
+  // 히스토리 바 (최대 8개)
   var histBars = '';
-  for(var hi=0; hi<c._rh.length; hi++){
-    var rr  = c._rh[hi];
-    var h   = Math.round((1-(rr-1)/(total))*22)+3;
-    var isL = hi===c._rh.length-1;
-    histBars += '<div class="ph-bar" style="width:8px;height:'+h+'px;background:'+(isL?gc:'#c7d2fe')+'"></div>';
+  for(var hi=0; hi<rh.length; hi++){
+    var rr  = rh[hi];
+    var barH = Math.max(4, Math.round((1-(rr-1)/(total))*28));
+    var isLast = hi===rh.length-1;
+    histBars += '<div class="ph-bar" style="width:10px;height:'+barH+'px;background:'+(isLast?gc:'#c7d2fe')+';border-radius:2px 2px 0 0"></div>';
   }
+
+  // 현재 순위 백분위 바
+  var rankPct = Math.max(1, 100-pct+1);
 
   var warns=[];
   if(sc.confidence==='low') warns.push('데이터 부족 — 판단 신뢰도 낮음');
@@ -632,7 +633,19 @@ function renderDetail(){
   panel.innerHTML='<div class="dp-body">'
     +'<div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:6px"><div class="dp-name" style="flex:1">'+c.name+'</div>'+gradeBadge(sc.grade)+'</div>'
     +(kwtags?'<div class="dp-kwtags">'+kwtags+'</div>':'')
-    +'<div class="pos-wrap"><div style="text-align:center"><div style="font-size:22px;font-weight:900;color:'+gc+'">'+rank+'</div><div style="font-size:10px;color:var(--c-faint)">/ '+total+'위</div></div><div style="flex:1"><div style="font-size:11px;font-weight:700;margin-bottom:4px">'+deltaHtml+'</div><div class="pos-hist">'+histBars+'</div><div class="rank-track"><div class="rank-fill" style="width:'+pct+'%;background:'+gc+'"></div></div><div style="font-size:9px;color:var(--c-faint);margin-top:2px">상위 '+(100-pct+1)+'%</div></div></div>'
+    +'<div class="pos-wrap">'
+      +'<div style="text-align:center;min-width:44px">'
+        +'<div style="font-size:26px;font-weight:900;color:'+gc+';line-height:1">'+rank+'</div>'
+        +'<div style="font-size:10px;color:var(--c-faint)">/ '+total+'위</div>'
+        +'<div style="margin-top:4px">'+deltaHtml+'</div>'
+      +'</div>'
+      +'<div style="flex:1;padding-left:10px">'
+        +'<div style="font-size:10px;color:var(--c-faint);margin-bottom:4px;text-transform:uppercase;letter-spacing:.8px">순위 히스토리</div>'
+        +'<div class="pos-hist" style="height:32px;align-items:flex-end">'+(histBars||'<span style="font-size:10px;color:var(--c-faint)">기록 없음</span>')+'</div>'
+        +'<div class="rank-track" style="margin-top:6px"><div class="rank-fill" style="width:'+pct+'%;background:'+gc+'"></div></div>'
+        +'<div style="font-size:9px;color:var(--c-faint);margin-top:2px">상위 '+rankPct+'%</div>'
+      +'</div>'
+    +'</div>'
     +'<div class="dp-sec"><div class="dp-sec-lbl">한 줄 결론</div><div class="dp-box">'+(c.summary||'–')+'</div></div>'
     +(warns.length?'<div class="dp-sec"><div class="dp-sec-lbl">⚠️ 주의 요소</div><div class="dp-warn">'+warns.map(function(w){return '• '+w;}).join('<br>')+'</div></div>':'')
     +'<div class="dp-sec"><div class="dp-sec-lbl">추천 활용 방향</div><div class="dp-box" style="color:'+ac+';background:'+acBg+'">'+(dirMap[c.action]||'–')+'</div></div>'
