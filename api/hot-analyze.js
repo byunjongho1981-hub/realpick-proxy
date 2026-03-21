@@ -215,7 +215,73 @@ async function analyzeBlog(keyword) {
   }
 }
 
-// ── 네이버 쇼핑 분석 ──────────────────────────────────────────
+// ── 네이버 쇼핑인사이트 (신규) ───────────────────────────────
+// _config.js CAT_SEEDS에서 키워드→카테고리ID 동적 매핑
+var _hotKwCatMap = null;
+function getHotKwCatMap(){
+  if(_hotKwCatMap) return _hotKwCatMap;
+  _hotKwCatMap = {};
+  try {
+    var cfg = require('./_config');
+    Object.keys(cfg.CAT_SEEDS||{}).forEach(function(catId){
+      (cfg.CAT_SEEDS[catId]||[]).forEach(function(kw){
+        if(!_hotKwCatMap[kw]) _hotKwCatMap[kw] = catId;
+      });
+    });
+  } catch(e) {}
+  return _hotKwCatMap;
+}
+
+async function analyzeShopping_Insight(keyword) {
+  // CAT_SEEDS에서 카테고리 찾기, 없으면 디지털/가전 기본값
+  var catId = getHotKwCatMap()[keyword] || '50000003';
+  try {
+    var now  = new Date();
+    var pad  = function(n){return String(n).padStart(2,'0');};
+    var fmt  = function(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());};
+    var ago  = new Date(now); ago.setDate(now.getDate()-15);
+    var yest = new Date(now); yest.setDate(now.getDate()-1);
+    var body = {
+      startDate: fmt(ago), endDate: fmt(yest), timeUnit:'date',
+      category: [{name: keyword, param: [catId]}],
+      device:'', gender:'', ages:[]
+    };
+    var buf = Buffer.from(JSON.stringify(body),'utf8');
+    var d = await new Promise(function(resolve,reject){
+      var t=setTimeout(function(){reject(new Error('timeout'));},8000);
+      var req=https.request({
+        hostname:'openapi.naver.com', path:'/v1/datalab/shopping/categories', method:'POST',
+        headers:{
+          'X-Naver-Client-Id':process.env.NAVER_CLIENT_ID,
+          'X-Naver-Client-Secret':process.env.NAVER_CLIENT_SECRET,
+          'Content-Type':'application/json','Content-Length':buf.length
+        }
+      },function(res){
+        var raw='';
+        res.on('data',function(c){raw+=c;});
+        res.on('end',function(){clearTimeout(t);try{resolve(JSON.parse(raw));}catch(e){resolve({});}});
+      });
+      req.on('error',function(e){clearTimeout(t);reject(e);});
+      req.write(buf); req.end();
+    });
+    if(d.errorCode) return null;
+    var pts=((d.results||[])[0]||{}).data||[];
+    if(pts.length<4) return null;
+    var avg=function(a){return a.reduce(function(s,p){return s+sn(p.ratio);},0)/(a.length||1);};
+    var h=Math.floor(pts.length/2), pa=avg(pts.slice(0,h)), ca=avg(pts.slice(h));
+    var clickSurge=pa>0?Math.round(((ca-pa)/pa)*100):(ca>0?100:0);
+    var last3=pts.slice(-3), prev3=pts.slice(Math.max(0,pts.length-6),-3);
+    var l3=avg(last3), p3=avg(prev3);
+    var clickAccel=p3>0?Math.round(((l3-p3)/p3)*100):(l3>0?50:0);
+    var all=avg(pts);
+    var clickDurability=Math.round((pts.filter(function(p){return sn(p.ratio)>=all;}).length/pts.length)*100);
+    return {
+      clickSurge:clickSurge, clickAccel:clickAccel, clickDurability:clickDurability,
+      currentRatio:Math.round(ca*10)/10,
+      shopTrend:clickSurge>=30?'hot':clickSurge>=10?'rising':clickSurge>=-10?'stable':'falling'
+    };
+  } catch(e) { return null; }
+}
 async function analyzeShopping(keyword) {
   try {
     var d = await naverGet('/v1/search/shop.json', { query: keyword, display: 40, sort: 'sim' });
@@ -307,7 +373,51 @@ function calcScore(yt, blog, shop, dl) {
 }
 
 // ── 판단 ──────────────────────────────────────────────────────
-function judge(yt, blog, shop, dl) {
+function judge(yt, blog, shop, dl, si) {
+  var surge=dl.surgeRate||0, vc=yt.videoCount||0, av=yt.avgViews||0;
+  // ★ 쇼핑인사이트 클릭 급상승이면 trendStatus 승격
+  var siSurge = si ? (si.clickSurge||0) : 0;
+  var trendStatus = (surge>=30||siSurge>=30)&&vc>=5?'rising'
+    : surge>=10||siSurge>=10||(vc>=10&&av>=5000)?'spreading'
+    : surge>=-10?'plateau':'falling';
+  var si2=shop.itemCount||0, sr=blog.reviewRatio||0;
+  var salesType = si2>=30&&sr>=0.4?'sell':si2>=5||sr>=0.3?'mixed':'info';
+  var competition = vc<=10?'low':vc<=30?'medium':'high';
+  var timing = (trendStatus==='rising'||trendStatus==='spreading')&&competition!=='high'?'now':trendStatus==='plateau'?'wait':'late';
+  var sr2=yt.shortsRatio||0;
+  var shortsfit = sr2>=0.5&&av>=10000?'great':sr2>=0.3||av>=3000?'ok':'bad';
+
+  var decision;
+  if (salesType==='sell'&&(trendStatus==='rising'||trendStatus==='spreading')&&competition==='low') decision='go';
+  else if (salesType==='sell'&&competition!=='low') decision='conditional';
+  else if (trendStatus==='plateau'||trendStatus==='spreading') decision='wait';
+  else decision='no';
+
+  var competeReasons=[];
+  if(vc>=50) competeReasons.push('최근 7일 영상 '+vc+'개 — 포화 수준');
+  else if(vc>=30) competeReasons.push('최근 7일 영상 '+vc+'개 — 경쟁 높음');
+  else if(vc>=10) competeReasons.push('최근 7일 영상 '+vc+'개 — 중간 경쟁');
+  else if(vc<=5) competeReasons.push('최근 7일 영상 '+vc+'개 — 진입 여유');
+  if((yt.channelRepeat||0)>=3) competeReasons.push('상위 채널 반복 등장 '+yt.channelRepeat+'회 — 특정 채널 독점');
+  else if((yt.channelRepeat||0)===0) competeReasons.push('채널 집중도 낮음 — 분산된 경쟁');
+  else competeReasons.push('채널 반복 '+yt.channelRepeat+'회 — 일부 채널 우세');
+  if(av>=500000) competeReasons.push('평균 조회수 '+Math.round(av/10000)+'만 — 고관심 시장');
+  else if(av>=10000) competeReasons.push('평균 조회수 '+Math.round(av/1000)+'천 — 중간 관심');
+  else if(av<1000&&vc>10) competeReasons.push('영상 많지만 평균 조회수 낮음 — 반응 약한 시장');
+  if(competeReasons.length<2) competeReasons.push('채널 수 '+(yt.totalChannels||vc)+'개 — 기준 판단');
+
+  // ★ 쇼핑인사이트 데이터 타이밍에 반영
+  var siSurge3d = si?(si.clickSurge||0):0, siSurge7d = si?(si.clickSurge||0):0;
+  var timingData = {
+    surge3d: dl.surge3d||siSurge3d||0,
+    surge7d: dl.surge7d||siSurge7d||0,
+    trend: dl.trend||'unknown',
+    shopTrend: si?(si.shopTrend||'unknown'):'unknown'
+  };
+
+  return { trendStatus, salesType, competition, timing, shortsfit, decision,
+           competeReasons:competeReasons.slice(0,3), timingData, shoppingInsight:si||null };
+}
   var surge=dl.surgeRate||0, vc=yt.videoCount||0, av=yt.avgViews||0;
   var trendStatus = surge>=30&&vc>=5?'rising' : surge>=10||(vc>=10&&av>=5000)?'spreading' : surge>=-10?'plateau' : 'falling';
   var si=shop.itemCount||0, sr=blog.reviewRatio||0;
@@ -435,20 +545,26 @@ module.exports = async function(req, res) {
     var topKws  = phase1.slice(0, TOP_N).map(function(r){return r.kw;});
     var restKws = phase1.slice(TOP_N).map(function(r){return r.kw;});
 
-    // ── Phase 2: 상위 5개만 YouTube + Datalab 호출
-    var ytMap={}, dlMap={};
+    // ── Phase 2: 상위 3개만 YouTube + Datalab + ShoppingInsight 호출
+    var ytMap={}, dlMap={}, siMap={};
     for (var j=0; j<topKws.length; j++) {
       var kw = topKws[j];
-      var [yt, dl] = await Promise.all([analyzeYouTube(kw), analyzeDatalab(kw)]);
+      var [yt, dl, si] = await Promise.all([
+        analyzeYouTube(kw),
+        analyzeDatalab(kw),
+        analyzeShopping_Insight(kw)
+      ]);
       ytMap[kw] = yt;
       dlMap[kw] = dl;
+      siMap[kw] = si;
       if (j < topKws.length-1) await sleep(200);
     }
 
-    // 나머지는 YouTube/Datalab 빈 값
+    // 나머지는 빈 값
     var emptyYt = { videoCount:0, avgViews:0, shortsRatio:0, channelRepeat:0, totalChannels:0, topVideos:[], apiStatus:'SKIPPED' };
     var emptyDl = { surgeRate:0, surge3d:0, surge7d:0, trend:'unknown', avgRatio:0, apiStatus:'SKIPPED' };
-    restKws.forEach(function(kw){ ytMap[kw]=emptyYt; dlMap[kw]=emptyDl; });
+    var emptySi = null;
+    restKws.forEach(function(kw){ ytMap[kw]=emptyYt; dlMap[kw]=emptyDl; siMap[kw]=emptySi; });
 
     // ── 전체 결과 조합
     var results = phase1.map(function(r){
@@ -481,13 +597,14 @@ module.exports = async function(req, res) {
           youtube:  { videoCount:r.yt.videoCount, avgViews:r.yt.avgViews, shortsRatio:Math.round((r.yt.shortsRatio||0)*100), channelRepeat:r.yt.channelRepeat, totalChannels:r.yt.totalChannels, topVideos:r.yt.topVideos||[] },
           blog:     { total:r.blog.total, reviewRatio:Math.round((r.blog.reviewRatio||0)*100) },
           shopping: { total:r.shop.total, itemCount:r.shop.itemCount, avgPrice:r.shop.avgPrice },
-          datalab:  { surgeRate:r.dl.surgeRate, surge3d:r.dl.surge3d, surge7d:r.dl.surge7d, trend:r.dl.trend, avgRatio:r.dl.avgRatio, dataPoints:r.dl.dataPoints }
+          datalab:  { surgeRate:r.dl.surgeRate, surge3d:r.dl.surge3d, surge7d:r.dl.surge7d, trend:r.dl.trend, avgRatio:r.dl.avgRatio, dataPoints:r.dl.dataPoints },
+          shoppingInsight: r.si ? { clickSurge:r.si.clickSurge, clickAccel:r.si.clickAccel, clickDurability:r.si.clickDurability, shopTrend:r.si.shopTrend } : null
         }
       };
     });
 
     return res.status(200).json({
-      keyword, candidates: out, total: out.length,
+      keyword, candidates: out.slice(0,3), total: Math.min(out.length,3),
       envCheck, updatedAt: new Date().toISOString()
     });
 
