@@ -133,7 +133,6 @@ function fetchVelocity(keyword, period){
 function fetchShoppingInsight(keyword, period){
   var totalDays = period==='today'?4 : period==='month'?60 : 14;
   var timeUnit  = period==='month'?'week':'date';
-  // ★ 올바른 엔드포인트: /v1/datalab/shopping/categories
   var body={
     startDate: fmtDate(agoDate(totalDays+1)),
     endDate:   fmtDate(agoDate(1)),
@@ -149,7 +148,9 @@ function fetchShoppingInsight(keyword, period){
         console.error('[insight error]', keyword, d.errorCode, d.errorMessage);
         return null;
       }
+      // ★ 디버그 로그
       var pts=((d.results||[])[0]||{}).data||[];
+      console.log('[insight]', keyword, 'pts:', pts.length, 'results:', (d.results||[]).length, 'raw:', JSON.stringify(d).slice(0,200));
       if(pts.length<4) return null;
       var h=Math.floor(pts.length/2), prev=pts.slice(0,h), curr=pts.slice(h);
       var avg=function(a){return a.reduce(function(s,p){return s+safeNum(p.ratio);},0)/(a.length||1);};
