@@ -42,18 +42,29 @@ async function discoverCategory(catId){
   var valid=[];
   for(var i=0;i<kws.length;i++){
     var r=res[i].status==='fulfilled'?res[i].value:{items:[],totalCount:0};
-    if(r.items.length>0) valid.push({kw:kws[i], result:r});
+    // 결과 없어도 포함 (items 0개여도 totalCount 있으면 포함)
+    valid.push({kw:kws[i], result:r});
   }
+  // items 있는 것 우선, 없는 것도 포함
+  var withItems  = valid.filter(function(v){return v.result.items.length>0;});
+  var noItems    = valid.filter(function(v){return v.result.items.length===0;});
+  valid = withItems.concat(noItems);
+
   if(!valid.length) return {candidates:[], apiStatus:{search:'결과 없음'}};
   var maxTotal=valid.reduce(function(m,v){return Math.max(m,v.result.totalCount);},0)||40;
+
+  // 상위 10개 velocity 조회
   var vMap={};
   await Promise.allSettled(
-    valid.slice().sort(function(a,b){return b.result.totalCount-a.result.totalCount;}).slice(0,5)
+    valid.slice(0,10).sort(function(a,b){return b.result.totalCount-a.result.totalCount;})
     .map(async function(v){vMap[v.kw]=await FETCH.fetchVelocity(v.kw);})
   );
-  var candidates=valid.map(function(v){return buildCandidate(v.kw, v.result, maxTotal, null, vMap[v.kw]||null);});
+
+  var candidates=valid.map(function(v){
+    return buildCandidate(v.kw, v.result, maxTotal, null, vMap[v.kw]||null);
+  });
   candidates.sort(function(a,b){return b.score.totalScore-a.score.totalScore;});
-  return {candidates:candidates.slice(0,30), apiStatus:{search:valid.length+'/'+kws.length+' 성공'}};
+  return {candidates:candidates.slice(0,30), apiStatus:{search:withItems.length+'/'+kws.length+' 성공'}};
 }
 
 async function discoverAll(){
