@@ -535,8 +535,7 @@ function qlFetch(type, name, idx, inline){
 
 function goHot(kw){
   sessionStorage.setItem('hot-auto-kw', kw);
-  var url = location.protocol+'//'+location.host+'/hot.html';
-  window.open(url,'_blank');
+  location.href = '/hot.html';
 }
 
 function renderDetail(){
