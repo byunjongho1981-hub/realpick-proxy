@@ -62,9 +62,9 @@ async function discoverCategory(catId){
 
   var candidates=valid.map(function(v){
     return buildCandidate(v.kw, v.result, maxTotal, null, vMap[v.kw]||null);
-  });
+  }).filter(function(c){return c.score.totalScore>0;}); // 0점 제외
   candidates.sort(function(a,b){return b.score.totalScore-a.score.totalScore;});
-  return {candidates:candidates.slice(0,50), apiStatus:{search:withItems.length+'/'+kws.length+' 성공'}};
+  return {candidates:candidates.slice(0,30), apiStatus:{search:withItems.length+'/'+kws.length+' 성공'}};
 }
 
 async function discoverAll(){
