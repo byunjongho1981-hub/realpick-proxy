@@ -3,16 +3,15 @@
   "buildCommand": null,
   "outputDirectory": ".",
   "functions": {
-    "api/auto-discover.js": {
-      "maxDuration": 300
-    }
+    "api/auto-discover.js": { "maxDuration": 300 },
+    "api/google-hot.js":    { "maxDuration": 30  }
   },
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/trend.html", "dest": "/trend.html" },
-    { "src": "/ai.html",    "dest": "/ai.html" },
-    { "src": "/hot.html", "dest": "/hot.html" }
-    { "src": "/data.html",  "dest": "/data.html" },
-    { "src": "/",           "dest": "/index.html" }
+    { "src": "/",         "dest": "/index.html" },
+    { "src": "/hot.html", "dest": "/hot.html" },
+    { "src": "/trend.html","dest": "/trend.html" },
+    { "src": "/ai.html",  "dest": "/ai.html" },
+    { "src": "/data.html","dest": "/data.html" }
   ]
 }
