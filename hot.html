@@ -388,7 +388,19 @@ function renderGrid(){
         +makeBdg(item.trend.icon+' '+item.trend.status, item.trend.color, item.trend.color+'22')
         +makeBdg(item.competition.label,'#475569','#f1f5f9')
         +makeBdg(item.shorts.label,'#6366f1','#eff0ff')
+        +(item.timing?makeBdg(item.timing.icon+' '+item.timing.status, item.timing.color, item.timing.color+'22'):'')
       +'</div>'
+      // 점수 구성
+      +(sc.breakdown?'<div style="padding:4px 14px 8px;display:flex;gap:6px;flex-wrap:wrap">'
+        +[['트렌드',sc.breakdown.trend,25],['조회수',sc.breakdown.views,25],['쇼츠',sc.breakdown.shorts,20],['판매성',sc.breakdown.sale,20],['경쟁도',sc.breakdown.compete,10]].map(function(b){
+          var pct=Math.round((b[1]/b[2])*100);
+          return '<div style="flex:1;min-width:50px;background:#f8fafc;border-radius:6px;padding:5px 7px">'
+            +'<div style="font-size:9px;color:var(--faint);margin-bottom:3px">'+b[0]+'</div>'
+            +'<div style="height:4px;background:#e2e8f0;border-radius:2px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:#6366f1;border-radius:2px"></div></div>'
+            +'<div style="font-size:10px;font-weight:700;color:#475569;margin-top:2px">'+b[1]+'/'+b[2]+'</div>'
+          +'</div>';
+        }).join('')
+      +'</div>':'')
       // 지표
       +'<div class="metrics">'
         +'<div class="metric"><div class="metric-hd">▶️ YouTube</div>'
