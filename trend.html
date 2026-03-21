@@ -321,9 +321,11 @@ function confHtml(conf){var m={low:1,medium:2,high:3},lvl=m[conf]||0,dots='';for
 function sparkHtml(count,status){if(!count)return '<span style="color:var(--faint);font-size:10px">–</span>';var c=status==='rising'?'var(--rising)':status==='falling'?'var(--falling)':'var(--stable)',bars='';for(var i=0;i<7;i++){var r=status==='rising'?0.3+(i/6)*0.7:status==='falling'?1-(i/6)*0.5:0.4+Math.sin(i)*0.1+0.3;bars+='<div class="sp-bar" style="height:'+Math.max(3,Math.round(r*18))+'px;background:'+c+'"></div>';}return '<div class="spark">'+bars+'</div>';}
 
 function velocityHtml(c,field,type){
-  if(!c.velocity)return '<span style="color:var(--faint);font-size:10px">–</span>';
+  if(!c.velocity){
+    return '<span style="font-size:10px;color:#c4cad4">미수집</span>';
+  }
   var val=c.velocity[field],vl=c.velocityLabel;
-  if(val===undefined||val===null)return '<span style="color:var(--faint);font-size:10px">–</span>';
+  if(val===undefined||val===null) return '<span style="color:var(--faint);font-size:10px">–</span>';
   var color=val>=20?'var(--rising)':val>=5?'#6366f1':val<=-10?'var(--falling)':'var(--faint)';
   var label=vl?(type==='surge'?vl.surge:type==='accel'?vl.accel:vl.durability):val+'%';
   return '<span style="font-size:11px;font-weight:700;color:'+color+'">'+label+'</span>';
@@ -436,7 +438,16 @@ function renderTable(){
       +'<td style="padding:9px 12px">'+velocityHtml(c,'surgeRate','surge')+'</td>'
       +'<td style="padding:9px 12px">'+velocityHtml(c,'accel','accel')+'</td>'
       +'<td style="padding:9px 12px">'+velocityHtml(c,'durability','dur')+'</td>'
-      +'<td style="padding:9px 12px">'+srcs+'</td>'
+      +'<td style="padding:9px 12px">'
+        // 소스 배지
+        +(c.sources||[]).map(function(s){
+          var sc={shopping:'#f59e0b',blog:'#0891b2',news:'#6366f1',cafe:'#10b981'};
+          var sl={shopping:'🛒쇼핑',blog:'📝블로그',news:'📰뉴스',cafe:'☕카페'};
+          return '<span style="background:'+(sc[s]||'#94a3b8')+'18;color:'+(sc[s]||'#94a3b8')+';border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;margin-right:2px">'+(sl[s]||s)+'</span>';
+        }).join('')
+        // 쇼핑인사이트 라벨
+        +(c.insightLabel?'<div style="font-size:10px;color:#6366f1;margin-top:3px;font-weight:700">'+c.insightLabel+'</div>':'')
+      +'</td>'
       // ★ 바로가기 셀 — 🔥지금뜨는제품 + 더보기 드롭다운
       +'<td style="padding:9px 12px;vertical-align:middle">'
         +'<div style="display:flex;align-items:center;gap:4px">'
