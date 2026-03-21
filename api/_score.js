@@ -1,5 +1,4 @@
 var CFG = require('./_config');
-
 var COMMERCIAL_KW = ['추천','선물','구매','최저가','할인','세트','묶음','증정','인기'];
 var REVIEW_KW     = ['후기','리뷰','사용후기','솔직','평점','별점'];
 
@@ -26,9 +25,48 @@ function calcCommercialScore(kw, result, intent){
   return {score:s, bonus:s>=20?20:s>=10?10:0, label:label, type:type};
 }
 
-function calcScore(result, maxTotal, velocity, commercial){
+// ── ★ 쇼핑인사이트 점수 계산 (신규) ─────────────────────────
+// 기존 점수와 별도로 +15점 보너스 풀로 운영
+function calcShoppingInsightScore(si){
+  if(!si) return { score:0, label:'데이터없음', detail:'' };
+
+  var s = 0;
+
+  // 1. 클릭 급상승률 (0~6점)
+  var cs = si.clickSurge || 0;
+  var surgeScore = cs>=50?6 : cs>=30?5 : cs>=15?4 : cs>=5?2 : cs>=-10?1 : 0;
+  s += surgeScore;
+
+  // 2. 단기 가속도 (0~4점) — 최근 3일 클릭 가속
+  var ca = si.clickAccel || 0;
+  var accelScore = ca>=30?4 : ca>=15?3 : ca>=5?2 : ca>0?1 : 0;
+  s += accelScore;
+
+  // 3. 지속성 (0~3점) — 꾸준히 클릭되는지
+  var cd = si.clickDurability || 0;
+  var durScore = cd>=70?3 : cd>=50?2 : cd>=30?1 : 0;
+  s += durScore;
+
+  // 4. 현재 클릭 강도 (0~2점)
+  var cr = si.currentRatio || 0;
+  var ratioScore = cr>=80?2 : cr>=50?1 : 0;
+  s += ratioScore;
+
+  var label =
+    si.shopTrend==='hot'    ? '🔥 쇼핑 급상승' :
+    si.shopTrend==='rising' ? '📈 쇼핑 상승중' :
+    si.shopTrend==='stable' ? '➡️ 쇼핑 안정' : '📉 쇼핑 하락';
+
+  var detail = '클릭변화 '+(cs>=0?'+':'')+cs+'% | 가속 '+(ca>=0?'+':'')+ca+'% | 지속 '+cd+'%';
+
+  return { score: Math.min(15, s), label: label, detail: detail,
+           surgeScore, accelScore, durScore, ratioScore };
+}
+
+function calcScore(result, maxTotal, velocity, commercial, shoppingInsight){
   var items=result.items, tc=result.totalCount;
-  if(!items.length) return {totalScore:0, breakdown:{}, grade:'C', confidence:'low', surgeScore:0, commercialBonus:0};
+  if(!items.length) return {totalScore:0, breakdown:{}, grade:'C', confidence:'low', surgeScore:0, commercialBonus:0, insightScore:0};
+
   var searchScore=maxTotal>0?Math.round((Math.min(tc,maxTotal)/maxTotal)*40):0;
   var malls={};
   items.forEach(function(i){malls[i.mall]=true;});
@@ -41,13 +79,37 @@ function calcScore(result, maxTotal, velocity, commercial){
   var countScore=Math.round(Math.min(items.length/40,1)*10);
   var surgeScore=calcSurgeScore(velocity);
   var commercialBonus=commercial?commercial.bonus:0;
-  var total=Math.min(140, searchScore+mallScore+priceScore+countScore+surgeScore+commercialBonus);
-  var grade=total>=CFG.GRADE_A?'A':total>=CFG.GRADE_B?'B':'C';
+
+  // ★ 쇼핑인사이트 보너스
+  var siResult = calcShoppingInsightScore(shoppingInsight);
+  var insightScore = siResult.score;
+
+  var total=Math.min(155, searchScore+mallScore+priceScore+countScore+surgeScore+commercialBonus+insightScore);
+  // 표시용 정규화 (155 → 100)
+  var normalized = Math.round((total/155)*100);
+
+  var grade=normalized>=CFG.GRADE_A?'A':normalized>=CFG.GRADE_B?'B':'C';
   var confidence=mallCount>=5?'high':mallCount>=2?'medium':'low';
+
   return {
-    totalScore:total,
-    breakdown:{shopping:searchScore, blog:mallScore, news:priceScore, trend:countScore, surge:surgeScore, commercial:commercialBonus},
-    grade:grade, confidence:confidence, surgeScore:surgeScore, commercialBonus:commercialBonus
+    totalScore: normalized,
+    rawScore:   total,
+    breakdown:{
+      shopping:   searchScore,
+      blog:       mallScore,
+      news:       priceScore,
+      trend:      countScore,
+      surge:      surgeScore,
+      commercial: commercialBonus,
+      insight:    insightScore   // ★ 쇼핑인사이트 항목 추가
+    },
+    insightLabel:  siResult.label,
+    insightDetail: siResult.detail,
+    grade:         grade,
+    confidence:    confidence,
+    surgeScore:    surgeScore,
+    commercialBonus: commercialBonus,
+    insightScore:  insightScore
   };
 }
 
@@ -56,6 +118,17 @@ function judgeT(tc){
   if(tc>=500000) return {status:'rising',  changeRate:null, source:'count'};
   if(tc>=10000)  return {status:'stable',  changeRate:null, source:'count'};
   return               {status:'falling', changeRate:null, source:'count'};
+}
+
+// ★ 쇼핑인사이트 포함 트렌드 판정 (기존 judgeT 보완)
+function judgeTWithInsight(tc, shoppingInsight){
+  var base = judgeT(tc);
+  if(!shoppingInsight) return base;
+  // 쇼핑인사이트가 hot이면 rising으로 승격
+  if(shoppingInsight.shopTrend==='hot')    return {status:'rising',  changeRate:shoppingInsight.clickSurge, source:'insight'};
+  if(shoppingInsight.shopTrend==='rising') return {status:'rising',  changeRate:shoppingInsight.clickSurge, source:'insight'};
+  if(shoppingInsight.shopTrend==='falling'&&base.status!=='rising') return {status:'falling', changeRate:shoppingInsight.clickSurge, source:'insight'};
+  return base;
 }
 
 function velocityAction(v, base){
@@ -75,4 +148,12 @@ function velocityLabel(v){
   };
 }
 
-module.exports = {calcScore:calcScore, calcCommercialScore:calcCommercialScore, judgeT:judgeT, velocityAction:velocityAction, velocityLabel:velocityLabel};
+module.exports = {
+  calcScore:              calcScore,
+  calcCommercialScore:    calcCommercialScore,
+  calcShoppingInsightScore: calcShoppingInsightScore, // ★ 신규
+  judgeT:                 judgeT,
+  judgeTWithInsight:      judgeTWithInsight,           // ★ 신규
+  velocityAction:         velocityAction,
+  velocityLabel:          velocityLabel
+};
