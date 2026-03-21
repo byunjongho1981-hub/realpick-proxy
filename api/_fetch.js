@@ -133,16 +133,17 @@ function fetchVelocity(keyword, period){
 function fetchShoppingInsight(keyword, period){
   var totalDays = period==='today'?4 : period==='month'?60 : 14;
   var timeUnit  = period==='month'?'week':'date';
+  // ★ 올바른 엔드포인트: /v1/datalab/shopping/categories
   var body={
     startDate: fmtDate(agoDate(totalDays+1)),
     endDate:   fmtDate(agoDate(1)),
     timeUnit:  timeUnit,
-    keyword:   keyword,
+    category:  [{name: keyword, param: [keyword]}],
     device:    '',
     gender:    '',
     ages:      []
   };
-  return httpPost('/v1/datalab/shopping/keyword/ratio', body)
+  return httpPost('/v1/datalab/shopping/categories', body)
     .then(function(d){
       if(d.errorCode){
         console.error('[insight error]', keyword, d.errorCode, d.errorMessage);
@@ -161,10 +162,10 @@ function fetchShoppingInsight(keyword, period){
       var clickDurability=Math.round((pts.filter(function(p){return safeNum(p.ratio)>=all;}).length/pts.length)*100);
       var currentRatio=Math.round(ca*10)/10;
       return {
-        clickSurge:     clickSurge,
-        clickAccel:     clickAccel,
-        clickDurability:clickDurability,
-        currentRatio:   currentRatio,
+        clickSurge:      clickSurge,
+        clickAccel:      clickAccel,
+        clickDurability: clickDurability,
+        currentRatio:    currentRatio,
         shopTrend: clickSurge>=30?'hot':clickSurge>=10?'rising':clickSurge>=-10?'stable':'falling'
       };
     })
