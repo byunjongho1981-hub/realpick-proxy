@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>지금 뜨는 제품 — RealPick</title>
+<style>
+:root{
+  --bg:#fff5f5;--surf:#fff;--bdr:#e2e8f0;
+  --txt:#1e293b;--muted:#64748b;--faint:#94a3b8;
+  --pri:#ef4444;--pri-lt:#fef2f2;
+  --rising:#10b981;--stable:#6366f1;--new:#f59e0b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:'Noto Sans KR',sans-serif;font-size:13px}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--bdr);height:52px;display:flex;align-items:center;padding:0 24px}
+.nav-logo{font-size:16px;font-weight:900;color:#6366f1;text-decoration:none;margin-right:28px}
+.nav-logo span{color:var(--txt)}
+.nav-links{display:flex;gap:2px}
+.nav-link{padding:6px 13px;border-radius:8px;font-size:13px;font-weight:500;color:var(--faint);text-decoration:none;transition:all .15s}
+.nav-link:hover{background:#f1f5f9;color:var(--txt)}
+.nav-link.active{background:var(--pri);color:#fff;font-weight:700}
+.nav-right{margin-left:auto}
+.badge{background:var(--pri);color:#fff;font-size:10px;padding:2px 9px;border-radius:20px;font-weight:700}
+
+.page{margin-top:52px;padding:32px 32px 60px}
+
+/* 헤더 */
+.hero{background:linear-gradient(135deg,#ef4444,#f97316);border-radius:20px;padding:32px 36px;margin-bottom:28px;color:#fff;display:flex;align-items:center;justify-content:space-between}
+.hero h1{font-size:24px;font-weight:900;margin-bottom:6px}
+.hero p{font-size:13px;opacity:.85;line-height:1.6}
+.hero-icon{font-size:52px}
+.hero-meta{display:flex;gap:12px;margin-top:14px;flex-wrap:wrap}
+.hero-chip{background:rgba(255,255,255,.2);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600}
+
+/* 컨트롤 */
+.ctrl-bar{display:flex;align-items:center;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.btn{padding:8px 18px;border-radius:10px;border:none;font-size:13px;font-weight:700;cursor:pointer}
+.btn-primary{background:var(--pri);color:#fff;box-shadow:0 4px 14px rgba(239,68,68,.3)}
+.btn-primary:hover{background:#dc2626}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-ghost{background:#f1f5f9;color:#475569}
+.filter-btn{padding:4px 12px;border-radius:20px;border:1.5px solid var(--bdr);font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;background:#fff}
+.filter-btn.on{border-color:var(--pri);background:var(--pri);color:#fff}
+.sort-sel{padding:5px 10px;border:1.5px solid var(--bdr);border-radius:8px;font-size:12px;color:#475569;background:#fff;outline:none;cursor:pointer}
+
+/* 상태 */
+.status-bar{display:flex;align-items:center;gap:10px;background:var(--surf);border:1px solid var(--bdr);border-radius:12px;padding:10px 16px;margin-bottom:20px;font-size:11px;color:var(--muted)}
+.s-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.pulse{animation:pulse 1.5s infinite}
+
+/* 그리드 */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+
+/* 카드 */
+.card{background:var(--surf);border-radius:16px;border:1px solid var(--bdr);overflow:hidden;transition:all .2s;cursor:pointer}
+.card:hover{box-shadow:0 6px 24px rgba(239,68,68,.12);transform:translateY(-2px);border-color:#fca5a5}
+.card-header{padding:16px 18px 10px;display:flex;align-items:flex-start;gap:10px}
+.rank{width:28px;height:28px;border-radius:8px;background:var(--pri);color:#fff;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rank.top3{background:linear-gradient(135deg,#f59e0b,#ef4444)}
+.card-kw{font-size:15px;font-weight:800;color:var(--txt);flex:1;line-height:1.3}
+.grade-bdg{border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700}
+.card-meta{padding:0 18px 12px;display:flex;gap:6px;flex-wrap:wrap}
+.meta-chip{display:inline-flex;align-items:center;gap:3px;background:#f8fafc;border:1px solid var(--bdr);border-radius:6px;padding:2px 8px;font-size:10px;font-weight:600;color:#475569}
+.card-products{padding:0 12px 12px}
+.product-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;text-decoration:none;margin-bottom:3px;border:1px solid var(--bdr);background:#fafafa}
+.product-item:hover{background:#fff5f5;border-color:#fca5a5}
+.product-img{width:32px;height:32px;object-fit:cover;border-radius:5px;flex-shrink:0;background:#f1f5f9}
+.product-info{min-width:0;flex:1}
+.product-title{font-size:11px;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.product-price{font-size:11px;font-weight:700;color:var(--pri);margin-top:1px}
+.card-links{padding:8px 12px 12px;display:flex;gap:5px;border-top:1px solid #f8fafc}
+.link-btn{display:inline-flex;align-items:center;gap:3px;padding:4px 9px;background:#f8fafc;border:1px solid var(--bdr);border-radius:6px;text-decoration:none;font-size:10px;font-weight:600;color:#475569}
+.link-btn:hover{border-color:var(--pri);color:var(--pri)}
+
+/* 로딩/에러/빈화면 */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:32px;height:32px;border:3px solid var(--bdr);border-top:3px solid var(--pri);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto}
+.center-box{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;gap:14px;color:var(--faint);text-align:center}
+.err-box{background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px 18px;color:#dc2626;font-size:13px;margin-bottom:20px;display:flex;align-items:center;gap:8px}
+
+@media(max-width:768px){.grid{grid-template-columns:1fr}.hero{flex-direction:column;gap:12px}.hero-icon{display:none}}
+</style>
+</head>
+<body>
+<nav>
+  <a class="nav-logo" href="/index.html">Real<span>Pick</span></a>
+  <div class="nav-links">
+    <a class="nav-link" href="/index.html">🏠 홈</a>
+    <a class="nav-link" href="/trend.html">🔍 트렌드 탐색</a>
+    <a class="nav-link active" href="/hot.html">🔥 지금 뜨는 제품</a>
+    <a class="nav-link" href="/ai.html">⚡ AI 추천</a>
+    <a class="nav-link" href="/data.html">🗂 데이터 뷰</a>
+  </div>
+  <div class="nav-right"><span class="badge">BETA</span></div>
+</nav>
+
+<div class="page">
+  <!-- 히어로 -->
+  <div class="hero">
+    <div>
+      <h1>🔥 지금 뜨는 제품</h1>
+      <p>Google 실시간 급상승 검색어 × 네이버 쇼핑 교차 검증<br/>지금 이 순간 사람들이 가장 많이 찾는 제품을 실시간으로 추적합니다.</p>
+      <div class="hero-meta">
+        <span class="hero-chip">📡 Google Trends 실시간</span>
+        <span class="hero-chip">🛒 Naver 쇼핑 교차 검증</span>
+        <span class="hero-chip">⏱ 10분 캐시</span>
+      </div>
+    </div>
+    <div class="hero-icon">🔥</div>
+  </div>
+
+  <!-- 컨트롤 -->
+  <div class="ctrl-bar">
+    <button class="btn btn-primary" id="btn-fetch" onclick="fetchHot()">🔥 지금 뜨는 제품 불러오기</button>
+    <button class="btn btn-ghost" onclick="onReset()">초기화</button>
+    <div class="sep" style="width:1px;height:20px;background:var(--bdr)"></div>
+    <span style="font-size:11px;color:var(--faint)">필터:</span>
+    <button class="filter-btn on" data-f="all"    onclick="onFilter(this,'all')">전체</button>
+    <button class="filter-btn"    data-f="A"      onclick="onFilter(this,'A')">🏆 A등급</button>
+    <button class="filter-btn"    data-f="hot"    onclick="onFilter(this,'hot')">🔥 핫</button>
+    <button class="filter-btn"    data-f="rising" onclick="onFilter(this,'rising')">📈 상승</button>
+    <select class="sort-sel" onchange="onSort(this.value)">
+      <option value="score">점수순</option>
+      <option value="traffic">트래픽순</option>
+      <option value="price">가격순</option>
+    </select>
+  </div>
+
+  <!-- 상태 바 -->
+  <div class="status-bar" id="status-bar">
+    <span class="s-dot" style="background:#94a3b8"></span>
+    <span id="status-txt">버튼을 눌러 실시간 데이터를 불러오세요</span>
+    <span id="cache-txt" style="margin-left:auto"></span>
+  </div>
+
+  <!-- 에러 -->
+  <div id="err-box" style="display:none" class="err-box">
+    <span>⚠️</span><span id="err-msg"></span>
+    <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;margin-left:auto" onclick="fetchHot()">재시도</button>
+  </div>
+
+  <!-- 결과 -->
+  <div id="result-area">
+    <div class="center-box">
+      <div style="font-size:48px">🔥</div>
+      <div style="font-size:15px;font-weight:700;color:#475569">지금 뜨는 제품을 불러올 준비가 됐습니다</div>
+      <div style="font-size:12px">Google 실시간 트렌드와 네이버 쇼핑 데이터를 교차 분석합니다</div>
+    </div>
+  </div>
+</div>
+
+<script>
+var STATE = {items:[], filtered:[], filter:'all', sort:'score', loading:false, lastUpdated:null, fromCache:false};
+
+function fetchHot(){
+  if(STATE.loading) return;
+  STATE.loading=true;
+  setStatus('loading','🔥 Google Trends + 네이버 쇼핑 분석 중...');
+  showErr(null);
+  document.getElementById('btn-fetch').disabled=true;
+
+  fetch('/api/google-hot')
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d.error) throw new Error(d.error);
+      STATE.items       = d.items||[];
+      STATE.lastUpdated = d.updatedAt;
+      STATE.fromCache   = d.fromCache||false;
+      applyFilter();
+      setStatus('ok','✅ '+STATE.items.length+'개 제품 분석 완료'+(d.googleTrendCount?' (Google 트렌드 '+d.googleTrendCount+'개 중 '+d.filteredCount+'개 선별)':''));
+      if(d.fromCache) document.getElementById('cache-txt').textContent='📦 캐시 ('+d.cacheAge+')';
+      else            document.getElementById('cache-txt').textContent='';
+    })
+    .catch(function(e){showErr(e.message);setStatus('err','오류 발생');})
+    .finally(function(){STATE.loading=false;document.getElementById('btn-fetch').disabled=false;});
+}
+
+function applyFilter(){
+  var fn={
+    all:    function(i){return true;},
+    A:      function(i){return i.grade==='A';},
+    hot:    function(i){return i.label&&i.label.indexOf('핫')>-1;},
+    rising: function(i){return i.label&&i.label.indexOf('상승')>-1;}
+  }[STATE.filter]||function(){return true;};
+  var list=STATE.items.filter(fn);
+  if(STATE.sort==='score')        list.sort(function(a,b){return b.score-a.score;});
+  else if(STATE.sort==='traffic') list.sort(function(a,b){return parseTraffic(b.traffic)-parseTraffic(a.traffic);});
+  else if(STATE.sort==='price')   list.sort(function(a,b){return (b.shop&&b.shop.minPrice||0)-(a.shop&&a.shop.minPrice||0);});
+  STATE.filtered=list;
+  renderGrid();
+}
+
+function parseTraffic(t){
+  if(!t) return 0;
+  var s=String(t).replace(/[,+\s]/g,'');
+  if(s.indexOf('만')>-1) return parseFloat(s)*10000;
+  if(/[Kk]/.test(s)) return parseFloat(s)*1000;
+  if(/[Mm]/.test(s)) return parseFloat(s)*1000000;
+  return parseInt(s)||0;
+}
+
+function renderGrid(){
+  var el=document.getElementById('result-area');
+  if(!STATE.filtered.length){
+    el.innerHTML='<div class="center-box"><div style="font-size:40px">😶</div><div>조건에 맞는 제품이 없습니다</div></div>';
+    return;
+  }
+  el.innerHTML='<div class="grid">'+STATE.filtered.map(function(item,i){
+    var gc=item.grade==='A'?'#10b981':item.grade==='B'?'#6366f1':'#94a3b8';
+    var gcb=item.grade==='A'?'#ecfdf5':item.grade==='B'?'#eff0ff':'#f8fafc';
+    var shop=item.shop||{};
+    var q=encodeURIComponent(item.keyword);
+    var products=(shop.topItems||[]).map(function(p){
+      return '<a href="'+p.link+'" target="_blank" rel="noopener" class="product-item">'
+        +(p.image?'<img src="'+p.image+'" class="product-img" onerror="this.style.display=\'none\'">':'<div class="product-img"></div>')
+        +'<div class="product-info">'
+          +'<div class="product-title">'+p.title+'</div>'
+          +(p.price?'<div class="product-price">'+p.price.toLocaleString()+'원</div>':'')
+        +'</div></a>';
+    }).join('');
+    return '<div class="card">'
+      +'<div class="card-header">'
+        +'<div class="rank'+(i<3?' top3':'')">'+(i+1)+'</div>'
+        +'<div class="card-kw">'+item.keyword+'</div>'
+        +'<span class="grade-bdg" style="color:'+gc+';background:'+gcb+'">'+item.grade+'</span>'
+      +'</div>'
+      +'<div class="card-meta">'
+        +'<span class="meta-chip">'+item.label+'</span>'
+        +'<span class="meta-chip">📊 '+item.score+'점</span>'
+        +(item.traffic?'<span class="meta-chip">🔍 '+item.traffic+'</span>':'')
+        +(shop.total?'<span class="meta-chip">🛒 '+(shop.total>10000?(Math.round(shop.total/10000)+'만+'):shop.total)+'개</span>':'')
+        +(shop.minPrice?'<span class="meta-chip">💰 최저 '+shop.minPrice.toLocaleString()+'원</span>':'')
+      +'</div>'
+      +(products?'<div class="card-products">'+products+'</div>':'')
+      +'<div class="card-links">'
+        +'<a href="https://search.shopping.naver.com/search/all?query='+q+'" target="_blank" class="link-btn">🛒 네이버</a>'
+        +'<a href="https://www.coupang.com/np/search?q='+q+'" target="_blank" class="link-btn">🟡 쿠팡</a>'
+        +'<a href="https://www.youtube.com/results?search_query='+encodeURIComponent(item.keyword+' 추천')+'" target="_blank" class="link-btn">▶️ 유튜브</a>'
+        +'<a href="https://www.tiktok.com/search?q='+q+'" target="_blank" class="link-btn">🎵 틱톡</a>'
+        +'<a href="https://www.instagram.com/explore/tags/'+encodeURIComponent(item.keyword.replace(/\s+/g,''))+'" target="_blank" class="link-btn">📸 인스타</a>'
+      +'</div>'
+    +'</div>';
+  }).join('')+'</div>';
+}
+
+function setStatus(type,msg){
+  var dot=document.querySelector('#status-bar .s-dot');
+  var txt=document.getElementById('status-txt');
+  txt.textContent=msg;
+  if(type==='loading'){dot.style.background='#f59e0b';dot.classList.add('pulse');}
+  else if(type==='ok'){dot.style.background='#10b981';dot.classList.remove('pulse');}
+  else{dot.style.background='#ef4444';dot.classList.remove('pulse');}
+}
+function showErr(msg){
+  document.getElementById('err-box').style.display=msg?'flex':'none';
+  if(msg) document.getElementById('err-msg').textContent=msg;
+}
+function onReset(){STATE.items=[];STATE.filtered=[];renderGrid();setStatus('idle','버튼을 눌러 실시간 데이터를 불러오세요');}
+function onFilter(el,val){document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('on');});el.classList.add('on');STATE.filter=val;applyFilter();}
+function onSort(val){STATE.sort=val;applyFilter();}
+</script>
+</body>
+</html>
