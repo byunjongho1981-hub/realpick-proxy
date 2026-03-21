@@ -5,9 +5,8 @@ var ANALYZE = require('./_analyze');
 
 var TTL = 5*60*1000;
 
-// ★ 캐시 — 전체(all) + 카테고리별 분리
-var CACHE_ALL = {}; // { period: {data, ts} }
-var CACHE_CAT = {}; // { catId_period: {data, ts} }
+var CACHE_ALL = {};
+var CACHE_CAT = {};
 
 function getCacheAll(period){ var c=CACHE_ALL[period]; return c&&c.data&&(Date.now()-c.ts<TTL)?c.data:null; }
 function setCacheAll(period,d){ CACHE_ALL[period]={data:d,ts:Date.now()}; }
@@ -24,9 +23,7 @@ function checkEnv(){
 function buildCandidate(kw, result, maxTotal, intentOverride, velocity, shoppingInsight){
   var intent     = intentOverride||ANALYZE.detectIntent(kw);
   var commercial = SCORE.calcCommercialScore(kw, result, intent);
-  // ★ shoppingInsight를 calcScore에 전달
   var score      = SCORE.calcScore(result, maxTotal, velocity, commercial, shoppingInsight||null);
-  // ★ 쇼핑인사이트 포함 트렌드 판정
   var trend      = SCORE.judgeTWithInsight(result.totalCount, shoppingInsight||null);
   var base       = ANALYZE.makeSummary(kw, score, trend, intent);
   var action     = velocity?SCORE.velocityAction(velocity, base.action):base.action;
@@ -38,7 +35,6 @@ function buildCandidate(kw, result, maxTotal, intentOverride, velocity, shopping
     intent:intent, intentLabel:ANALYZE.INTENT_LABEL[intent]||'–',
     commercial:commercial,
     velocity:velocity||null, velocityLabel:SCORE.velocityLabel(velocity),
-    // ★ 쇼핑인사이트 데이터
     shoppingInsight: shoppingInsight||null,
     insightLabel:    score.insightLabel||null,
     insightDetail:   score.insightDetail||null,
@@ -49,9 +45,9 @@ function buildCandidate(kw, result, maxTotal, intentOverride, velocity, shopping
   };
 }
 
+// ★ 버그1 수정: siMap 추가, velocity + 쇼핑인사이트 동시 수집
 async function discoverCategory(catId, period){
   var kws=CFG.CAT_SEEDS[catId]||CFG.CAT_SEEDS['50000003'];
-  // ★ batchShopSearch — 10개씩 배치 호출로 rate limit 방지
   var valid=await FETCH.batchShopSearch(kws);
   var withItems = valid.filter(function(v){return v.result.items.length>0;});
   var noItems   = valid.filter(function(v){return v.result.items.length===0;});
@@ -59,33 +55,35 @@ async function discoverCategory(catId, period){
 
   if(!valid.length) return {candidates:[], apiStatus:{search:'결과 없음'}};
 
-  // ★ maxTotal 고정 — 전체 결과 중 최댓값으로 고정해 점수 안정화
   var maxTotal=valid.reduce(function(m,v){return Math.max(m,v.result.totalCount);},0)||40;
 
-  var vMap={};
+  var vMap={}, siMap={};
   await Promise.allSettled(
     valid.slice(0,20).sort(function(a,b){return b.result.totalCount-a.result.totalCount;})
-    .map(async function(v){vMap[v.kw]=await FETCH.fetchVelocity(v.kw, period);})
+    .map(async function(v){
+      var results = await Promise.all([
+        FETCH.fetchVelocity(v.kw, period),
+        FETCH.fetchShoppingInsight(v.kw, period)
+      ]);
+      vMap[v.kw]  = results[0];
+      siMap[v.kw] = results[1];
+    })
   );
 
   var candidates=valid.map(function(v){
-    return buildCandidate(v.kw, v.result, maxTotal, null, vMap[v.kw]||null);
+    return buildCandidate(v.kw, v.result, maxTotal, null, vMap[v.kw]||null, siMap[v.kw]||null);
   }).filter(function(c){return c.score.totalScore>0;});
   candidates.sort(function(a,b){return b.score.totalScore-a.score.totalScore;});
   return {candidates:candidates.slice(0,30), apiStatus:{search:withItems.length+'/'+kws.length+' 성공'}};
 }
 
 async function discoverAll(){
-  // ★ 카테고리당 상위 3개 시드 사용 → 최대 45개 후보
   var tasks=[];
   CFG.CAT_ORDER.forEach(function(catId){
     var seeds=(CFG.CAT_SEEDS[catId]||[]).slice(0,3);
-    seeds.forEach(function(kw){
-      tasks.push({catId:catId, kw:kw});
-    });
+    seeds.forEach(function(kw){ tasks.push({catId:catId, kw:kw}); });
   });
 
-  // 10개씩 배치 호출
   var BATCH=10, pool=[], completed=[], failed=[];
   for(var i=0;i<tasks.length;i+=BATCH){
     var chunk=tasks.slice(i,i+BATCH);
@@ -95,11 +93,9 @@ async function discoverAll(){
       var result=r.status==='fulfilled'?r.value:{items:[],totalCount:0};
       if(result.items.length>0){
         pool.push({catId:t.catId, kw:t.kw, result:result});
-        if(completed.indexOf(CFG.CAT_NAMES[t.catId]||t.catId)<0)
-          completed.push(CFG.CAT_NAMES[t.catId]||t.catId);
+        if(completed.indexOf(CFG.CAT_NAMES[t.catId]||t.catId)<0) completed.push(CFG.CAT_NAMES[t.catId]||t.catId);
       } else {
-        if(failed.indexOf(CFG.CAT_NAMES[t.catId]||t.catId)<0)
-          failed.push(CFG.CAT_NAMES[t.catId]||t.catId);
+        if(failed.indexOf(CFG.CAT_NAMES[t.catId]||t.catId)<0) failed.push(CFG.CAT_NAMES[t.catId]||t.catId);
       }
     });
     if(i+BATCH<tasks.length) await new Promise(function(r){setTimeout(r,200);});
@@ -108,7 +104,7 @@ async function discoverAll(){
   if(!pool.length) return {candidates:[], apiStatus:{completed:'0', failed:'전체 실패'}, processLog:{completed:[], failed:[]}};
   var maxTotal=pool.reduce(function(m,v){return Math.max(m,v.result.totalCount);},0)||40;
   var candidates=pool.map(function(v){
-    var c=buildCandidate(v.kw, v.result, maxTotal, null, null);
+    var c=buildCandidate(v.kw, v.result, maxTotal, null, null, null);
     c.category=CFG.CAT_NAMES[v.catId]||v.catId;
     return c;
   });
@@ -120,7 +116,8 @@ async function discoverAll(){
   };
 }
 
-async function discoverSeed(seedKw){
+// ★ 버그2 수정: period 파라미터 추가
+async function discoverSeed(seedKw, period){
   var STOP=new Set(['이','가','을','를','의','에','는','은','도','와','과','세트','상품','제품','판매']);
   var list=ANALYZE.expandIntentKeywords(seedKw);
   var r1=await FETCH.shopSearch(seedKw, null).catch(function(){return {items:[],totalCount:0};});
@@ -141,19 +138,23 @@ async function discoverSeed(seedKw){
   }
   if(!valid.length) return {candidates:[], apiStatus:{search:'결과 없음'}};
   var maxTotal=valid.reduce(function(m,v){return Math.max(m,v.result.totalCount);},0)||40;
+
   var vMap={}, siMap={};
   await Promise.allSettled(
     valid.slice().sort(function(a,b){return b.result.totalCount-a.result.totalCount;}).slice(0,5)
     .map(async function(v){
-      var [vel, si] = await Promise.all([
+      var results = await Promise.all([
         FETCH.fetchVelocity(v.kw, period),
         FETCH.fetchShoppingInsight(v.kw, period)
       ]);
-      vMap[v.kw]  = vel;
-      siMap[v.kw] = si;
+      vMap[v.kw]  = results[0];
+      siMap[v.kw] = results[1];
     })
   );
-  var candidates=valid.map(function(v){return buildCandidate(v.kw, v.result, maxTotal, v.intent, vMap[v.kw]||null, siMap[v.kw]||null);});
+
+  var candidates=valid.map(function(v){
+    return buildCandidate(v.kw, v.result, maxTotal, v.intent, vMap[v.kw]||null, siMap[v.kw]||null);
+  });
   candidates.sort(function(a,b){return b.score.totalScore-a.score.totalScore;});
   return {candidates:candidates.slice(0,50), apiStatus:{search:valid.length+'/'+unique.length+' 성공'}};
 }
@@ -175,7 +176,6 @@ module.exports=async function(req,res){
         setCacheAll(period, result);
         return res.status(200).json(result);
       }
-      // ★ 카테고리별 캐시 적용
       var cachedCat=getCacheCat(catId,period);
       if(cachedCat){cachedCat.fromCache=true;cachedCat.cacheAge=Math.round((Date.now()-CACHE_CAT[catId+'_'+period].ts)/1000)+'초 전';return res.status(200).json(cachedCat);}
       var cr=await discoverCategory(catId, period);
@@ -186,7 +186,8 @@ module.exports=async function(req,res){
     if(mode==='seed'){
       var seedKw=String(req.query.keyword||'').trim().slice(0,30);
       if(!seedKw) return res.status(400).json({error:'키워드를 입력해주세요'});
-      var sr=await discoverSeed(seedKw);
+      // ★ period 전달
+      var sr=await discoverSeed(seedKw, period);
       return res.status(200).json({candidates:sr.candidates, clusters:ANALYZE.clusterCandidates(sr.candidates), mode:mode, seedKeyword:seedKw, period:period, total:sr.candidates.length, apiStatus:sr.apiStatus, updatedAt:new Date().toISOString()});
     }
     return res.status(400).json({error:'알 수 없는 mode'});
