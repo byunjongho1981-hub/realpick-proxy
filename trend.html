@@ -460,6 +460,8 @@ function renderTable(){var tbody=document.getElementById('result-body'),table=do
       +'<button class="ql-fetch-btn" onclick="qlFetch(\'blog\',\''+c.name+'\')" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:#fff;border:1.5px solid var(--bdr);border-radius:7px;font-size:12px;font-weight:600;color:#475569;cursor:pointer">📝 네이버 블로그</button>'
       +'<a href="https://www.coupang.com/np/search?q='+encodeURIComponent(c.name)+'" target="_blank" rel="noopener" class="ql-btn">🟡 쿠팡</a>'
       +'<a href="https://www.youtube.com/results?search_query='+encodeURIComponent(c.name+' 추천')+'" target="_blank" rel="noopener" class="ql-btn">▶️ 유튜브</a>'
+      +'<a href="https://www.tiktok.com/search?q='+encodeURIComponent(c.name)+'" target="_blank" rel="noopener" class="ql-btn">🎵 틱톡</a>'
+      +'<a href="https://www.instagram.com/explore/tags/'+encodeURIComponent(c.name.replace(/\s+/g,''))+'" target="_blank" rel="noopener" class="ql-btn">📸 인스타</a>'
       +'</div>'
       +'<div id="ql-result-'+i+'" style="margin-top:2px"></div>'
       +'</td></tr>':'')
