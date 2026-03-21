@@ -106,31 +106,30 @@ function fetchVelocity(keyword, period){
     timeUnit:  timeUnit,
     keywordGroups:[{groupName:keyword, keywords:[keyword]}]
   };
-  return new Promise(function(resolve){
-    var t=setTimeout(function(){resolve(null);}, CFG.TIMEOUT);
-    httpPost('/v1/datalab/search', body)
-      .then(function(d){
-        clearTimeout(t);
-        try{
-          if(d.errorCode) return resolve(null);
-          var pts=((d.results||[])[0]||{}).data||[];
-          if(pts.length<4) return resolve(null);
-          var h=Math.floor(pts.length/2), prev=pts.slice(0,h), curr=pts.slice(h);
-          var avg=function(a){return a.reduce(function(s,p){return s+safeNum(p.ratio);},0)/(a.length||1);};
-          var pa=avg(prev), ca=avg(curr);
-          var surge=pa>0?Math.round(((ca-pa)/pa)*100):(ca>0?100:0);
-          var eh=curr.slice(0,Math.floor(curr.length/2)), rh=curr.slice(Math.floor(curr.length/2));
-          var accel=avg(eh)>0?Math.round(((avg(rh)-avg(eh))/avg(eh))*100):0;
-          var all=avg(pts), dur=Math.round((pts.filter(function(p){return safeNum(p.ratio)>=all;}).length/pts.length)*100);
-          resolve({surgeRate:surge, accel:accel, durability:dur});
-        }catch(e){resolve(null);}
-      })
-      .catch(function(){clearTimeout(t); resolve(null);});
-  });
+  return httpPost('/v1/datalab/search', body)
+    .then(function(d){
+      if(d.errorCode){
+        console.error('[velocity error]', keyword, d.errorCode, d.errorMessage);
+        return null;
+      }
+      var pts=((d.results||[])[0]||{}).data||[];
+      if(pts.length<4) return null;
+      var h=Math.floor(pts.length/2), prev=pts.slice(0,h), curr=pts.slice(h);
+      var avg=function(a){return a.reduce(function(s,p){return s+safeNum(p.ratio);},0)/(a.length||1);};
+      var pa=avg(prev), ca=avg(curr);
+      var surge=pa>0?Math.round(((ca-pa)/pa)*100):(ca>0?100:0);
+      var eh=curr.slice(0,Math.floor(curr.length/2)), rh=curr.slice(Math.floor(curr.length/2));
+      var accel=avg(eh)>0?Math.round(((avg(rh)-avg(eh))/avg(eh))*100):0;
+      var all=avg(pts), dur=Math.round((pts.filter(function(p){return safeNum(p.ratio)>=all;}).length/pts.length)*100);
+      return {surgeRate:surge, accel:accel, durability:dur};
+    })
+    .catch(function(e){
+      console.error('[velocity catch]', keyword, e.message);
+      return null;
+    });
 }
 
-// ── ★ 쇼핑인사이트 클릭트렌드 (신규) ────────────────────────
-// 검색어트렌드(검색량 기반)와 달리 실제 쇼핑 클릭수 기반 → 구매 의도 반영
+// ── 쇼핑인사이트 클릭트렌드 ──────────────────────────────────
 function fetchShoppingInsight(keyword, period){
   var totalDays = period==='today'?4 : period==='month'?60 : 14;
   var timeUnit  = period==='month'?'week':'date';
@@ -143,50 +142,36 @@ function fetchShoppingInsight(keyword, period){
     gender:    '',
     ages:      []
   };
-  return new Promise(function(resolve){
-    var t=setTimeout(function(){resolve(null);}, CFG.TIMEOUT);
-    httpPost('/v1/datalab/shopping/keyword/ratio', body)
-      .then(function(d){
-        clearTimeout(t);
-        try{
-          if(d.errorCode){
-            console.error('[ShoppingInsight error]', d.errorCode, d.errorMessage);
-            return resolve(null);
-          }
-          var pts=((d.results||[])[0]||{}).data||[];
-          if(pts.length<4) return resolve(null);
-
-          var h=Math.floor(pts.length/2), prev=pts.slice(0,h), curr=pts.slice(h);
-          var avg=function(a){return a.reduce(function(s,p){return s+safeNum(p.ratio);},0)/(a.length||1);};
-          var pa=avg(prev), ca=avg(curr);
-
-          // 쇼핑 클릭 급상승률
-          var clickSurge=pa>0?Math.round(((ca-pa)/pa)*100):(ca>0?100:0);
-
-          // 최근 3일 vs 이전 3일 (단기 가속도)
-          var last3=pts.slice(-3), prev3=pts.slice(Math.max(0,pts.length-6),-3);
-          var l3=avg(last3), p3=avg(prev3);
-          var clickAccel=p3>0?Math.round(((l3-p3)/p3)*100):(l3>0?50:0);
-
-          // 지속성: 평균 이상 비율
-          var all=avg(pts);
-          var clickDurability=Math.round((pts.filter(function(p){return safeNum(p.ratio)>=all;}).length/pts.length)*100);
-
-          // 현재 클릭 강도 (0~100 상대값)
-          var currentRatio=Math.round(ca*10)/10;
-
-          resolve({
-            clickSurge:     clickSurge,
-            clickAccel:     clickAccel,
-            clickDurability:clickDurability,
-            currentRatio:   currentRatio,
-            // 쇼핑인사이트 트렌드 판정
-            shopTrend: clickSurge>=30?'hot' : clickSurge>=10?'rising' : clickSurge>=-10?'stable' : 'falling'
-          });
-        }catch(e){ resolve(null); }
-      })
-      .catch(function(){clearTimeout(t); resolve(null);});
-  });
+  return httpPost('/v1/datalab/shopping/keyword/ratio', body)
+    .then(function(d){
+      if(d.errorCode){
+        console.error('[insight error]', keyword, d.errorCode, d.errorMessage);
+        return null;
+      }
+      var pts=((d.results||[])[0]||{}).data||[];
+      if(pts.length<4) return null;
+      var h=Math.floor(pts.length/2), prev=pts.slice(0,h), curr=pts.slice(h);
+      var avg=function(a){return a.reduce(function(s,p){return s+safeNum(p.ratio);},0)/(a.length||1);};
+      var pa=avg(prev), ca=avg(curr);
+      var clickSurge=pa>0?Math.round(((ca-pa)/pa)*100):(ca>0?100:0);
+      var last3=pts.slice(-3), prev3=pts.slice(Math.max(0,pts.length-6),-3);
+      var l3=avg(last3), p3=avg(prev3);
+      var clickAccel=p3>0?Math.round(((l3-p3)/p3)*100):(l3>0?50:0);
+      var all=avg(pts);
+      var clickDurability=Math.round((pts.filter(function(p){return safeNum(p.ratio)>=all;}).length/pts.length)*100);
+      var currentRatio=Math.round(ca*10)/10;
+      return {
+        clickSurge:     clickSurge,
+        clickAccel:     clickAccel,
+        clickDurability:clickDurability,
+        currentRatio:   currentRatio,
+        shopTrend: clickSurge>=30?'hot':clickSurge>=10?'rising':clickSurge>=-10?'stable':'falling'
+      };
+    })
+    .catch(function(e){
+      console.error('[insight catch]', keyword, e.message);
+      return null;
+    });
 }
 
 module.exports = {
