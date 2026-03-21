@@ -309,7 +309,23 @@ var FILTERS={
   blog_cafe:function(c){return c&&Array.isArray(c.sources)&&c.sources.some(function(s){return s==='blog'||s==='cafe';});},
   high_conf:function(c){return c&&c.score&&c.score.confidence==='high';}
 };
-var S={mode:'category',catId:'50000003',period:'week',seedKw:'',depth:1,filterStatus:'all',sortBy:'score',candidates:[],clusters:[],filtered:[],selected:null,saved:{shorts:[],blog:[]},favorites:new Set(),loading:false,lastUpdated:null,apiStatus:{}};
+var _saved=(function(){try{var s=sessionStorage.getItem('realpick-trend-search-state');return s?JSON.parse(s):null;}catch(e){return null;}})();
+
+var S={
+  mode:        (_saved&&_saved.mode)    || 'category',
+  catId:       (_saved&&_saved.catId)   || '50000003',
+  period:      (_saved&&_saved.period)  || 'week',
+  seedKw:      '', depth:1,
+  filterStatus:'all',
+  sortBy:      (_saved&&_saved.sortBy)  || 'score',
+  candidates:  (_saved&&_saved.candidates) || [],
+  clusters:    (_saved&&_saved.clusters)   || [],
+  filtered:[], selected:null,
+  saved:{shorts:[],blog:[]}, favorites:new Set(),
+  loading:false,
+  lastUpdated: (_saved&&_saved.updatedAt)  || null,
+  apiStatus:   (_saved&&_saved.apiStatus)  || {}
+};
 var RH={};
 function n(v){var x=Number(v);return isNaN(x)?0:x;}
 function fmtDate(iso){try{return new Date(iso).toLocaleString('ko-KR',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}catch(e){return '';}}
