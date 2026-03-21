@@ -6,11 +6,11 @@ var ANALYZE = require('./_analyze');
 var TTL = 5*60*1000;
 
 // ★ 캐시 — 전체(all) + 카테고리별 분리
-var CACHE_ALL = {data:null, ts:0};
-var CACHE_CAT = {}; // { catId: {data, ts} }
+var CACHE_ALL = {}; // { period: {data, ts} }
+var CACHE_CAT = {}; // { catId_period: {data, ts} }
 
-function getCacheAll(){ return CACHE_ALL.data&&(Date.now()-CACHE_ALL.ts<TTL)?CACHE_ALL.data:null; }
-function setCacheAll(d){ CACHE_ALL.data=d; CACHE_ALL.ts=Date.now(); }
+function getCacheAll(period){ var c=CACHE_ALL[period]; return c&&c.data&&(Date.now()-c.ts<TTL)?c.data:null; }
+function setCacheAll(period,d){ CACHE_ALL[period]={data:d,ts:Date.now()}; }
 function getCacheCat(catId,period){ var k=catId+'_'+period; var c=CACHE_CAT[k]; return c&&c.data&&(Date.now()-c.ts<TTL)?c.data:null; }
 function setCacheCat(catId,period,d){ var k=catId+'_'+period; CACHE_CAT[k]={data:d,ts:Date.now()}; }
 
@@ -139,11 +139,11 @@ module.exports=async function(req,res){
     if(mode==='category'){
       var catId=req.query.categoryId||'50000003';
       if(catId==='all'){
-        var cached=getCacheAll();
-        if(cached){cached.fromCache=true;cached.cacheAge=Math.round((Date.now()-CACHE_ALL.ts)/1000)+'초 전';return res.status(200).json(cached);}
+        var cached=getCacheAll(period);
+        if(cached){cached.fromCache=true;cached.cacheAge=Math.round((Date.now()-CACHE_ALL[period].ts)/1000)+'초 전';return res.status(200).json(cached);}
         var ar=await discoverAll();
         var result={candidates:ar.candidates, clusters:ANALYZE.clusterCandidates(ar.candidates), mode:mode, categoryId:'all', categoryName:'전체', period:period, total:ar.candidates.length, apiStatus:ar.apiStatus, processLog:ar.processLog, updatedAt:new Date().toISOString(), fromCache:false};
-        setCacheAll(result);
+        setCacheAll(period, result);
         return res.status(200).json(result);
       }
       // ★ 카테고리별 캐시 적용
