@@ -267,6 +267,9 @@ th{padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--f
               <th style="width:9%">트렌드</th>
               <th style="width:7%">신뢰도</th>
               <th style="width:7%">흐름</th>
+              <th style="width:7%">급상승률</th>
+              <th style="width:7%">가속도</th>
+              <th style="width:7%">유지력</th>
               <th style="width:9%">소스</th>
               <th style="width:9%">추천액션</th>
               <th>한 줄 결론</th>
@@ -314,6 +317,16 @@ function gradeBdg(g){return bdg(g||'–',GRADE_C[g]||'var(--gc)',GRADE_BG[g]||'v
 function actBdg(a){return bdg(ACT_LBL[a]||a||'–',ACT_C[a]||'var(--hold)',ACT_BG[a]||'var(--hold-lt)');}
 function confHtml(conf){var m={low:1,medium:2,high:3},lvl=m[conf]||0,dots='';for(var i=1;i<=3;i++)dots+='<span class="conf-d" style="background:'+(i<=lvl?'var(--rising)':'var(--bdr)')+'"></span>';return '<span class="conf-dots">'+dots+'</span> <span style="font-size:10px;color:var(--faint)">'+(conf||'–')+'</span>';}
 function sparkHtml(count,status){if(!count)return '<span style="color:var(--faint);font-size:10px">–</span>';var c=status==='rising'?'var(--rising)':status==='falling'?'var(--falling)':'var(--stable)',bars='';for(var i=0;i<7;i++){var r=status==='rising'?0.3+(i/6)*0.7:status==='falling'?1-(i/6)*0.5:0.4+Math.sin(i)*0.1+0.3;bars+='<div class="sp-bar" style="height:'+Math.max(3,Math.round(r*18))+'px;background:'+c+'"></div>';}return '<div class="spark">'+bars+'</div>';}
+
+function velocityHtml(c, field, type){
+  if(!c.velocity) return '<span style="color:var(--faint);font-size:10px">–</span>';
+  var val = c.velocity[field];
+  var vl  = c.velocityLabel;
+  if(val===undefined||val===null) return '<span style="color:var(--faint);font-size:10px">–</span>';
+  var color = val>=20?'var(--rising)':val>=5?'#6366f1':val<=-10?'var(--falling)':'var(--faint)';
+  var label = vl ? (type==='surge'?vl.surge:type==='accel'?vl.accel:vl.durability) : val+'%';
+  return '<span style="font-size:11px;font-weight:700;color:'+color+'">'+label+'</span>';
+}
 
 function apiFetch(url){
   var ctrl=new AbortController(),t=setTimeout(function(){ctrl.abort();},290000);
