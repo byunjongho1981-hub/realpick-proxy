@@ -38,18 +38,29 @@ function shopSearch(keyword, catId){
     var items = [];
     data.items.forEach(function(item){
       var title = cleanText(item.title||''), price = safeNum(item.lprice||item.price);
-      // ★ price>0 조건 제거 — 가격 없는 상품도 items에 포함
       if(isClean(title)) items.push({title:title, link:item.link||'', price:price, mall:item.mallName||''});
     });
     return {items:items, totalCount:safeNum(data.total)};
   }).catch(function(){ return {items:[], totalCount:0}; });
 }
-function fetchVelocity(keyword){
-  var now=new Date(), pad=function(n){return String(n).padStart(2,'0');};
+
+// ★ period별 날짜 범위 분리
+// today : 최근 4일 (2일 vs 2일 비교)
+// week  : 최근 14일 (7일 vs 7일 비교)
+// month : 최근 60일 (30일 vs 30일 비교)
+function fetchVelocity(keyword, period){
+  var now=new Date();
+  var pad=function(n){return String(n).padStart(2,'0');};
   var fmt=function(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());};
   var ago=function(n){var d=new Date(now);d.setDate(d.getDate()-n);return d;};
+
+  var totalDays = period==='today' ? 4 : period==='month' ? 60 : 14;
+  var startDate = fmt(ago(totalDays));
+  var endDate   = fmt(now);
+  var timeUnit  = period==='month' ? 'week' : 'date';
+
   var body=JSON.stringify({
-    startDate:fmt(ago(13)), endDate:fmt(now), timeUnit:'date',
+    startDate:startDate, endDate:endDate, timeUnit:timeUnit,
     keywordGroups:[{groupName:keyword, keywords:[keyword]}]
   });
   return new Promise(function(resolve){
