@@ -9,8 +9,7 @@
   --bg:#fff5f5;--surf:#fff;--bdr:#e2e8f0;
   --txt:#1e293b;--muted:#64748b;--faint:#94a3b8;
   --pri:#ef4444;--pri-lt:#fef2f2;
-  --yt:#ff0000;--ig:#e1306c;--tt:#000000;
-  --s:#f59e0b;--a:#10b981;--b:#6366f1;--c:#94a3b8;
+  --yt:#ff0000;--nv:#03c75a;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--txt);font-family:'Noto Sans KR',sans-serif;font-size:13px}
@@ -25,86 +24,91 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
 .badge{background:var(--pri);color:#fff;font-size:10px;padding:2px 9px;border-radius:20px;font-weight:700}
 .page{margin-top:52px;padding:28px 28px 60px}
 
-/* 히어로 */
-.hero{background:linear-gradient(135deg,#ef4444,#f97316);border-radius:20px;padding:28px 32px;margin-bottom:24px;color:#fff;display:flex;align-items:center;justify-content:space-between}
+.hero{background:linear-gradient(135deg,#ef4444,#f97316);border-radius:20px;padding:28px 32px;margin-bottom:20px;color:#fff;display:flex;align-items:center;justify-content:space-between}
 .hero h1{font-size:22px;font-weight:900;margin-bottom:6px}
 .hero p{font-size:12px;opacity:.85;line-height:1.6}
-.hero-chips{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.hero-chips{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .hero-chip{background:rgba(255,255,255,.2);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600}
 
-/* 키워드 입력 */
-.kw-box{background:var(--surf);border-radius:14px;border:1px solid var(--bdr);padding:18px 20px;margin-bottom:16px}
-.kw-title{font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
-.kw-from-trend{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;color:var(--muted)}
-.kw-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;min-height:32px}
-.kw-chip{display:inline-flex;align-items:center;gap:4px;background:#f1f5f9;border:1px solid var(--bdr);border-radius:20px;padding:4px 10px;font-size:12px;font-weight:600;color:#475569}
-.kw-chip .rm{cursor:pointer;color:var(--faint);font-size:10px;margin-left:2px}
+.kw-box{background:var(--surf);border-radius:14px;border:1px solid var(--bdr);padding:16px 18px;margin-bottom:14px}
+.kw-title{font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.kw-from-trend{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.kw-chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;min-height:28px}
+.kw-chip{display:inline-flex;align-items:center;gap:4px;background:#f1f5f9;border:1px solid var(--bdr);border-radius:20px;padding:3px 9px;font-size:12px;font-weight:600;color:#475569}
+.kw-chip .rm{cursor:pointer;color:var(--faint);font-size:10px}
 .kw-chip .rm:hover{color:var(--pri)}
-.kw-input-row{display:flex;gap:8px}
-.kw-input{flex:1;padding:8px 12px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;outline:none}
+.kw-input-row{display:flex;gap:6px}
+.kw-input{flex:1;padding:7px 12px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;outline:none}
 .kw-input:focus{border-color:var(--pri)}
+
+.env-bar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.env-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:8px;font-size:11px;font-weight:600;border:1px solid var(--bdr);background:#f8fafc}
+.env-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+
+.ctrl-bar{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
 .btn{padding:8px 16px;border-radius:10px;border:none;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .btn-primary{background:var(--pri);color:#fff;box-shadow:0 4px 14px rgba(239,68,68,.25)}
 .btn-ghost{background:#f1f5f9;color:#475569}
 .btn-sm{padding:5px 10px;font-size:11px}
-
-/* 컨트롤 */
-.ctrl-bar{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
 .f-btn{padding:4px 12px;border-radius:20px;border:1.5px solid var(--bdr);font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;background:#fff}
 .f-btn.on{border-color:var(--pri);background:var(--pri);color:#fff}
 .sort-sel{padding:5px 10px;border:1.5px solid var(--bdr);border-radius:8px;font-size:12px;color:#475569;background:#fff;outline:none;cursor:pointer}
 
-/* ENV 상태 */
-.env-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
-.env-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:8px;font-size:11px;font-weight:600;border:1px solid var(--bdr);background:#f8fafc}
-.env-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-
-/* TOP 3 */
-.top3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
-.top3-card{background:var(--surf);border-radius:14px;border:1px solid var(--bdr);padding:16px;position:relative;overflow:hidden}
-.top3-card.rank1{border-color:#f59e0b;box-shadow:0 4px 20px rgba(245,158,11,.15)}
-.top3-card.rank2{border-color:#94a3b8}
-.top3-card.rank3{border-color:#cd7f32}
-.top3-rank{position:absolute;top:12px;right:14px;font-size:22px}
-.top3-kw{font-size:16px;font-weight:900;margin-bottom:4px}
-.top3-score{font-size:28px;font-weight:900;margin-bottom:4px}
-.top3-reason{font-size:11px;color:var(--muted);line-height:1.5}
-.top3-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
-
-/* 카드 그리드 */
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
-.card{background:var(--surf);border-radius:14px;border:1px solid var(--bdr);overflow:hidden;transition:all .2s}
-.card:hover{box-shadow:0 6px 24px rgba(239,68,68,.1);transform:translateY(-2px)}
-.card-head{padding:14px 16px 10px;display:flex;align-items:flex-start;gap:10px}
-.card-rank{width:26px;height:26px;border-radius:7px;background:var(--pri);color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.card-kw{font-size:14px;font-weight:800;flex:1}
-.grade-bdg{border-radius:6px;padding:2px 8px;font-size:12px;font-weight:800}
-.card-score{font-size:22px;font-weight:900;padding:0 16px 4px;color:var(--pri)}
-.card-tags{padding:0 16px 10px;display:flex;flex-wrap:wrap;gap:4px}
-.tag{display:inline-flex;align-items:center;gap:3px;background:#f1f5f9;border:1px solid var(--bdr);border-radius:5px;padding:2px 7px;font-size:10px;font-weight:600;color:#475569}
-.card-reason{padding:0 16px 12px;font-size:11px;color:var(--muted);line-height:1.6}
-.metrics{border-top:1px solid #f8fafc;padding:10px 16px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.metric{text-align:center}
-.metric-icon{font-size:14px;margin-bottom:2px}
-.metric-val{font-size:11px;font-weight:700;color:var(--txt)}
-.metric-lbl{font-size:9px;color:var(--faint);text-transform:uppercase;letter-spacing:.5px}
-.metric-err{font-size:9px;color:#fca5a5}
-.card-links{padding:8px 12px 12px;display:flex;gap:5px}
-.link-btn{display:inline-flex;align-items:center;gap:3px;padding:4px 9px;background:#f8fafc;border:1px solid var(--bdr);border-radius:6px;text-decoration:none;font-size:10px;font-weight:600;color:#475569}
-.link-btn:hover{border-color:var(--pri);color:var(--pri)}
-
-/* 상태 */
-.status-bar{background:var(--surf);border:1px solid var(--bdr);border-radius:10px;padding:10px 16px;margin-bottom:16px;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted)}
+.status-bar{background:var(--surf);border:1px solid var(--bdr);border-radius:10px;padding:8px 14px;margin-bottom:14px;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted)}
 .s-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .pulse{animation:pulse 1.5s infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .spinner{width:28px;height:28px;border:3px solid var(--bdr);border-top:3px solid var(--pri);border-radius:50%;animation:spin .8s linear infinite}
 .center-box{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;gap:12px;color:var(--faint);text-align:center}
-.err-box{background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px 16px;color:#dc2626;font-size:12px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.err-box{background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px 14px;color:#dc2626;font-size:12px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
 
-@media(max-width:900px){.top3{grid-template-columns:1fr}.hero{flex-direction:column;gap:12px}}
+/* TOP 3 */
+.top3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.top3-card{background:var(--surf);border-radius:14px;border:1px solid var(--bdr);padding:16px;position:relative}
+.top3-card.r1{border-color:#f59e0b;box-shadow:0 4px 16px rgba(245,158,11,.15)}
+.top3-card.r2{border-color:#94a3b8}
+.top3-card.r3{border-color:#cd7f32}
+.top3-rank{position:absolute;top:12px;right:14px;font-size:20px}
+.top3-kw{font-size:15px;font-weight:900;margin-bottom:4px}
+.top3-score{font-size:26px;font-weight:900;margin-bottom:3px}
+.top3-reason{font-size:11px;color:var(--muted);line-height:1.5}
+.top3-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+
+/* 카드 */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.card{background:var(--surf);border-radius:14px;border:1px solid var(--bdr);overflow:hidden;transition:all .2s}
+.card:hover{box-shadow:0 6px 20px rgba(239,68,68,.1);transform:translateY(-2px)}
+.card-head{padding:14px 16px 8px;display:flex;align-items:flex-start;gap:8px}
+.card-rank{width:24px;height:24px;border-radius:6px;background:var(--pri);color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.card-kw{font-size:14px;font-weight:800;flex:1}
+.grade-bdg{border-radius:6px;padding:2px 8px;font-size:12px;font-weight:800}
+.card-score{font-size:22px;font-weight:900;padding:0 16px 4px;color:var(--pri)}
+.card-tags{padding:0 16px 8px;display:flex;flex-wrap:wrap;gap:4px}
+.tag{display:inline-flex;align-items:center;gap:3px;background:#f1f5f9;border:1px solid var(--bdr);border-radius:5px;padding:2px 7px;font-size:10px;font-weight:600;color:#475569}
+.card-reason{padding:0 16px 10px;font-size:11px;color:var(--muted);line-height:1.6}
+
+/* 지표 */
+.metrics{border-top:1px solid #f8fafc;padding:10px 16px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.metric{background:#f8fafc;border-radius:8px;padding:8px 10px}
+.metric-hd{display:flex;align-items:center;gap:5px;margin-bottom:6px;font-size:11px;font-weight:700;color:var(--muted)}
+.metric-row{display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px}
+.metric-lbl{color:var(--faint)}
+.metric-val{font-weight:700;color:var(--txt)}
+.metric-err{font-size:10px;color:#fca5a5;margin-top:2px}
+
+/* 바로가기 */
+.card-links{padding:8px 12px 12px;display:flex;gap:5px;flex-wrap:wrap}
+.link-btn{display:inline-flex;align-items:center;gap:3px;padding:5px 10px;background:#f8fafc;border:1px solid var(--bdr);border-radius:7px;text-decoration:none;font-size:11px;font-weight:600;color:#475569;transition:all .15s}
+.link-btn:hover{border-color:var(--pri);color:var(--pri);background:#fff5f5}
+.link-btn.yt:hover{border-color:#ff0000;color:#ff0000}
+.link-btn.nv:hover{border-color:#03c75a;color:#03c75a}
+.link-btn.cp:hover{border-color:#f59e0b;color:#f59e0b}
+.link-btn.tt:hover{border-color:#000;color:#000}
+.link-btn.ig:hover{border-color:#e1306c;color:#e1306c}
+
+@media(max-width:900px){.top3{grid-template-columns:1fr}}
 @media(max-width:600px){.grid{grid-template-columns:1fr}}
 </style>
 </head>
@@ -125,22 +129,21 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
   <div class="hero">
     <div>
       <h1>🔥 지금 뜨는 제품</h1>
-      <p>트렌드 탐색에서 발굴한 키워드를 YouTube · Instagram · TikTok에서 교차 검증합니다.<br/>SNS 반응 데이터 기반으로 지금 올라타야 할 제품을 찾아냅니다.</p>
+      <p>트렌드 탐색에서 발굴한 키워드를 YouTube · 네이버 데이터랩으로 교차 검증합니다.<br/>지금 올라타야 할 제품을 실시간으로 찾아냅니다.</p>
       <div class="hero-chips">
         <span class="hero-chip">▶️ YouTube Data API v3</span>
-        <span class="hero-chip">📸 Instagram Graph API</span>
-        <span class="hero-chip">🎵 TikTok Research API</span>
+        <span class="hero-chip">🟢 Naver Datalab</span>
       </div>
     </div>
     <div style="font-size:48px">📡</div>
   </div>
 
-  <!-- 키워드 입력 -->
+  <!-- 키워드 -->
   <div class="kw-box">
-    <div class="kw-title">🔑 분석 키워드 (트렌드 탐색 탭에서 가져오기)</div>
+    <div class="kw-title">🔑 분석 키워드</div>
     <div class="kw-from-trend">
       <button class="btn btn-ghost btn-sm" onclick="loadFromTrend()">📦 트렌드 탭 결과 불러오기</button>
-      <span id="trend-status" style="color:var(--faint)">트렌드 탐색 탭에서 키워드를 가져옵니다</span>
+      <span id="trend-status" style="font-size:11px;color:var(--faint)">트렌드 탐색 탭에서 키워드를 가져옵니다</span>
     </div>
     <div class="kw-chips" id="kw-chips"></div>
     <div class="kw-input-row">
@@ -151,37 +154,33 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
     </div>
   </div>
 
-  <!-- ENV 상태 -->
+  <!-- ENV -->
   <div class="env-bar" id="env-bar">
-    <div class="env-chip"><span class="env-dot" style="background:#94a3b8"></span>YouTube API</div>
-    <div class="env-chip"><span class="env-dot" style="background:#94a3b8"></span>Instagram API</div>
-    <div class="env-chip"><span class="env-dot" style="background:#94a3b8"></span>TikTok API</div>
+    <div class="env-chip"><span class="env-dot" style="background:#94a3b8"></span>▶️ YouTube API</div>
+    <div class="env-chip"><span class="env-dot" style="background:#94a3b8"></span>🟢 Naver Datalab</div>
   </div>
 
   <!-- 컨트롤 -->
   <div class="ctrl-bar">
-    <button class="btn btn-primary" id="btn-fetch" onclick="fetchSNS()">🔥 SNS 반응 분석 시작</button>
+    <button class="btn btn-primary" id="btn-fetch" onclick="fetchSNS()">🔥 분석 시작</button>
     <div style="width:1px;height:20px;background:var(--bdr)"></div>
     <button class="f-btn on" data-f="all"     onclick="onFilter(this,'all')">전체</button>
     <button class="f-btn"    data-f="rising"  onclick="onFilter(this,'rising')">🔥 급상승</button>
     <button class="f-btn"    data-f="shorts"  onclick="onFilter(this,'shorts')">🎬 쇼츠 적합</button>
-    <button class="f-btn"    data-f="sns"     onclick="onFilter(this,'sns')">📱 SNS 반응</button>
+    <button class="f-btn"    data-f="search"  onclick="onFilter(this,'search')">📈 검색 급증</button>
     <select class="sort-sel" onchange="onSort(this.value)">
       <option value="score">점수순</option>
-      <option value="yt">YouTube순</option>
-      <option value="ig">Instagram순</option>
-      <option value="tt">TikTok순</option>
+      <option value="views">YouTube 조회수순</option>
+      <option value="surge">검색 급등순</option>
     </select>
   </div>
 
-  <!-- 상태 바 -->
+  <!-- 상태 -->
   <div class="status-bar" id="status-bar">
     <span class="s-dot" style="background:#94a3b8"></span>
     <span id="status-txt">키워드를 선택하고 분석을 시작하세요</span>
     <span id="cache-txt" style="margin-left:auto;color:var(--faint)"></span>
   </div>
-
-  <!-- 에러 -->
   <div id="err-box" style="display:none" class="err-box">
     <span>⚠️</span><span id="err-msg"></span>
     <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="fetchSNS()">재시도</button>
@@ -189,52 +188,44 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
 
   <!-- TOP 3 -->
   <div id="top3-area" style="display:none">
-    <div style="font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">🏆 TOP 3 — SNS 반응 최상위</div>
+    <div style="font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">🏆 TOP 3</div>
     <div class="top3" id="top3-grid"></div>
   </div>
 
-  <!-- 전체 결과 -->
+  <!-- 결과 -->
   <div id="result-area">
     <div class="center-box">
       <div style="font-size:44px">📡</div>
-      <div style="font-size:14px;font-weight:700;color:#475569">트렌드 탐색 키워드 → SNS 교차 검증</div>
-      <div style="font-size:12px">YouTube · Instagram · TikTok 공식 API로 실시간 반응을 분석합니다</div>
+      <div style="font-size:14px;font-weight:700;color:#475569">YouTube + 네이버 데이터랩 교차 분석</div>
+      <div style="font-size:12px">트렌드 탐색에서 키워드를 불러오거나 직접 입력하세요</div>
       <button class="btn btn-ghost btn-sm" onclick="location.href='/trend.html'" style="margin-top:8px">🔍 트렌드 탐색으로 이동</button>
     </div>
   </div>
 </div>
 
 <script>
-var STATE = {
-  keywords: [],
-  results:  [],
-  filtered: [],
-  filter:   'all',
-  sort:     'score',
-  loading:  false
-};
+var STATE={keywords:[],results:[],filtered:[],filter:'all',sort:'score',loading:false};
 
-// ── 트렌드 탭 키워드 불러오기
 function loadFromTrend(){
   try{
-    var saved = localStorage.getItem('realpick_trend_keywords');
+    var saved=localStorage.getItem('realpick_trend_keywords');
     if(saved){
-      var kws = JSON.parse(saved);
+      var kws=JSON.parse(saved);
       if(Array.isArray(kws)&&kws.length){
-        STATE.keywords = kws.filter(function(k,i,a){return k&&a.indexOf(k)===i;}).slice(0,15);
+        STATE.keywords=kws.filter(function(k,i,a){return k&&a.indexOf(k)===i;}).slice(0,15);
         renderChips();
-        document.getElementById('trend-status').textContent = '✅ '+STATE.keywords.length+'개 키워드 로드됨';
+        document.getElementById('trend-status').textContent='✅ '+STATE.keywords.length+'개 키워드 로드됨';
         return;
       }
     }
-    document.getElementById('trend-status').textContent = '⚠️ 트렌드 탐색 결과 없음 — 먼저 트렌드 탐색을 실행하세요';
+    document.getElementById('trend-status').textContent='⚠️ 트렌드 탐색 결과 없음 — 먼저 트렌드 탐색을 실행하세요';
   }catch(e){
-    document.getElementById('trend-status').textContent = '트렌드 탐색 탭에서 자동 전달됩니다';
+    document.getElementById('trend-status').textContent='트렌드 탐색 탭에서 자동 전달됩니다';
   }
 }
 
 function addKeyword(){
-  var v = document.getElementById('kw-input').value.trim();
+  var v=document.getElementById('kw-input').value.trim();
   if(!v) return;
   if(STATE.keywords.indexOf(v)>-1){document.getElementById('kw-input').value='';return;}
   if(STATE.keywords.length>=15){alert('최대 15개');return;}
@@ -244,7 +235,7 @@ function addKeyword(){
 }
 
 function removeKeyword(kw){
-  STATE.keywords = STATE.keywords.filter(function(k){return k!==kw;});
+  STATE.keywords=STATE.keywords.filter(function(k){return k!==kw;});
   renderChips();
 }
 
@@ -255,26 +246,25 @@ function clearKeywords(){
 }
 
 function renderChips(){
-  var el = document.getElementById('kw-chips');
+  var el=document.getElementById('kw-chips');
   if(!STATE.keywords.length){
     el.innerHTML='<span style="color:var(--faint);font-size:12px">키워드를 추가하거나 트렌드 탭에서 불러오세요</span>';
     return;
   }
-  el.innerHTML = STATE.keywords.map(function(kw){
+  el.innerHTML=STATE.keywords.map(function(kw){
     return '<span class="kw-chip">'+kw+'<span class="rm" onclick="removeKeyword(\''+kw+'\')">✕</span></span>';
   }).join('');
 }
 
-// ── 분석 실행
 function fetchSNS(){
   if(STATE.loading) return;
   if(!STATE.keywords.length){alert('키워드를 추가해 주세요');return;}
   STATE.loading=true;
   showErr(null);
-  setStatus('loading','🔥 YouTube · Instagram · TikTok 분석 중... (키워드 '+STATE.keywords.length+'개)');
+  setStatus('loading','🔥 YouTube · 네이버 데이터랩 분석 중... (키워드 '+STATE.keywords.length+'개)');
   document.getElementById('btn-fetch').disabled=true;
   document.getElementById('top3-area').style.display='none';
-  document.getElementById('result-area').innerHTML='<div class="center-box"><div class="spinner"></div><div style="font-size:12px;color:#64748b;margin-top:8px">SNS 데이터 수집 중...</div></div>';
+  document.getElementById('result-area').innerHTML='<div class="center-box"><div class="spinner"></div><div style="font-size:12px;color:#64748b;margin-top:8px">데이터 수집 중...</div></div>';
 
   fetch('/api/sns-hot?keywords='+encodeURIComponent(STATE.keywords.join(',')))
     .then(function(r){
@@ -283,12 +273,12 @@ function fetchSNS(){
     })
     .then(function(d){
       if(d.error) throw new Error(d.error);
-      STATE.results = d.results||[];
+      STATE.results=d.results||[];
       renderEnv(d.envStatus||{});
       applyFilter();
       renderTop3(d.top3||[]);
       setStatus('ok','✅ '+STATE.results.length+'개 키워드 분석 완료'+(d.fromCache?' (캐시)':''));
-      document.getElementById('cache-txt').textContent = d.fromCache?'📦 캐시':'';
+      document.getElementById('cache-txt').textContent=d.fromCache?'📦 캐시':'';
     })
     .catch(function(e){
       showErr(e.message);
@@ -300,28 +290,23 @@ function fetchSNS(){
 
 function renderEnv(env){
   document.getElementById('env-bar').innerHTML=[
-    {key:'youtube',   label:'YouTube API',   icon:'▶️'},
-    {key:'instagram', label:'Instagram API',  icon:'📸'},
-    {key:'tiktok',    label:'TikTok API',     icon:'🎵'}
+    {key:'youtube', label:'YouTube API', icon:'▶️'},
+    {key:'naver',   label:'Naver Datalab', icon:'🟢'}
   ].map(function(e){
-    var ok = env[e.key];
-    return '<div class="env-chip">'
-      +'<span class="env-dot" style="background:'+(ok?'#10b981':'#f43f5e')+'"></span>'
-      +e.icon+' '+e.label+': '+(ok?'✅ 연결':'❌ 키 없음')
-    +'</div>';
+    var ok=env[e.key];
+    return '<div class="env-chip"><span class="env-dot" style="background:'+(ok?'#10b981':'#f43f5e')+'"></span>'+e.icon+' '+e.label+': '+(ok?'✅ 연결':'❌ 키 없음')+'</div>';
   }).join('');
 }
 
 function renderTop3(top3){
   if(!top3.length) return;
-  var medals = ['🥇','🥈','🥉'];
-  var rankCls = ['rank1','rank2','rank3'];
-  var gc = {S:'#f59e0b',A:'#10b981',B:'#6366f1',C:'#94a3b8'};
-  document.getElementById('top3-grid').innerHTML = top3.map(function(item,i){
-    return '<div class="top3-card '+rankCls[i]+'">'
+  var medals=['🥇','🥈','🥉'], rc=['r1','r2','r3'];
+  var gc={S:'#f59e0b',A:'#10b981',B:'#6366f1',C:'#94a3b8'};
+  document.getElementById('top3-grid').innerHTML=top3.map(function(item,i){
+    return '<div class="top3-card '+rc[i]+'">'
       +'<div class="top3-rank">'+medals[i]+'</div>'
       +'<div class="top3-kw">'+item.keyword+'</div>'
-      +'<div class="top3-score" style="color:'+gc[item.score.grade]+'">'+item.score.total+'<span style="font-size:13px;font-weight:500;color:var(--faint)">점</span></div>'
+      +'<div class="top3-score" style="color:'+gc[item.score.grade]+'">'+item.score.total+'<span style="font-size:12px;font-weight:500;color:var(--faint)">점</span></div>'
       +'<div class="top3-reason">'+item.score.reason+'</div>'
       +'<div class="top3-tags">'+item.score.tags.map(function(t){return '<span class="tag">'+t+'</span>';}).join('')+'</div>'
     +'</div>';
@@ -330,34 +315,34 @@ function renderTop3(top3){
 }
 
 function applyFilter(){
-  var list = STATE.results.filter(function(item){
+  var list=STATE.results.filter(function(item){
     if(STATE.filter==='all')    return true;
     if(STATE.filter==='rising') return item.score.tags.indexOf('🔥 급상승')>-1;
     if(STATE.filter==='shorts') return item.score.tags.indexOf('🎬 쇼츠 적합')>-1;
-    if(STATE.filter==='sns')    return item.score.tags.indexOf('📱 SNS 반응')>-1;
+    if(STATE.filter==='search') return item.score.tags.indexOf('📈 검색 급증')>-1;
     return true;
   });
-  if(STATE.sort==='score') list.sort(function(a,b){return b.score.total-a.score.total;});
-  else if(STATE.sort==='yt') list.sort(function(a,b){return (b.youtube.avgViews||0)-(a.youtube.avgViews||0);});
-  else if(STATE.sort==='ig') list.sort(function(a,b){return (b.instagram.recentCount||0)-(a.instagram.recentCount||0);});
-  else if(STATE.sort==='tt') list.sort(function(a,b){return (b.tiktok.avgViews||0)-(a.tiktok.avgViews||0);});
-  STATE.filtered = list;
+  if(STATE.sort==='score')  list.sort(function(a,b){return b.score.total-a.score.total;});
+  else if(STATE.sort==='views') list.sort(function(a,b){return (b.youtube.avgViews||0)-(a.youtube.avgViews||0);});
+  else if(STATE.sort==='surge') list.sort(function(a,b){return (b.datalab.surgeRate||0)-(a.datalab.surgeRate||0);});
+  STATE.filtered=list;
   renderGrid();
 }
 
 function renderGrid(){
-  var el = document.getElementById('result-area');
+  var el=document.getElementById('result-area');
   if(!STATE.filtered.length){
     el.innerHTML='<div class="center-box"><div style="font-size:36px">😶</div><div>조건에 맞는 결과가 없습니다</div></div>';
     return;
   }
-  var gc   = {S:'#f59e0b',A:'#10b981',B:'#6366f1',C:'#94a3b8'};
-  var gcbg = {S:'#fffbeb',A:'#ecfdf5',B:'#eff0ff',C:'#f8fafc'};
+  var gc={S:'#f59e0b',A:'#10b981',B:'#6366f1',C:'#94a3b8'};
+  var gcbg={S:'#fffbeb',A:'#ecfdf5',B:'#eff0ff',C:'#f8fafc'};
 
-  el.innerHTML = '<div style="font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">📊 전체 결과 ('+STATE.filtered.length+'개)</div>'
+  el.innerHTML='<div style="font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">📊 전체 결과 ('+STATE.filtered.length+'개)</div>'
   +'<div class="grid">'+STATE.filtered.map(function(item,i){
-    var sc=item.score, yt=item.youtube, ig=item.instagram, tt=item.tiktok;
+    var sc=item.score, yt=item.youtube, dl=item.datalab;
     var q=encodeURIComponent(item.keyword);
+    var qHash=encodeURIComponent(item.keyword.replace(/\s+/g,''));
     return '<div class="card">'
       +'<div class="card-head">'
         +'<div class="card-rank">'+(i+1)+'</div>'
@@ -370,46 +355,42 @@ function renderGrid(){
       +'<div class="metrics">'
         // YouTube
         +'<div class="metric">'
-          +'<div class="metric-icon">▶️</div>'
+          +'<div class="metric-hd"><span>▶️</span> YouTube</div>'
           +(yt.ok
-            ?'<div class="metric-val">'+fmtNum(yt.avgViews)+'</div><div class="metric-lbl">평균조회수</div>'
-            +'<div class="metric-val" style="margin-top:2px">'+yt.videoCount+'개</div><div class="metric-lbl">영상수</div>'
+            ?'<div class="metric-row"><span class="metric-lbl">평균 조회수</span><span class="metric-val">'+fmtN(yt.avgViews)+'</span></div>'
+            +'<div class="metric-row"><span class="metric-lbl">영상 수</span><span class="metric-val">'+yt.videoCount+'개</span></div>'
+            +'<div class="metric-row"><span class="metric-lbl">쇼츠 비율</span><span class="metric-val">'+yt.shortsRatio+'%</span></div>'
             :'<div class="metric-err">'+yt.error+'</div>')
         +'</div>'
-        // Instagram
+        // Naver Datalab
         +'<div class="metric">'
-          +'<div class="metric-icon">📸</div>'
-          +(ig.ok
-            ?'<div class="metric-val">'+ig.recentCount+'개</div><div class="metric-lbl">최근게시물</div>'
-            +'<div class="metric-val" style="margin-top:2px">'+(ig.hasTopMedia?'있음':'없음')+'</div><div class="metric-lbl">인기게시물</div>'
-            :'<div class="metric-err">'+ig.error+'</div>')
-        +'</div>'
-        // TikTok
-        +'<div class="metric">'
-          +'<div class="metric-icon">🎵</div>'
-          +(tt.ok
-            ?'<div class="metric-val">'+fmtNum(tt.avgViews)+'</div><div class="metric-lbl">평균조회수</div>'
-            +'<div class="metric-val" style="margin-top:2px">'+tt.videoCount+'개</div><div class="metric-lbl">영상수</div>'
-            :'<div class="metric-err">'+tt.error+'</div>')
+          +'<div class="metric-hd"><span>🟢</span> 네이버 트렌드</div>'
+          +(dl.ok
+            ?'<div class="metric-row"><span class="metric-lbl">트렌드</span><span class="metric-val">'+dl.trend+'</span></div>'
+            +'<div class="metric-row"><span class="metric-lbl">변화율</span><span class="metric-val" style="color:'+(dl.surgeRate>0?'#10b981':'#f43f5e')+'">'+(dl.surgeRate>0?'+':'')+dl.surgeRate+'%</span></div>'
+            +'<div class="metric-row"><span class="metric-lbl">검색량</span><span class="metric-val">'+dl.avgRatio+'</span></div>'
+            :'<div class="metric-err">'+dl.error+'</div>')
         +'</div>'
       +'</div>'
+      // 바로가기
       +'<div class="card-links">'
-        +'<a href="https://www.youtube.com/results?search_query='+q+'" target="_blank" class="link-btn">▶️ YouTube</a>'
-        +'<a href="https://www.instagram.com/explore/tags/'+encodeURIComponent(item.keyword.replace(/\s+/g,''))+'" target="_blank" class="link-btn">📸 Instagram</a>'
-        +'<a href="https://www.tiktok.com/search?q='+q+'" target="_blank" class="link-btn">🎵 TikTok</a>'
-        +'<a href="https://search.shopping.naver.com/search/all?query='+q+'" target="_blank" class="link-btn">🛒 네이버</a>'
+        +'<a href="https://www.youtube.com/results?search_query='+q+' 추천" target="_blank" class="link-btn yt">▶️ YouTube</a>'
+        +'<a href="https://www.youtube.com/results?search_query='+q+' shorts" target="_blank" class="link-btn yt">▶️ Shorts</a>'
+        +'<a href="https://search.shopping.naver.com/search/all?query='+q+'" target="_blank" class="link-btn nv">🛒 네이버쇼핑</a>'
+        +'<a href="https://search.naver.com/search.naver?where=blog&query='+q+'" target="_blank" class="link-btn nv">📝 블로그</a>'
+        +'<a href="https://www.coupang.com/np/search?q='+q+'" target="_blank" class="link-btn cp">🟡 쿠팡</a>'
+        +'<a href="https://www.tiktok.com/search?q='+q+'" target="_blank" class="link-btn tt">🎵 TikTok</a>'
+        +'<a href="https://www.instagram.com/explore/tags/'+qHash+'" target="_blank" class="link-btn ig">📸 Instagram</a>'
       +'</div>'
     +'</div>';
   }).join('')+'</div>';
 }
 
-function fmtNum(n){
-  if(!n) return '0';
+function fmtN(n){
   if(n>=10000) return Math.round(n/10000)+'만';
   if(n>=1000)  return Math.round(n/1000)+'천';
   return String(n);
 }
-
 function setStatus(type,msg){
   var dot=document.querySelector('#status-bar .s-dot');
   document.getElementById('status-txt').textContent=msg;
@@ -424,7 +405,6 @@ function showErr(msg){
 function onFilter(el,val){document.querySelectorAll('.f-btn').forEach(function(b){b.classList.remove('on');});el.classList.add('on');STATE.filter=val;applyFilter();}
 function onSort(val){STATE.sort=val;applyFilter();}
 
-// 초기화
 renderChips();
 loadFromTrend();
 </script>
