@@ -150,9 +150,9 @@ th{padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--f
           onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
           🚀 자동탐색
         </button>
-        <button class="c-btn" data-period="today" onclick="onPeriod(this)">오늘</button>
-        <button class="c-btn on"  data-period="week"  onclick="onPeriod(this)">이번주</button>
-        <button class="c-btn" data-period="month" onclick="onPeriod(this)">이번달</button>
+        <button class="c-btn on" data-period="today" onclick="onPeriod(this)">오늘</button>
+        <button class="c-btn"   data-period="week"  onclick="onPeriod(this)">이번주</button>
+        <button class="c-btn"   data-period="month" onclick="onPeriod(this)">이번달</button>
         <button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" onclick="onReset()">초기화</button>
       </div>
     </div>
@@ -175,8 +175,8 @@ th{padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--f
     <div id="ctrl-category" style="display:flex;flex-direction:column;gap:8px">
       <div class="ctrl-row">
         <span class="ctrl-lbl">카테고리</span>
-        <button class="c-btn"    data-cat="all"      onclick="onCat(this)">🔍 전체</button>
-        <button class="c-btn on" data-cat="50000003" onclick="onCat(this)">디지털/가전</button>
+        <button class="c-btn on" data-cat="all"      onclick="onCat(this)">🔍 전체</button>
+        <button class="c-btn"    data-cat="50000003" onclick="onCat(this)">디지털/가전</button>
         <button class="c-btn"    data-cat="50000002" onclick="onCat(this)">화장품/미용</button>
         <button class="c-btn"    data-cat="50000008" onclick="onCat(this)">생활/건강</button>
         <button class="c-btn"    data-cat="50000007" onclick="onCat(this)">스포츠/레저</button>
@@ -305,7 +305,7 @@ var FILTERS={
 };
 
 var S={
-  mode:'category', catId:'50000003', period:'week', seedKw:'', depth:1,
+  mode:'category', catId:'all', period:'today', seedKw:'', depth:1,
   filterStatus:'all', sortBy:'score',
   candidates:[], clusters:[], filtered:[], selected:null,
   saved:{shorts:[],blog:[]}, favorites:new Set(),
