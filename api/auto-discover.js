@@ -70,20 +70,36 @@ async function discoverCategory(catId, period){
 }
 
 async function discoverAll(){
-  var res=await Promise.allSettled(CFG.CAT_ORDER.map(function(catId){
-    var kw=(CFG.CAT_SEEDS[catId]||[])[0]||'';
-    if(!kw) return Promise.resolve({catId:catId, kw:'', result:{items:[],totalCount:0}, ok:false});
-    return FETCH.shopSearch(kw,catId)
-      .then(function(r){return {catId:catId, kw:kw, result:r, ok:true};})
-      .catch(function(){return {catId:catId, kw:kw, result:{items:[],totalCount:0}, ok:false};});
-  }));
-  var pool=[], completed=[], failed=[];
-  res.forEach(function(r){
-    if(r.status!=='fulfilled') return;
-    var v=r.value;
-    if(!v.ok||!v.result.items.length){failed.push(CFG.CAT_NAMES[v.catId]||v.catId);return;}
-    pool.push(v); completed.push(CFG.CAT_NAMES[v.catId]||v.catId);
+  // ★ 카테고리당 상위 3개 시드 사용 → 최대 45개 후보
+  var tasks=[];
+  CFG.CAT_ORDER.forEach(function(catId){
+    var seeds=(CFG.CAT_SEEDS[catId]||[]).slice(0,3);
+    seeds.forEach(function(kw){
+      tasks.push({catId:catId, kw:kw});
+    });
   });
+
+  // 10개씩 배치 호출
+  var BATCH=10, pool=[], completed=[], failed=[];
+  for(var i=0;i<tasks.length;i+=BATCH){
+    var chunk=tasks.slice(i,i+BATCH);
+    var settled=await Promise.allSettled(chunk.map(function(t){return FETCH.shopSearch(t.kw,null);}));
+    settled.forEach(function(r,j){
+      var t=chunk[j];
+      var result=r.status==='fulfilled'?r.value:{items:[],totalCount:0};
+      if(result.items.length>0){
+        pool.push({catId:t.catId, kw:t.kw, result:result});
+        if(completed.indexOf(CFG.CAT_NAMES[t.catId]||t.catId)<0)
+          completed.push(CFG.CAT_NAMES[t.catId]||t.catId);
+      } else {
+        if(failed.indexOf(CFG.CAT_NAMES[t.catId]||t.catId)<0)
+          failed.push(CFG.CAT_NAMES[t.catId]||t.catId);
+      }
+    });
+    if(i+BATCH<tasks.length) await new Promise(function(r){setTimeout(r,200);});
+  }
+
+  if(!pool.length) return {candidates:[], apiStatus:{completed:'0', failed:'전체 실패'}, processLog:{completed:[], failed:[]}};
   var maxTotal=pool.reduce(function(m,v){return Math.max(m,v.result.totalCount);},0)||40;
   var candidates=pool.map(function(v){
     var c=buildCandidate(v.kw, v.result, maxTotal, null, null);
