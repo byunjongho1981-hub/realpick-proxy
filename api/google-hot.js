@@ -1,120 +1,87 @@
 /**
  * /api/google-hot.js
- * Google Custom Search API + Google Trends RSS
- * → Naver 쇼핑 교차 검증 → 점수화
- *
- * 필요 환경변수:
- *   GOOGLE_API_KEY  — Google Cloud Console Custom Search API 키
- *   GOOGLE_CX       — Custom Search Engine ID (cx)
- *   NAVER_CLIENT_ID
- *   NAVER_CLIENT_SECRET
+ * Naver Datalab 쇼핑인사이트 기반 "지금 뜨는 제품"
+ * Google Trends RSS 대신 Naver 카테고리별 인기 키워드 사용
  */
 
-var https = require('https');
+var https  = require('https');
+var FETCH  = require('./_fetch');
 
 var TIMEOUT = 8000;
 var CACHE   = {data:null, ts:0, TTL:10*60*1000};
 
-// ── 쇼핑 제외 키워드
-var EXCLUDE_KW = [
-  '사망','사고','범죄','폭행','살인','화재','지진','태풍','코로나','확진',
-  '정치','선거','국회','대통령','논란','의혹','수사','체포','전쟁','폭발'
-];
-
-function isExcluded(kw){
-  return EXCLUDE_KW.some(function(w){return kw.indexOf(w)>-1;});
-}
-
-// ── 환경변수 확인
-function checkEnv(){
-  var miss=[];
-  if(!process.env.GOOGLE_API_KEY)        miss.push('GOOGLE_API_KEY');
-  if(!process.env.GOOGLE_CX)             miss.push('GOOGLE_CX');
-  if(!process.env.NAVER_CLIENT_ID)       miss.push('NAVER_CLIENT_ID');
-  if(!process.env.NAVER_CLIENT_SECRET)   miss.push('NAVER_CLIENT_SECRET');
-  if(miss.length) throw new Error('환경변수 누락: '+miss.join(', '));
-}
-
-// ── HTTP GET 유틸
-function httpGet(hostname, path){
-  return new Promise(function(resolve, reject){
-    var t=setTimeout(function(){reject(new Error('timeout'));}, TIMEOUT);
-    https.get({hostname:hostname, path:path, headers:{'User-Agent':'Mozilla/5.0'}}, function(res){
-      var raw='';
-      res.on('data',function(c){raw+=c;});
-      res.on('end',function(){
-        clearTimeout(t);
-        try{resolve(JSON.parse(raw));}catch(e){resolve({_raw:raw});}
-      });
-    }).on('error',function(e){clearTimeout(t);reject(e);});
-  });
-}
-
-// ── 1. Google Trends RSS (실시간 급상승)
-function fetchTrendsRSS(){
+// 카테고리별 쇼핑인사이트 인기 키워드 조회
+function fetchShoppingKeywords(catId, catName){
   return new Promise(function(resolve){
-    var t=setTimeout(function(){resolve([]);}, TIMEOUT);
-    https.get({
-      hostname:'trends.google.com',
-      path:'/trending/rss?geo=KR',
-      headers:{'User-Agent':'Mozilla/5.0'}
+    var now  = new Date();
+    var pad  = function(n){return String(n).padStart(2,'0');};
+    var fmt  = function(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());};
+    var ago  = function(n){var d=new Date(now);d.setDate(d.getDate()-n);return d;};
+
+    var body = JSON.stringify({
+      startDate: fmt(ago(7)),
+      endDate:   fmt(now),
+      timeUnit:  'date',
+      category:  catId,
+      keyword:   [{name:'인기', param:[]}],
+      device:    '',
+      gender:    '',
+      ages:      []
+    });
+
+    var t = setTimeout(function(){resolve({catName:catName, keywords:[]});}, TIMEOUT);
+    var req = https.request({
+      hostname:'openapi.naver.com',
+      path:'/v1/datalab/shopping/category/keywords',
+      method:'POST',
+      headers:{
+        'X-Naver-Client-Id':     process.env.NAVER_CLIENT_ID,
+        'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET,
+        'Content-Type':          'application/json',
+        'Content-Length':        Buffer.byteLength(body)
+      }
     }, function(res){
       var raw='';
       res.on('data',function(c){raw+=c;});
       res.on('end',function(){
         clearTimeout(t);
         try{
-          var items=[], re=/<title><!\[CDATA\[([^\]]+)\]\]><\/title>|<ht:title>([^<]+)<\/ht:title>/g;
-          var traRe=/<ht:approx_traffic>([^<]+)<\/ht:approx_traffic>/g;
-          var traffics=[], tm;
-          while((tm=traRe.exec(raw))!==null) traffics.push(tm[1]);
-          var m, idx=0;
-          while((m=re.exec(raw))!==null){
-            var title=(m[1]||m[2]||'').trim();
-            if(title&&title!=='Google 트렌드'&&title!=='Google Trends'){
-              if(!isExcluded(title)) items.push({keyword:title, traffic:traffics[idx]||'0'});
-              idx++;
-            }
-          }
-          resolve(items.slice(0,25));
-        }catch(e){resolve([]);}
+          var d = JSON.parse(raw);
+          var keywords = (d.results||[]).map(function(r){
+            var pts = r.data||[];
+            var recent  = pts.slice(-3);
+            var earlier = pts.slice(-7,-3);
+            var avg = function(a){return a.reduce(function(s,p){return s+Number(p.ratio||0);},0)/(a.length||1);};
+            var surgeRate = avg(earlier)>0 ? Math.round(((avg(recent)-avg(earlier))/avg(earlier))*100) : 0;
+            return {
+              keyword:   r.title||'',
+              ratio:     avg(recent),
+              surgeRate: surgeRate,
+              points:    pts
+            };
+          });
+          resolve({catName:catName, keywords:keywords});
+        }catch(e){resolve({catName:catName, keywords:[]});}
       });
-    }).on('error',function(){clearTimeout(t);resolve([]);});
+    });
+    req.on('error',function(){clearTimeout(t);resolve({catName:catName, keywords:[]});});
+    req.write(body);
+    req.end();
   });
 }
 
-// ── 2. Google Custom Search API — 쇼핑 관련성 확인
-function googleSearch(keyword){
-  var q = encodeURIComponent(keyword+' 구매 추천 가격');
-  var path = '/customsearch/v1?key='+process.env.GOOGLE_API_KEY
-    +'&cx='+process.env.GOOGLE_CX
-    +'&q='+q
-    +'&num=5'
-    +'&lr=lang_ko'
-    +'&gl=kr';
-  return httpGet('www.googleapis.com', path).then(function(d){
-    if(!d||!Array.isArray(d.items)) return {count:0, snippets:[], links:[]};
-    return {
-      count:     d.searchInformation ? Number(d.searchInformation.totalResults||0) : 0,
-      snippets:  d.items.map(function(i){return i.snippet||'';}),
-      links:     d.items.map(function(i){return {title:i.title||'', link:i.link||'', snippet:i.snippet||''};}),
-      formatted: d.searchInformation ? d.searchInformation.formattedTotalResults : '0'
-    };
-  }).catch(function(){return {count:0, snippets:[], links:[]};});
-}
-
-// ── 3. Naver 쇼핑 교차 검증
+// Naver 쇼핑 교차 검증
 function naverShopCheck(keyword){
   return new Promise(function(resolve){
-    var qs='query='+encodeURIComponent(keyword)+'&display=10&sort=sim';
-    var t=setTimeout(function(){resolve(null);}, TIMEOUT);
+    var qs='query='+encodeURIComponent(keyword)+'&display=5&sort=sim';
+    var t=setTimeout(function(){resolve(null);},TIMEOUT);
     var req=https.request({
       hostname:'openapi.naver.com', path:'/v1/search/shop.json?'+qs, method:'GET',
       headers:{
         'X-Naver-Client-Id':     process.env.NAVER_CLIENT_ID,
         'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET
       }
-    }, function(res){
+    },function(res){
       var raw='';
       res.on('data',function(c){raw+=c;});
       res.on('end',function(){
@@ -126,7 +93,6 @@ function naverShopCheck(keyword){
             total:     Number(d.total||0),
             itemCount: items.length,
             minPrice:  items.length?Math.min.apply(null,items.map(function(i){return Number(i.lprice||i.price||0);})):0,
-            maxPrice:  items.length?Math.max.apply(null,items.map(function(i){return Number(i.lprice||i.price||0);})):0,
             topItems:  items.slice(0,3).map(function(i){
               return {
                 title: String(i.title||'').replace(/<[^>]+>/g,''),
@@ -145,24 +111,12 @@ function naverShopCheck(keyword){
   });
 }
 
-// ── 트래픽 파싱
-function parseTraffic(t){
-  if(!t) return 0;
-  var s=String(t).replace(/[,+\s]/g,'');
-  if(s.indexOf('만')>-1) return parseFloat(s)*10000;
-  if(/[Kk]/.test(s)) return parseFloat(s)*1000;
-  if(/[Mm]/.test(s)) return parseFloat(s)*1000000;
-  return parseInt(s)||0;
-}
-
-// ── 종합 점수
-function hotScore(trend, google, shop){
-  var trafficScore  = Math.min(parseTraffic(trend.traffic)/100000, 1)*30;  // 최대 30점
-  var googleScore   = google ? Math.min(google.count/10000000, 1)*30 : 0;  // 최대 30점
-  var shopScore     = shop   ? Math.min(shop.total/500000, 1)*20    : 0;   // 최대 20점
-  var itemScore     = shop   ? Math.min(shop.itemCount/10, 1)*10    : 0;   // 최대 10점
-  var priceScore    = (shop&&shop.minPrice>0) ? 10 : 0;                    // 최대 10점
-  return Math.round(trafficScore+googleScore+shopScore+itemScore+priceScore);
+function hotScore(ratio, surgeRate, shop){
+  var ratioScore  = Math.min(ratio/100, 1)*30;
+  var surgeScore  = surgeRate>=50?30:surgeRate>=20?20:surgeRate>=0?10:0;
+  var shopScore   = shop ? Math.min(shop.total/500000,1)*25 : 0;
+  var priceScore  = (shop&&shop.minPrice>0) ? 15 : 0;
+  return Math.round(ratioScore+surgeScore+shopScore+priceScore);
 }
 
 module.exports = async function(req, res){
@@ -170,7 +124,9 @@ module.exports = async function(req, res){
   res.setHeader('Access-Control-Allow-Methods','GET,OPTIONS');
   if(req.method==='OPTIONS') return res.status(200).end();
 
-  try{checkEnv();}catch(e){return res.status(500).json({error:e.message});}
+  if(!process.env.NAVER_CLIENT_ID||!process.env.NAVER_CLIENT_SECRET){
+    return res.status(500).json({error:'NAVER 환경변수 누락'});
+  }
 
   // 캐시
   if(CACHE.data&&(Date.now()-CACHE.ts<CACHE.TTL)){
@@ -178,54 +134,64 @@ module.exports = async function(req, res){
   }
 
   try{
-    // 1. Google Trends RSS
-    var trends = await fetchTrendsRSS();
+    // 1. 주요 카테고리 쇼핑인사이트 수집
+    var CATS = [
+      {id:'50000003', name:'디지털/가전'},
+      {id:'50000002', name:'화장품/미용'},
+      {id:'50000008', name:'생활/건강'},
+      {id:'50000007', name:'스포츠/레저'},
+      {id:'50000006', name:'식품'}
+    ];
 
-    // 디버그: RSS 실패 시 원본 확인용
-    if(!trends.length){
-      var debugRaw = await new Promise(function(resolve){
-        var t=setTimeout(function(){resolve('timeout');},TIMEOUT);
-        https.get({
-          hostname:'trends.google.com',
-          path:'/trending/rss?geo=KR',
-          headers:{'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-        },function(res){
-          var raw='', statusCode=res.statusCode;
-          res.on('data',function(c){raw+=c;});
-          res.on('end',function(){clearTimeout(t);resolve({status:statusCode,body:raw.slice(0,500)});});
-        }).on('error',function(e){clearTimeout(t);resolve('error:'+e.message);});
+    var catResults = await Promise.allSettled(
+      CATS.map(function(c){return fetchShoppingKeywords(c.id, c.name);})
+    );
+
+    // 2. 키워드 풀 구성 — 카테고리별 상위 급상승 3개
+    var pool = [];
+    catResults.forEach(function(r){
+      if(r.status!=='fulfilled') return;
+      var kws = r.value.keywords
+        .filter(function(k){return k.keyword&&k.ratio>0;})
+        .sort(function(a,b){return b.surgeRate-a.surgeRate;})
+        .slice(0,3);
+      kws.forEach(function(k){
+        pool.push({keyword:k.keyword, ratio:k.ratio, surgeRate:k.surgeRate, category:r.value.catName});
       });
-      return res.status(200).json({items:[],total:0,message:'Trends 데이터 없음',debug:debugRaw,updatedAt:new Date().toISOString()});
+    });
+
+    // 풀이 비면 CAT_SEEDS 폴백
+    if(!pool.length){
+      var FALLBACK = ['무선이어폰','로봇청소기','선크림','마사지건','단백질쉐이크','요가매트','에어프라이어','스마트워치'];
+      FALLBACK.forEach(function(kw){pool.push({keyword:kw, ratio:50, surgeRate:0, category:'일반'});});
     }
 
-    var targets = trends.slice(0,15);
-
-    // 2. Google Search + Naver 병렬 (동시 3개)
-    var results=[], i=0;
-    while(i<targets.length){
-      var batch=targets.slice(i,i+3);
-      var batchRes=await Promise.allSettled(batch.map(async function(t){
-        var google = await googleSearch(t.keyword);
-        var shop   = await naverShopCheck(t.keyword);
-        return {trend:t, google:google, shop:shop};
+    // 3. Naver 쇼핑 교차 검증 (동시 3개)
+    var results = [];
+    for(var i=0;i<pool.length;i+=3){
+      var batch = pool.slice(i,i+3);
+      var batchRes = await Promise.allSettled(batch.map(function(item){
+        return naverShopCheck(item.keyword).then(function(shop){
+          return {item:item, shop:shop};
+        });
       }));
       batchRes.forEach(function(r){
         if(r.status!=='fulfilled') return;
-        var v=r.value, score=hotScore(v.trend, v.google, v.shop);
+        var v=r.value, score=hotScore(v.item.ratio, v.item.surgeRate, v.shop);
         results.push({
-          keyword:  v.trend.keyword,
-          traffic:  v.trend.traffic,
+          keyword:  v.item.keyword,
+          category: v.item.category,
+          ratio:    v.item.ratio,
+          surgeRate:v.item.surgeRate,
+          traffic:  v.item.surgeRate>0?'+'+v.item.surgeRate+'%':'–',
           score:    score,
           grade:    score>=70?'A':score>=50?'B':'C',
           label:    score>=70?'🔥 핫':score>=50?'📈 상승':'🆕 신규',
-          google:   v.google,
           shop:     v.shop
         });
       });
-      i+=3;
     }
 
-    // 3. 쇼핑 데이터 있는 것만, 점수순
     results = results
       .filter(function(r){return r.shop&&r.shop.itemCount>0;})
       .sort(function(a,b){return b.score-a.score;})
@@ -233,7 +199,7 @@ module.exports = async function(req, res){
 
     var data={
       items:results, total:results.length,
-      trendCount:trends.length,
+      trendCount:pool.length,
       updatedAt:new Date().toISOString(),
       fromCache:false
     };
