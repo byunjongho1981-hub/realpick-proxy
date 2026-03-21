@@ -124,11 +124,16 @@ async function fetchTikTok(keyword){
     'x-rapidapi-host': host
   };
 
+  // Search 엔드포인트
   var r = await httpGet(host,
-    '/search/keyword?keyword='+encodeURIComponent(keyword)+'&count=20', headers);
+    '/search?keyword='+encodeURIComponent(keyword)+'&cursor=0', headers);
+  if(!r||r.status!==200||!r.data){
+    // fallback: Trends 엔드포인트
+    r = await httpGet(host, '/trending?region=KR', headers);
+  }
   if(!r||r.status!==200||!r.data) return {ok:false, error:'TikTok API 실패 '+(r?r.status:'timeout')};
 
-  var items = r.data.data||r.data.item_list||r.data.videos||r.data.result||[];
+  var items = r.data.data||r.data.item_list||r.data.videos||r.data.result||r.data.items||[];
   if(!Array.isArray(items)||!items.length) return {ok:true, videoCount:0, avgViews:0, shortRatio:0};
 
   var totalViews=0, shorts=0;
