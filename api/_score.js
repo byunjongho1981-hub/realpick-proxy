@@ -28,26 +28,18 @@ function calcCommercialScore(kw, result, intent){
 // ── ★ 쇼핑인사이트 점수 계산 (신규) ─────────────────────────
 // 기존 점수와 별도로 +15점 보너스 풀로 운영
 function calcShoppingInsightScore(si){
-  if(!si) return { score:0, label:'데이터없음', detail:'' };
+  if(!si) return { score:0, label:null, detail:'' };
 
   var s = 0;
-
-  // 1. 클릭 급상승률 (0~6점)
   var cs = si.clickSurge || 0;
   var surgeScore = cs>=50?6 : cs>=30?5 : cs>=15?4 : cs>=5?2 : cs>=-10?1 : 0;
   s += surgeScore;
-
-  // 2. 단기 가속도 (0~4점) — 최근 3일 클릭 가속
   var ca = si.clickAccel || 0;
   var accelScore = ca>=30?4 : ca>=15?3 : ca>=5?2 : ca>0?1 : 0;
   s += accelScore;
-
-  // 3. 지속성 (0~3점) — 꾸준히 클릭되는지
   var cd = si.clickDurability || 0;
   var durScore = cd>=70?3 : cd>=50?2 : cd>=30?1 : 0;
   s += durScore;
-
-  // 4. 현재 클릭 강도 (0~2점)
   var cr = si.currentRatio || 0;
   var ratioScore = cr>=80?2 : cr>=50?1 : 0;
   s += ratioScore;
@@ -55,7 +47,7 @@ function calcShoppingInsightScore(si){
   var label =
     si.shopTrend==='hot'    ? '🔥 쇼핑 급상승' :
     si.shopTrend==='rising' ? '📈 쇼핑 상승중' :
-    si.shopTrend==='stable' ? '➡️ 쇼핑 안정' : '📉 쇼핑 하락';
+    si.shopTrend==='stable' ? '➡️ 쇼핑 안정'  : '📉 쇼핑 하락';
 
   var detail = '클릭변화 '+(cs>=0?'+':'')+cs+'% | 가속 '+(ca>=0?'+':'')+ca+'% | 지속 '+cd+'%';
 
