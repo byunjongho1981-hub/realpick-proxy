@@ -549,14 +549,14 @@ module.exports = async function(req, res) {
     var ytMap={}, dlMap={}, siMap={};
     for (var j=0; j<topKws.length; j++) {
       var kw = topKws[j];
-      var phase2res = await Promise.all([
+      var p2res = await Promise.all([
         analyzeYouTube(kw),
         analyzeDatalab(kw),
         analyzeShopping_Insight(kw)
       ]);
-      ytMap[kw] = phase2res[0];
-      dlMap[kw] = phase2res[1];
-      siMap[kw] = phase2res[2];
+      ytMap[kw] = p2res[0];
+      dlMap[kw] = p2res[1];
+      siMap[kw] = p2res[2];
       if (j < topKws.length-1) await sleep(200);
     }
 
