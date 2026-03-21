@@ -546,6 +546,28 @@ function onPeriod(el){document.querySelectorAll('[data-period]').forEach(functio
 function onDepth(el){document.querySelectorAll('[data-depth]').forEach(function(b){b.classList.remove('on');});el.classList.add('on');S.depth=Number(el.dataset.depth);}
 function onFilter(el,val){document.querySelectorAll('[data-f]').forEach(function(b){b.classList.remove('on');});el.classList.add('on');S.filterStatus=val;S.selected=null;applySort();renderTable();renderDetail();renderQL();}
 function onSort(val){S.sortBy=val;applySort();renderTable();}
+
+// 페이지 로드 시 이전 결과 복원
+(function restoreResult(){
+  try{
+    var saved = localStorage.getItem('realpick_trend_result');
+    if(!saved) return;
+    var d = JSON.parse(saved);
+    if(!d||!Array.isArray(d.candidates)||!d.candidates.length) return;
+    S.catId     = d.catId  || S.catId;
+    S.mode      = d.mode   || S.mode;
+    S.period    = d.period || S.period;
+    // 카테고리 버튼 상태 복원
+    document.querySelectorAll('[data-cat]').forEach(function(b){
+      b.classList.toggle('on', b.dataset.cat===S.catId);
+    });
+    document.querySelectorAll('[data-period]').forEach(function(b){
+      b.classList.toggle('on', b.dataset.period===S.period);
+    });
+    handleResult(d);
+    showToast('📦 이전 탐색 결과 복원됨');
+  }catch(e){}
+})();
 </script>
 </body>
 </html>
