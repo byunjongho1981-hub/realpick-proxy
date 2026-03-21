@@ -308,7 +308,45 @@ function makeSummary(name, score, trend, intent){
   };
 }
 
-function buildCandidateFromResult(kw, result, maxTotal, intentOverride, velocity){
+function buildReason(kw, score, trend, velocity, intent){
+  var reasons = [];
+
+  // 트렌드 상승
+  if(trend.status==='rising') reasons.push('검색량 급증 중');
+  else if(trend.status==='stable') reasons.push('검색량 안정적 유지');
+
+  // 상승률
+  if(velocity){
+    if(velocity.surgeRate>=50)       reasons.push('최근 50%+ 급상승');
+    else if(velocity.surgeRate>=20)  reasons.push('최근 20%+ 상승 중');
+    if(velocity.accel>=20)           reasons.push('상승 가속도 높음');
+    if(velocity.durability>=70)      reasons.push('장기 유지력 강함');
+    else if(velocity.durability<40)  reasons.push('단기 급등형 (빠른 제작 필요)');
+  }
+
+  // 쇼핑 데이터
+  if(score.breakdown.shopping>=30)   reasons.push('쇼핑 연계 강함');
+  else if(score.breakdown.shopping>=15) reasons.push('쇼핑 데이터 존재');
+
+  // 판매처 다양성 (mallScore = blog)
+  if(score.breakdown.blog>=25)       reasons.push('다수 판매처 경쟁 중');
+
+  // 구매 의도
+  if(intent==='buy')                 reasons.push('구매 의도 키워드 포함');
+  else if(intent==='compare')        reasons.push('비교 탐색 수요 높음');
+  else if(intent==='review')         reasons.push('후기 수요 활발');
+  else if(intent==='season')         reasons.push('시즌성 수요 감지');
+  else if(intent==='solve')          reasons.push('문제 해결형 수요');
+
+  // 등급
+  if(score.grade==='A'&&score.confidence==='high') reasons.push('고신뢰 A등급');
+
+  // 비어있으면 기본
+  if(!reasons.length) reasons.push('데이터 부족으로 추가 관찰 필요');
+
+  return reasons.slice(0,3).join(' · ');
+}
+
   var score  = calcScore(result, maxTotal, velocity);
   var trend  = judgeT(result.totalCount);
   var intent = intentOverride || detectIntent(kw);
