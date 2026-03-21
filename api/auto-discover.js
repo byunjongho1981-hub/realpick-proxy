@@ -43,7 +43,7 @@ function buildCandidate(kw, result, maxTotal, intentOverride, velocity){
   };
 }
 
-async function discoverCategory(catId){
+async function discoverCategory(catId, period){
   var kws=CFG.CAT_SEEDS[catId]||CFG.CAT_SEEDS['50000003'];
   var res=await Promise.allSettled(kws.map(function(kw){return FETCH.shopSearch(kw,null);}));
   var valid=[];
@@ -63,7 +63,7 @@ async function discoverCategory(catId){
   var vMap={};
   await Promise.allSettled(
     valid.slice(0,20).sort(function(a,b){return b.result.totalCount-a.result.totalCount;})
-    .map(async function(v){vMap[v.kw]=await FETCH.fetchVelocity(v.kw);})
+    .map(async function(v){vMap[v.kw]=await FETCH.fetchVelocity(v.kw, period);})
   );
 
   var candidates=valid.map(function(v){
@@ -153,7 +153,7 @@ module.exports=async function(req,res){
       // ★ 카테고리별 캐시 적용
       var cachedCat=getCacheCat(catId,period);
       if(cachedCat){cachedCat.fromCache=true;cachedCat.cacheAge=Math.round((Date.now()-CACHE_CAT[catId+'_'+period].ts)/1000)+'초 전';return res.status(200).json(cachedCat);}
-      var cr=await discoverCategory(catId);
+      var cr=await discoverCategory(catId, period);
       var catResult={candidates:cr.candidates, clusters:ANALYZE.clusterCandidates(cr.candidates), mode:mode, categoryId:catId, categoryName:CFG.CAT_NAMES[catId]||catId, period:period, total:cr.candidates.length, apiStatus:cr.apiStatus, updatedAt:new Date().toISOString(), fromCache:false};
       setCacheCat(catId, period, catResult);
       return res.status(200).json(catResult);
