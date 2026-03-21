@@ -157,23 +157,30 @@ var STATE = {items:[], filtered:[], filter:'all', sort:'score', loading:false, l
 function fetchHot(){
   if(STATE.loading) return;
   STATE.loading=true;
-  setStatus('loading','🔥 Google Trends + 네이버 쇼핑 분석 중...');
+  setStatus('loading','🔥 분석 중... (10~20초 소요)');
   showErr(null);
   document.getElementById('btn-fetch').disabled=true;
+  document.getElementById('result-area').innerHTML='<div class="center-box"><div class="spinner"></div><div style="font-size:13px;color:#64748b">Google Trends + 네이버 쇼핑 교차 분석 중...</div></div>';
 
   fetch('/api/google-hot')
-    .then(function(r){return r.json();})
+    .then(function(r){
+      if(!r.ok) return r.json().then(function(d){throw new Error('['+r.status+'] '+(d.error||d.detail||'서버 오류'));});
+      return r.json();
+    })
     .then(function(d){
-      if(d.error) throw new Error(d.error);
+      if(d.error) throw new Error(d.detail?d.error+' — '+d.detail:d.error);
       STATE.items       = d.items||[];
       STATE.lastUpdated = d.updatedAt;
       STATE.fromCache   = d.fromCache||false;
       applyFilter();
-      setStatus('ok','✅ '+STATE.items.length+'개 제품 분석 완료'+(d.googleTrendCount?' (Google 트렌드 '+d.googleTrendCount+'개 중 '+d.filteredCount+'개 선별)':''));
-      if(d.fromCache) document.getElementById('cache-txt').textContent='📦 캐시 ('+d.cacheAge+')';
-      else            document.getElementById('cache-txt').textContent='';
+      setStatus('ok','✅ '+STATE.items.length+'개 제품 분석 완료 (트렌드 '+d.trendCount+'개 처리)');
+      document.getElementById('cache-txt').textContent = d.fromCache?'📦 캐시 ('+d.cacheAge+')':'';
     })
-    .catch(function(e){showErr(e.message);setStatus('err','오류 발생');})
+    .catch(function(e){
+      showErr(e.message);
+      setStatus('err','오류 발생');
+      document.getElementById('result-area').innerHTML='<div class="center-box"><div style="font-size:32px">⚠️</div><div style="font-size:13px;color:#dc2626">'+e.message+'</div></div>';
+    })
     .finally(function(){STATE.loading=false;document.getElementById('btn-fetch').disabled=false;});
 }
 
