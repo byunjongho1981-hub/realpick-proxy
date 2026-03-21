@@ -21,11 +21,13 @@ function checkEnv(){
   if(miss.length) throw new Error('환경변수 누락: '+miss.join(', '));
 }
 
-function buildCandidate(kw, result, maxTotal, intentOverride, velocity){
+function buildCandidate(kw, result, maxTotal, intentOverride, velocity, shoppingInsight){
   var intent     = intentOverride||ANALYZE.detectIntent(kw);
   var commercial = SCORE.calcCommercialScore(kw, result, intent);
-  var score      = SCORE.calcScore(result, maxTotal, velocity, commercial);
-  var trend      = SCORE.judgeT(result.totalCount);
+  // ★ shoppingInsight를 calcScore에 전달
+  var score      = SCORE.calcScore(result, maxTotal, velocity, commercial, shoppingInsight||null);
+  // ★ 쇼핑인사이트 포함 트렌드 판정
+  var trend      = SCORE.judgeTWithInsight(result.totalCount, shoppingInsight||null);
   var base       = ANALYZE.makeSummary(kw, score, trend, intent);
   var action     = velocity?SCORE.velocityAction(velocity, base.action):base.action;
   var samples    = [];
@@ -36,6 +38,10 @@ function buildCandidate(kw, result, maxTotal, intentOverride, velocity){
     intent:intent, intentLabel:ANALYZE.INTENT_LABEL[intent]||'–',
     commercial:commercial,
     velocity:velocity||null, velocityLabel:SCORE.velocityLabel(velocity),
+    // ★ 쇼핑인사이트 데이터
+    shoppingInsight: shoppingInsight||null,
+    insightLabel:    score.insightLabel||null,
+    insightDetail:   score.insightDetail||null,
     reason:ANALYZE.buildReason(kw, score, trend, velocity, intent),
     score:score, trend:trend,
     summary:base.summary, action:action,
@@ -135,12 +141,19 @@ async function discoverSeed(seedKw){
   }
   if(!valid.length) return {candidates:[], apiStatus:{search:'결과 없음'}};
   var maxTotal=valid.reduce(function(m,v){return Math.max(m,v.result.totalCount);},0)||40;
-  var vMap={};
+  var vMap={}, siMap={};
   await Promise.allSettled(
     valid.slice().sort(function(a,b){return b.result.totalCount-a.result.totalCount;}).slice(0,5)
-    .map(async function(v){vMap[v.kw]=await FETCH.fetchVelocity(v.kw);})
+    .map(async function(v){
+      var [vel, si] = await Promise.all([
+        FETCH.fetchVelocity(v.kw, period),
+        FETCH.fetchShoppingInsight(v.kw, period)
+      ]);
+      vMap[v.kw]  = vel;
+      siMap[v.kw] = si;
+    })
   );
-  var candidates=valid.map(function(v){return buildCandidate(v.kw, v.result, maxTotal, v.intent, vMap[v.kw]||null);});
+  var candidates=valid.map(function(v){return buildCandidate(v.kw, v.result, maxTotal, v.intent, vMap[v.kw]||null, siMap[v.kw]||null);});
   candidates.sort(function(a,b){return b.score.totalScore-a.score.totalScore;});
   return {candidates:candidates.slice(0,50), apiStatus:{search:valid.length+'/'+unique.length+' 성공'}};
 }
