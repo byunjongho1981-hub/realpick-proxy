@@ -130,27 +130,48 @@ function fetchVelocity(keyword, period){
 }
 
 // ── 쇼핑인사이트 클릭트렌드 ──────────────────────────────────
+// ── 쇼핑인사이트: 키워드→카테고리ID 매핑 후 호출 ─────────────
+var _kwCatMap = null;
+function getKwCatMap(){
+  if(_kwCatMap) return _kwCatMap;
+  _kwCatMap = {};
+  try {
+    var CFG2 = require('./_config');
+    Object.keys(CFG2.CAT_SEEDS||{}).forEach(function(catId){
+      (CFG2.CAT_SEEDS[catId]||[]).forEach(function(kw){
+        if(!_kwCatMap[kw]) _kwCatMap[kw] = catId;
+      });
+    });
+  } catch(e) {}
+  return _kwCatMap;
+}
+
 function fetchShoppingInsight(keyword, period){
   var totalDays = period==='today'?4 : period==='month'?60 : 14;
   var timeUnit  = period==='month'?'week':'date';
+
+  // 키워드에 해당하는 카테고리 ID 찾기
+  var kwMap = getKwCatMap();
+  var catId = kwMap[keyword] || '50000003'; // 없으면 디지털/가전 기본값
+
   var body={
     startDate: fmtDate(agoDate(totalDays+1)),
     endDate:   fmtDate(agoDate(1)),
     timeUnit:  timeUnit,
-    category:  [{name: keyword, param: [keyword]}],
+    category:  [{name: keyword, param: [catId]}],
     device:    '',
     gender:    '',
     ages:      []
   };
+
   return httpPost('/v1/datalab/shopping/categories', body)
     .then(function(d){
       if(d.errorCode){
-        console.error('[insight error]', keyword, d.errorCode, d.errorMessage);
+        console.error('[insight error]', keyword, catId, d.errorCode, d.errorMessage);
         return null;
       }
-      // ★ 디버그 로그
       var pts=((d.results||[])[0]||{}).data||[];
-      console.log('[insight]', keyword, 'pts:', pts.length, 'results:', (d.results||[]).length, 'raw:', JSON.stringify(d).slice(0,200));
+      console.log('[insight]', keyword, 'catId:', catId, 'pts:', pts.length);
       if(pts.length<4) return null;
       var h=Math.floor(pts.length/2), prev=pts.slice(0,h), curr=pts.slice(h);
       var avg=function(a){return a.reduce(function(s,p){return s+safeNum(p.ratio);},0)/(a.length||1);};
