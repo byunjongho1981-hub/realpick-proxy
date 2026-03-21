@@ -455,7 +455,23 @@ function renderTable(){
           +'</div>'
         +'</div>'
       +'</td>'
-    +'</tr>';
+    +'</tr>'
+    // ★ 선택 시 인라인 바로가기 행
+    +(isSel
+      ?'<tr style="background:#f0f4ff"><td colspan="11" style="padding:8px 18px 12px 24px">'
+        +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
+        +'<span style="font-size:10px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.8px;margin-right:4px">바로가기</span>'
+        +'<button onclick="goHot(\''+c.name+'\')" style="display:inline-flex;align-items:center;gap:3px;padding:5px 11px;background:#fef2f2;border:1.5px solid #fecaca;border-radius:7px;font-size:12px;font-weight:700;color:#ef4444;cursor:pointer">🔥 지금뜨는제품</button>'
+        +'<button class="ql-fetch-btn" onclick="qlFetch(\'shop\',\''+c.name+'\','+i+')" style="display:inline-flex;align-items:center;gap:4px;padding:5px 11px;background:#fff;border:1.5px solid var(--bdr);border-radius:7px;font-size:12px;font-weight:600;color:#475569;cursor:pointer">🛒 네이버 쇼핑</button>'
+        +'<button class="ql-fetch-btn" onclick="qlFetch(\'blog\',\''+c.name+'\','+i+')" style="display:inline-flex;align-items:center;gap:4px;padding:5px 11px;background:#fff;border:1.5px solid var(--bdr);border-radius:7px;font-size:12px;font-weight:600;color:#475569;cursor:pointer">📝 네이버 블로그</button>'
+        +'<a href="https://www.coupang.com/np/search?q='+encodeURIComponent(c.name)+'" target="_blank" rel="noopener" class="ql-btn">🟡 쿠팡</a>'
+        +'<a href="https://www.youtube.com/results?search_query='+encodeURIComponent(c.name+' 추천')+'" target="_blank" rel="noopener" class="ql-btn">▶️ 유튜브</a>'
+        +'<a href="https://www.tiktok.com/search?q='+encodeURIComponent(c.name)+'" target="_blank" rel="noopener" class="ql-btn">🎵 틱톡</a>'
+        +'<a href="https://www.instagram.com/explore/tags/'+encodeURIComponent(c.name.replace(/\s+/g,''))+'" target="_blank" rel="noopener" class="ql-btn">📸 인스타</a>'
+        +'</div>'
+        +'<div id="ql-result-'+i+'" style="margin-top:6px"></div>'
+      +'</td></tr>'
+      :'');
     return row;
   }).join('');
 }
