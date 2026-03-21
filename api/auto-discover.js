@@ -3,7 +3,7 @@ var FETCH   = require('./_fetch');
 var SCORE   = require('./_score');
 var ANALYZE = require('./_analyze');
 
-var TTL = 1*60*1000; // 1분 (테스트용, 이후 5분으로 복원 가능)
+var TTL = 5*60*1000;
 
 var CACHE_ALL = {};
 var CACHE_CAT = {};
@@ -59,19 +59,19 @@ async function discoverCategory(catId, period){
 
   // velocity + 쇼핑인사이트: 상위 5개만 호출 (API 한도 절약)
   var vMap={}, siMap={};
-  var top15 = valid.slice(0,20)
+  var top10 = valid.slice(0,20)
     .sort(function(a,b){return b.result.totalCount-a.result.totalCount;})
-    .slice(0,15);
+    .slice(0,10);
 
-  for(var vi=0; vi<top15.length; vi++){
-    var v = top15[vi];
+  for(var vi=0; vi<top10.length; vi++){
+    var v = top10[vi];
     var res2 = await Promise.all([
       FETCH.fetchVelocity(v.kw, period),
       FETCH.fetchShoppingInsight(v.kw, period)
     ]);
     vMap[v.kw]  = res2[0];
     siMap[v.kw] = res2[1];
-    if(vi < top15.length-1) await new Promise(function(r){setTimeout(r,200);});
+    if(vi < top10.length-1) await new Promise(function(r){setTimeout(r,200);});
   }
 
   var candidates=valid.map(function(v){
@@ -110,16 +110,16 @@ async function discoverAll(){
 
   // ★ 전체 탐색도 상위 5개 velocity + 쇼핑인사이트 수집
   var vMap={}, siMap={};
-  var top15pool = pool.slice().sort(function(a,b){return b.result.totalCount-a.result.totalCount;}).slice(0,15);
-  for(var pi=0; pi<top15pool.length; pi++){
-    var pv = top15pool[pi];
+  var top10pool = pool.slice().sort(function(a,b){return b.result.totalCount-a.result.totalCount;}).slice(0,10);
+  for(var pi=0; pi<top10pool.length; pi++){
+    var pv = top10pool[pi];
     var pres = await Promise.all([
       FETCH.fetchVelocity(pv.kw, 'week'),
       FETCH.fetchShoppingInsight(pv.kw, 'week')
     ]);
     vMap[pv.kw]  = pres[0];
     siMap[pv.kw] = pres[1];
-    if(pi < top15pool.length-1) await new Promise(function(r){setTimeout(r,200);});
+    if(pi < top10pool.length-1) await new Promise(function(r){setTimeout(r,200);});
   }
 
   var candidates=pool.map(function(v){
@@ -159,16 +159,16 @@ async function discoverSeed(seedKw, period){
   var maxTotal=valid.reduce(function(m,v){return Math.max(m,v.result.totalCount);},0)||40;
 
   var vMap={}, siMap={};
-  var top15seed = valid.slice().sort(function(a,b){return b.result.totalCount-a.result.totalCount;}).slice(0,15);
-  for(var si2=0; si2<top15seed.length; si2++){
-    var sv = top15seed[si2];
+  var top10seed = valid.slice().sort(function(a,b){return b.result.totalCount-a.result.totalCount;}).slice(0,10);
+  for(var si2=0; si2<top10seed.length; si2++){
+    var sv = top10seed[si2];
     var sres = await Promise.all([
       FETCH.fetchVelocity(sv.kw, period),
       FETCH.fetchShoppingInsight(sv.kw, period)
     ]);
     vMap[sv.kw]  = sres[0];
     siMap[sv.kw] = sres[1];
-    if(si2 < top15seed.length-1) await new Promise(function(r){setTimeout(r,200);});
+    if(si2 < top10seed.length-1) await new Promise(function(r){setTimeout(r,200);});
   }
 
   var candidates=valid.map(function(v){
