@@ -8,12 +8,14 @@
     *{box-sizing:border-box;margin:0;padding:0}
     body{background:#f0f4ff;color:#1e293b;font-family:'Noto Sans KR',sans-serif;min-height:100vh;display:flex;flex-direction:column}
     nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,0.85);backdrop-filter:blur(12px);border-bottom:1px solid #e2e8f0;height:60px;display:flex;align-items:center;padding:0 32px;gap:0}
-    .nav-logo{font-size:18px;font-weight:900;color:#6366f1;letter-spacing:-0.5px;margin-right:36px;white-space:nowrap}
+    .nav-logo{font-size:18px;font-weight:900;color:#6366f1;letter-spacing:-0.5px;margin-right:36px;white-space:nowrap;text-decoration:none}
     .nav-logo span{color:#1e293b}
     .nav-links{display:flex;gap:4px}
     .nav-link{padding:7px 16px;border-radius:8px;font-size:13px;font-weight:500;color:#64748b;cursor:pointer;border:none;background:transparent;transition:all .15s;text-decoration:none;display:inline-block}
     .nav-link:hover{background:#f1f5f9;color:#1e293b}
     .nav-link.active{background:#6366f1;color:#fff;font-weight:700}
+    .nav-link.hot{color:#ef4444;font-weight:700}
+    .nav-link.hot:hover{background:#fef2f2}
     .nav-right{margin-left:auto;display:flex;align-items:center;gap:8px}
     .nav-badge{background:#6366f1;color:#fff;font-size:10px;padding:3px 10px;border-radius:20px;font-weight:700}
     .layout{display:flex;flex:1;margin-top:60px;min-height:calc(100vh - 60px)}
@@ -39,8 +41,9 @@
     .hero-text p{font-size:13px;color:#64748b;line-height:1.7;max-width:420px}
     .hero-icon{font-size:56px;margin-left:auto;flex-shrink:0}
     .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px}
-    .card{background:#fff;border-radius:16px;padding:24px;border:1px solid #e2e8f0;cursor:pointer;transition:all .2s}
+    .card{background:#fff;border-radius:16px;padding:24px;border:1px solid #e2e8f0;cursor:pointer;transition:all .2s;text-decoration:none;display:block;color:inherit}
     .card:hover{border-color:#6366f1;box-shadow:0 4px 20px #6366f120;transform:translateY(-2px)}
+    .card.hot-card:hover{border-color:#ef4444;box-shadow:0 4px 20px #ef444420}
     .card-icon{font-size:26px;margin-bottom:14px}
     .card-title{font-size:14px;font-weight:700;color:#1e293b;margin-bottom:6px}
     .card-desc{font-size:12px;color:#94a3b8;line-height:1.6}
@@ -53,13 +56,13 @@
 </head>
 <body>
   <nav>
-    <div class="nav-logo">Real<span>Pick</span></div>
+    <a class="nav-logo" href="/index.html">Real<span>Pick</span></a>
     <div class="nav-links">
-      <a class="nav-link active" href="#">🏠 홈</a>
-      <a class="nav-link" href="#">🔍 트렌드 탐색</a>
-      <a class="nav-link" href="/hot.html" style="color:#ef4444;font-weight:700">🔥 지금 뜨는 제품</a>
-      <a class="nav-link" href="#">⚡ AI 추천</a>
-      <a class="nav-link" href="#">🗂 데이터 뷰</a>
+      <a class="nav-link active" href="/index.html">🏠 홈</a>
+      <a class="nav-link" href="/trend.html">🔍 트렌드 탐색</a>
+      <a class="nav-link hot" href="/hot.html">🔥 지금 뜨는 제품</a>
+      <a class="nav-link" href="/ai.html">⚡ AI 추천</a>
+      <a class="nav-link" href="/data.html">🗂 데이터 뷰</a>
     </div>
     <div class="nav-right">
       <span class="nav-badge">BETA</span>
@@ -115,24 +118,24 @@
 
       <div class="section-label">Features</div>
       <div class="grid">
-        <div class="card">
+        <a class="card" href="/trend.html">
           <div class="card-icon">🔍</div>
           <div class="card-title">트렌드 탐색</div>
           <div class="card-desc">카테고리별 인기 키워드와 검색 트렌드를 시각화합니다.</div>
-          <span class="card-tag" style="background:#6366f111;color:#6366f1">준비 중</span>
-        </div>
-        <div class="card">
+          <span class="card-tag" style="background:#6366f111;color:#6366f1">바로가기 →</span>
+        </a>
+        <a class="card hot-card" href="/hot.html">
+          <div class="card-icon">🔥</div>
+          <div class="card-title">지금 뜨는 제품</div>
+          <div class="card-desc">Google 실시간 트렌드 × 네이버 쇼핑 교차 검증으로 핫한 제품을 찾습니다.</div>
+          <span class="card-tag" style="background:#ef444411;color:#ef4444">바로가기 →</span>
+        </a>
+        <a class="card" href="/ai.html">
           <div class="card-icon">⚡</div>
           <div class="card-title">AI 추천</div>
           <div class="card-desc">6조건 필터 + 가속도 스코어링으로 TOP 3 제품을 선정합니다.</div>
           <span class="card-tag" style="background:#f59e0b11;color:#f59e0b">준비 중</span>
-        </div>
-        <div class="card">
-          <div class="card-icon">🗂</div>
-          <div class="card-title">데이터 뷰</div>
-          <div class="card-desc">수집된 키워드와 쇼핑 비율 이력을 테이블로 확인합니다.</div>
-          <span class="card-tag" style="background:#22d3ee11;color:#22d3ee">준비 중</span>
-        </div>
+        </a>
       </div>
 
       <div class="section-label">System Status</div>
