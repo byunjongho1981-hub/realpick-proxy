@@ -57,18 +57,22 @@ async function discoverCategory(catId, period){
 
   var maxTotal=valid.reduce(function(m,v){return Math.max(m,v.result.totalCount);},0)||40;
 
+  // velocity + 쇼핑인사이트: 상위 5개만 호출 (API 한도 절약)
   var vMap={}, siMap={};
-  await Promise.allSettled(
-    valid.slice(0,20).sort(function(a,b){return b.result.totalCount-a.result.totalCount;})
-    .map(async function(v){
-      var results = await Promise.all([
-        FETCH.fetchVelocity(v.kw, period),
-        FETCH.fetchShoppingInsight(v.kw, period)
-      ]);
-      vMap[v.kw]  = results[0];
-      siMap[v.kw] = results[1];
-    })
-  );
+  var top5 = valid.slice(0,20)
+    .sort(function(a,b){return b.result.totalCount-a.result.totalCount;})
+    .slice(0,5);
+
+  for(var vi=0; vi<top5.length; vi++){
+    var v = top5[vi];
+    var res2 = await Promise.all([
+      FETCH.fetchVelocity(v.kw, period),
+      FETCH.fetchShoppingInsight(v.kw, period)
+    ]);
+    vMap[v.kw]  = res2[0];
+    siMap[v.kw] = res2[1];
+    if(vi < top5.length-1) await new Promise(function(r){setTimeout(r,200);});
+  }
 
   var candidates=valid.map(function(v){
     return buildCandidate(v.kw, v.result, maxTotal, null, vMap[v.kw]||null, siMap[v.kw]||null);
