@@ -364,18 +364,19 @@ function buildSampleHtml(c){
     });
     html += '</div></div>';
 
-    // setTimeout으로 DOM 생성 후 이벤트 바인딩
-    setTimeout(function(id){
-      var hdr  = document.getElementById(id+'_hdr');
-      var body = document.getElementById(id+'_body');
-      var arr  = document.getElementById(id+'_arr');
-      if(!hdr||!body) return;
-      hdr.addEventListener('click', function(){
-        var open = body.style.display==='none';
-        body.style.display = open?'block':'none';
-        if(arr) arr.textContent = open?'▲':'▼';
-      });
-    }, 0, uid);
+    (function(id){
+      setTimeout(function(){
+        var hdr  = document.getElementById(id+'_hdr');
+        var body = document.getElementById(id+'_body');
+        var arr  = document.getElementById(id+'_arr');
+        if(!hdr||!body) return;
+        hdr.addEventListener('click', function(){
+          var open = body.style.display==='none';
+          body.style.display = open?'block':'none';
+          if(arr) arr.textContent = open?'▲':'▼';
+        });
+      }, 50);
+    })(uid);
   });
   return html;
 }
