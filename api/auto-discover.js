@@ -35,9 +35,137 @@ var CAT_SEEDS = {
   '50000014':['캐리어','여행파우치','목베개','숙박권','여행보험','여권지갑','트래블파우치','캐리어커버','휴대용세면도구','여행용멀티어댑터','스노쿨링세트','선글라스','모기퇴치제','여행용잠금장치','캠핑용품','비행기베개','수하물저울','여행용화장품','가이드북','여행용우산']
 };
 
+// ── 키워드 의도 분류
+var INTENT_SUFFIXES = {
+  buy:     ['추천','순위','best','구매','싸게','가격'],
+  compare: ['비교','차이','vs','어떤게좋아','추천비교'],
+  review:  ['후기','리뷰','사용법','사용후기','솔직후기'],
+  solve:   ['효과','부작용','원인','방법','해결'],
+  season:  ['어버이날','크리스마스','여름','겨울','환절기','선물세트']
+};
+
+var INTENT_LABEL = {
+  buy:'🛒 구매형', compare:'🔄 비교형', review:'📝 후기형', solve:'💡 문제해결형', season:'🎁 시즌형', none:'–'
+};
+
+var INTENT_ACTION = {
+  buy:'shorts', compare:'blog', review:'blog', solve:'blog', season:'shorts', none:'compare'
+};
+
+function detectIntent(keyword){
+  var kw = keyword.toLowerCase();
+  var types = Object.keys(INTENT_SUFFIXES);
+  for(var i=0;i<types.length;i++){
+    var suffs = INTENT_SUFFIXES[types[i]];
+    for(var j=0;j<suffs.length;j++){
+      if(kw.indexOf(suffs[j])>-1) return types[i];
+    }
+  }
+  return 'none';
+}
+
+function expandIntentKeywords(baseKw){
+  var expanded = [{kw:baseKw, intent:'none'}];
+  var types = Object.keys(INTENT_SUFFIXES);
+  for(var i=0;i<types.length;i++){
+    var suff = INTENT_SUFFIXES[types[i]][0];
+    expanded.push({kw:baseKw+' '+suff, intent:types[i]});
+  }
+  return expanded;
+}
+
 var CACHE = { data:null, ts:0, TTL:5*60*1000 };
 function getCache(){ return CACHE.data&&(Date.now()-CACHE.ts<CACHE.TTL)?CACHE.data:null; }
 function setCache(d){ CACHE.data=d; CACHE.ts=Date.now(); }
+
+// ── 증가 속도 분석 (Naver Datalab)
+function fetchVelocity(keyword){
+  var now = new Date();
+  var pad = function(n){return String(n).padStart(2,'0');};
+  var fmt = function(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());};
+  var daysAgo = function(n){var d=new Date(now);d.setDate(d.getDate()-n);return d;};
+
+  // 현재 7일 vs 이전 7일 비교
+  var body = JSON.stringify({
+    startDate: fmt(daysAgo(13)),
+    endDate:   fmt(now),
+    timeUnit:  'date',
+    keywordGroups:[{groupName:keyword, keywords:[keyword]}]
+  });
+
+  return new Promise(function(resolve){
+    var timer = setTimeout(function(){resolve(null);}, TIMEOUT);
+    var req = https.request({
+      hostname:'openapi.naver.com', path:'/v1/datalab/search', method:'POST',
+      headers:{
+        'X-Naver-Client-Id':     process.env.NAVER_CLIENT_ID,
+        'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET,
+        'Content-Type':          'application/json',
+        'Content-Length':        Buffer.byteLength(body)
+      }
+    }, function(res){
+      var raw='';
+      res.on('data',function(c){raw+=c;});
+      res.on('end',function(){
+        clearTimeout(timer);
+        try{
+          var data = JSON.parse(raw);
+          var points = (data.results&&data.results[0]&&data.results[0].data)||[];
+          if(points.length < 4){return resolve(null);}
+
+          var half = Math.floor(points.length/2);
+          var prev = points.slice(0, half);
+          var curr = points.slice(half);
+
+          var avg = function(arr){return arr.reduce(function(s,p){return s+Number(p.ratio||0);},0)/(arr.length||1);};
+          var prevAvg = avg(prev);
+          var currAvg = avg(curr);
+
+          // 급상승률: 이전 대비 현재 변화율
+          var surgeRate = prevAvg > 0 ? Math.round(((currAvg - prevAvg) / prevAvg) * 100) : (currAvg > 0 ? 100 : 0);
+
+          // 가속도: 후반부 내 상승 기울기
+          var recentHalf = curr.slice(Math.floor(curr.length/2));
+          var earlyHalf  = curr.slice(0, Math.floor(curr.length/2));
+          var recentAvg  = avg(recentHalf);
+          var earlyAvg   = avg(earlyHalf);
+          var accel = earlyAvg > 0 ? Math.round(((recentAvg - earlyAvg) / earlyAvg) * 100) : 0;
+
+          // 유지력: 전체 기간 중 평균 이상인 날 비율
+          var allAvg = avg(points);
+          var aboveCnt = points.filter(function(p){return Number(p.ratio||0) >= allAvg;}).length;
+          var durability = Math.round((aboveCnt / points.length) * 100);
+
+          resolve({surgeRate:surgeRate, accel:accel, durability:durability, raw:points});
+        }catch(e){resolve(null);}
+      });
+    });
+    req.on('error',function(){clearTimeout(timer);resolve(null);});
+    req.write(body);
+    req.end();
+  });
+}
+
+function velocityAction(velocity, baseAction){
+  if(!velocity) return baseAction;
+  var s = velocity.surgeRate, a = velocity.accel, d = velocity.durability;
+  // 급상승 + 유지력 낮음 → 단기 쇼츠
+  if(s >= 30 && d < 50) return 'shorts';
+  // 급상승 + 유지력 높음 → 블로그
+  if(s >= 15 && d >= 60) return 'blog';
+  // 급상승 + 가속도 높음 → 최우선 쇼츠
+  if(s >= 20 && a >= 20) return 'shorts';
+  return baseAction;
+}
+
+function velocityLabel(velocity){
+  if(!velocity) return null;
+  var s = velocity.surgeRate, a = velocity.accel, d = velocity.durability;
+  var surge = s >= 30 ? '🚀 급등' : s >= 10 ? '📈 상승' : s <= -10 ? '📉 하락' : '➡️ 보합';
+  var acc   = a >= 20 ? '⚡ 가속' : a >= 5  ? '↗ 증가' : a <= -10 ? '↘ 둔화' : '– 유지';
+  var dur   = d >= 70 ? '💪 높음' : d >= 45 ? '보통' : '⚠️ 낮음';
+  return {surge:surge+'('+s+'%)', accel:acc+'('+a+'%)', durability:dur+'('+d+'%)'};
+}
 
 function checkEnv(){
   var miss=[];
@@ -148,26 +276,33 @@ function judgeT(totalCount){
   return                            {status:'falling', changeRate:null, source:'count'};
 }
 
-function makeSummary(name, score, trend){
+function makeSummary(name, score, trend, intent){
+  // 의도 기반 액션 우선, fallback 기존 로직
   var action;
-  if(trend.status==='rising'&&score.grade==='A')      action='shorts';
-  else if(trend.status==='rising'||score.grade==='A') action='blog';
-  else if(trend.status==='falling')                   action='hold';
-  else if(score.grade==='B')                          action='blog';
-  else                                                action='compare';
+  if(intent && intent !== 'none'){
+    action = INTENT_ACTION[intent];
+  } else if(trend.status==='rising'&&score.grade==='A') action='shorts';
+  else if(trend.status==='rising'||score.grade==='A')   action='blog';
+  else if(trend.status==='falling')                     action='hold';
+  else if(score.grade==='B')                            action='blog';
+  else                                                  action='compare';
 
   var lbl={rising:'🔥 급상승',stable:'➡️ 보합',falling:'📉 하락',new:'✨ 신규'};
-  var note=score.confidence==='low'?' (데이터 부족)':'';
+  var intentTxt = (intent&&intent!=='none') ? ' · '+(INTENT_LABEL[intent]||'') : '';
+  var note = score.confidence==='low' ? ' (데이터 부족)' : '';
   return {
-    summary: name+' '+(lbl[trend.status]||'')+' · '+score.totalScore+'점 · '+action.toUpperCase()+' 추천'+note,
+    summary: name+' '+(lbl[trend.status]||'')+intentTxt+' · '+score.totalScore+'점 · '+action.toUpperCase()+' 추천'+note,
     action:  action
   };
 }
 
-function buildCandidateFromResult(kw, result, maxTotal){
-  var score = calcScore(result, maxTotal);
-  var trend = judgeT(result.totalCount);
-  var sm    = makeSummary(kw, score, trend);
+function buildCandidateFromResult(kw, result, maxTotal, intentOverride, velocity){
+  var score  = calcScore(result, maxTotal);
+  var trend  = judgeT(result.totalCount);
+  var intent = intentOverride || detectIntent(kw);
+  var base   = makeSummary(kw, score, trend, intent);
+  var action = velocity ? velocityAction(velocity, base.action) : base.action;
+  var vLabel = velocityLabel(velocity);
   var samples=[];
   for(var i=0;i<Math.min(3,result.items.length);i++){
     samples.push({title:result.items[i].title, link:result.items[i].link, source:'shopping'});
@@ -176,8 +311,10 @@ function buildCandidateFromResult(kw, result, maxTotal){
     id:kw, name:kw, keywords:[kw], sources:['shopping'],
     count:result.items.length,
     totalCount:result.totalCount,
+    intent:intent, intentLabel:INTENT_LABEL[intent]||'–',
+    velocity:velocity||null, velocityLabel:vLabel,
     score:score, trend:trend,
-    summary:sm.summary, action:sm.action,
+    summary:base.summary, action:action,
     sampleItems:samples
   };
 }
@@ -198,8 +335,15 @@ async function discoverCategory(catId){
   valid.forEach(function(v){if(v.result.totalCount>maxTotal) maxTotal=v.result.totalCount;});
   if(maxTotal===0) maxTotal=40;
 
+  // 상위 5개만 velocity 조회
+  var sorted = valid.slice().sort(function(a,b){return b.result.totalCount-a.result.totalCount;});
+  var velocityMap = {};
+  await Promise.allSettled(sorted.slice(0,5).map(async function(v){
+    velocityMap[v.kw] = await fetchVelocity(v.kw);
+  }));
+
   var candidates=valid.map(function(v){
-    return buildCandidateFromResult(v.kw, v.result, maxTotal);
+    return buildCandidateFromResult(v.kw, v.result, maxTotal, null, velocityMap[v.kw]||null);
   });
   candidates.sort(function(a,b){return b.score.totalScore-a.score.totalScore;});
 
@@ -251,6 +395,11 @@ async function discoverAll(){
 
 async function discoverSeed(seedKw){
   var STOP=new Set(['이','가','을','를','의','에','는','은','도','와','과','세트','상품','제품','판매']);
+
+  // 의도 확장 키워드 생성
+  var intentList = expandIntentKeywords(seedKw);
+
+  // 기존 연관어 확장
   var r1=await httpGet('/v1/search/shop.json',{query:seedKw,display:20,sort:'sim'}).catch(function(){return {};});
   var freq={};
   ((r1&&r1.items)||[]).forEach(function(i){
@@ -258,16 +407,23 @@ async function discoverSeed(seedKw){
       .forEach(function(w){freq[w]=(freq[w]||0)+1;});
   });
   var entries=Object.entries(freq).sort(function(a,b){return b[1]-a[1];});
-  var keywords=[seedKw];
-  for(var e=0;e<Math.min(6,entries.length);e++) keywords.push(entries[e][0]);
-  keywords=keywords.slice(0,8);
+  for(var e=0;e<Math.min(3,entries.length);e++){
+    intentList.push({kw:entries[e][0], intent:'none'});
+  }
 
-  var promises=keywords.map(function(kw){return shopSearch(kw,null);});
+  // 중복 제거
+  var seen={}, unique=[];
+  intentList.forEach(function(item){
+    if(!seen[item.kw]){seen[item.kw]=true;unique.push(item);}
+  });
+  unique=unique.slice(0,12);
+
+  var promises=unique.map(function(item){return shopSearch(item.kw,null);});
   var results=await Promise.allSettled(promises);
   var valid=[];
-  for(var i=0;i<keywords.length;i++){
+  for(var i=0;i<unique.length;i++){
     var r=results[i].status==='fulfilled'?results[i].value:{items:[],totalCount:0};
-    if(r.items.length>0) valid.push({kw:keywords[i],result:r});
+    if(r.items.length>0) valid.push({kw:unique[i].kw, intent:unique[i].intent, result:r});
   }
   if(!valid.length) return {candidates:[],apiStatus:{search:'결과 없음'}};
 
@@ -275,9 +431,16 @@ async function discoverSeed(seedKw){
   valid.forEach(function(v){if(v.result.totalCount>maxTotal) maxTotal=v.result.totalCount;});
   if(maxTotal===0) maxTotal=40;
 
-  var candidates=valid.map(function(v){return buildCandidateFromResult(v.kw,v.result,maxTotal);});
+  // 상위 5개 velocity 조회
+  var topValid = valid.slice().sort(function(a,b){return b.result.totalCount-a.result.totalCount;}).slice(0,5);
+  var velocityMap={};
+  await Promise.allSettled(topValid.map(async function(v){
+    velocityMap[v.kw] = await fetchVelocity(v.kw);
+  }));
+
+  var candidates=valid.map(function(v){return buildCandidateFromResult(v.kw,v.result,maxTotal,v.intent,velocityMap[v.kw]||null);});
   candidates.sort(function(a,b){return b.score.totalScore-a.score.totalScore;});
-  return {candidates:candidates.slice(0,15),apiStatus:{search:valid.length+'/'+keywords.length+' 성공'}};
+  return {candidates:candidates.slice(0,15),apiStatus:{search:valid.length+'/'+unique.length+' 성공'}};
 }
 
 module.exports=async function(req,res){
