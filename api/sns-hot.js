@@ -192,7 +192,22 @@ function judgeShortsfit(yt){
   return                        {label:'🎬 부적합',      level:'low',    color:'#94a3b8'};
 }
 
-// ── 종합 점수
+// ── 트렌드 상태
+function judgeTrend(yt, dl){
+  if(dl.ok && dl.surgeRate>=30) return {status:'급상승', icon:'🔥', color:'#ef4444'};
+  if(yt.ok && yt.recentCount>=10) return {status:'확산중', icon:'🚀', color:'#f97316'};
+  if(dl.ok && dl.surgeRate<=-15) return {status:'하락',   icon:'⛔', color:'#94a3b8'};
+  if(yt.ok && yt.recentCount>=5) return {status:'확산중', icon:'🚀', color:'#f97316'};
+  return {status:'정체', icon:'⚠️', color:'#f59e0b'};
+}
+
+// ── 쇼츠 적합도
+function judgeShortsfit(yt){
+  if(!yt.ok) return {label:'–', level:'unknown', color:'#94a3b8'};
+  if(yt.shortsRatio>=60) return {label:'🎬 쇼츠 적합', level:'high',   color:'#6366f1'};
+  if(yt.shortsRatio>=30) return {label:'🎬 보통',       level:'medium', color:'#f59e0b'};
+  return                        {label:'🎬 부적합',      level:'low',    color:'#94a3b8'};
+}
 function calcScore(yt, dl, trend, competition, sale, shorts){
   var score=0;
 
@@ -294,12 +309,13 @@ module.exports = async function(req, res){
         var trend       = judgeTrend(yt, dl);
         var competition = judgeCompetition(yt);
         var shorts      = judgeShortsfit(yt);
+        var timing      = judgeTiming(yt, dl);
         var score       = calcScore(yt, dl, trend, competition, sale, shorts);
-        var aiReason    = buildAiReason(yt, dl, trend, competition, sale, shorts, score);
+        var aiReason    = buildAiReason(yt, dl, trend, competition, sale, shorts, timing, score);
 
         return {
           keyword:kw, score:score,
-          sale:sale, trend:trend, competition:competition, shorts:shorts,
+          sale:sale, trend:trend, competition:competition, shorts:shorts, timing:timing,
           aiReason:aiReason,
           youtube:yt, datalab:dl
         };
