@@ -38,14 +38,13 @@ function buildCandidate(kw, result, maxTotal, intentOverride, velocity){
 
 async function discoverCategory(catId){
   var kws=CFG.CAT_SEEDS[catId]||CFG.CAT_SEEDS['50000003'];
-  var res=await Promise.allSettled(kws.map(function(kw){return FETCH.shopSearch(kw,catId);}));
+  // ★ catId 제거 → null로 호출해야 30개 키워드 모두 결과 반환
+  var res=await Promise.allSettled(kws.map(function(kw){return FETCH.shopSearch(kw,null);}));
   var valid=[];
   for(var i=0;i<kws.length;i++){
     var r=res[i].status==='fulfilled'?res[i].value:{items:[],totalCount:0};
-    // 결과 없어도 포함 (items 0개여도 totalCount 있으면 포함)
     valid.push({kw:kws[i], result:r});
   }
-  // items 있는 것 우선, 없는 것도 포함
   var withItems  = valid.filter(function(v){return v.result.items.length>0;});
   var noItems    = valid.filter(function(v){return v.result.items.length===0;});
   valid = withItems.concat(noItems);
@@ -53,16 +52,16 @@ async function discoverCategory(catId){
   if(!valid.length) return {candidates:[], apiStatus:{search:'결과 없음'}};
   var maxTotal=valid.reduce(function(m,v){return Math.max(m,v.result.totalCount);},0)||40;
 
-  // 상위 10개 velocity 조회
+  // ★ velocity 조회 상위 20개로 확대
   var vMap={};
   await Promise.allSettled(
-    valid.slice(0,10).sort(function(a,b){return b.result.totalCount-a.result.totalCount;})
+    valid.slice(0,20).sort(function(a,b){return b.result.totalCount-a.result.totalCount;})
     .map(async function(v){vMap[v.kw]=await FETCH.fetchVelocity(v.kw);})
   );
 
   var candidates=valid.map(function(v){
     return buildCandidate(v.kw, v.result, maxTotal, null, vMap[v.kw]||null);
-  }).filter(function(c){return c.score.totalScore>0;}); // 0점 제외
+  }).filter(function(c){return c.score.totalScore>0;});
   candidates.sort(function(a,b){return b.score.totalScore-a.score.totalScore;});
   return {candidates:candidates.slice(0,30), apiStatus:{search:withItems.length+'/'+kws.length+' 성공'}};
 }
