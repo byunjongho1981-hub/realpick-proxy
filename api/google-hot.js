@@ -180,7 +180,23 @@ module.exports = async function(req, res){
   try{
     // 1. Google Trends RSS
     var trends = await fetchTrendsRSS();
-    if(!trends.length) return res.status(200).json({items:[],total:0,message:'Trends 데이터 없음',updatedAt:new Date().toISOString()});
+
+    // 디버그: RSS 실패 시 원본 확인용
+    if(!trends.length){
+      var debugRaw = await new Promise(function(resolve){
+        var t=setTimeout(function(){resolve('timeout');},TIMEOUT);
+        https.get({
+          hostname:'trends.google.com',
+          path:'/trending/rss?geo=KR',
+          headers:{'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+        },function(res){
+          var raw='', statusCode=res.statusCode;
+          res.on('data',function(c){raw+=c;});
+          res.on('end',function(){clearTimeout(t);resolve({status:statusCode,body:raw.slice(0,500)});});
+        }).on('error',function(e){clearTimeout(t);resolve('error:'+e.message);});
+      });
+      return res.status(200).json({items:[],total:0,message:'Trends 데이터 없음',debug:debugRaw,updatedAt:new Date().toISOString()});
+    }
 
     var targets = trends.slice(0,15);
 
