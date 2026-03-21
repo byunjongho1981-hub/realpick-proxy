@@ -3,7 +3,7 @@ var FETCH   = require('./_fetch');
 var SCORE   = require('./_score');
 var ANALYZE = require('./_analyze');
 
-var TTL = 5*60*1000;
+var TTL = 1*60*1000; // 1분 (테스트용, 이후 5분으로 복원 가능)
 
 var CACHE_ALL = {};
 var CACHE_CAT = {};
@@ -159,17 +159,17 @@ async function discoverSeed(seedKw, period){
   var maxTotal=valid.reduce(function(m,v){return Math.max(m,v.result.totalCount);},0)||40;
 
   var vMap={}, siMap={};
-  await Promise.allSettled(
-    valid.slice().sort(function(a,b){return b.result.totalCount-a.result.totalCount;}).slice(0,5)
-    .map(async function(v){
-      var results = await Promise.all([
-        FETCH.fetchVelocity(v.kw, period),
-        FETCH.fetchShoppingInsight(v.kw, period)
-      ]);
-      vMap[v.kw]  = results[0];
-      siMap[v.kw] = results[1];
-    })
-  );
+  var top15seed = valid.slice().sort(function(a,b){return b.result.totalCount-a.result.totalCount;}).slice(0,15);
+  for(var si2=0; si2<top15seed.length; si2++){
+    var sv = top15seed[si2];
+    var sres = await Promise.all([
+      FETCH.fetchVelocity(sv.kw, period),
+      FETCH.fetchShoppingInsight(sv.kw, period)
+    ]);
+    vMap[sv.kw]  = sres[0];
+    siMap[sv.kw] = sres[1];
+    if(si2 < top15seed.length-1) await new Promise(function(r){setTimeout(r,200);});
+  }
 
   var candidates=valid.map(function(v){
     return buildCandidate(v.kw, v.result, maxTotal, v.intent, vMap[v.kw]||null, siMap[v.kw]||null);
