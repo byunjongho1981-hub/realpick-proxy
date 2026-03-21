@@ -107,8 +107,23 @@ async function discoverAll(){
 
   if(!pool.length) return {candidates:[], apiStatus:{completed:'0', failed:'전체 실패'}, processLog:{completed:[], failed:[]}};
   var maxTotal=pool.reduce(function(m,v){return Math.max(m,v.result.totalCount);},0)||40;
+
+  // ★ 전체 탐색도 상위 5개 velocity + 쇼핑인사이트 수집
+  var vMap={}, siMap={};
+  var top5pool = pool.slice().sort(function(a,b){return b.result.totalCount-a.result.totalCount;}).slice(0,5);
+  for(var pi=0; pi<top5pool.length; pi++){
+    var pv = top5pool[pi];
+    var pres = await Promise.all([
+      FETCH.fetchVelocity(pv.kw, 'week'),
+      FETCH.fetchShoppingInsight(pv.kw, 'week')
+    ]);
+    vMap[pv.kw]  = pres[0];
+    siMap[pv.kw] = pres[1];
+    if(pi < top5pool.length-1) await new Promise(function(r){setTimeout(r,200);});
+  }
+
   var candidates=pool.map(function(v){
-    var c=buildCandidate(v.kw, v.result, maxTotal, null, null, null);
+    var c=buildCandidate(v.kw, v.result, maxTotal, null, vMap[v.kw]||null, siMap[v.kw]||null);
     c.category=CFG.CAT_NAMES[v.catId]||v.catId;
     return c;
   });
