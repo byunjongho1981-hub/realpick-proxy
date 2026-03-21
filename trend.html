@@ -322,65 +322,62 @@ function buildSampleHtml(c){
   var si = c.sampleItems||[];
   if(!si.length) return '';
 
-  // 소스별 분류 레이블/색상
   var SRC_META = {
-    shopping: {label:'🛒 쇼핑', color:'#f59e0b'},
-    blog:     {label:'📝 블로그', color:'#0891b2'},
-    news:     {label:'📰 뉴스', color:'#6366f1'},
-    cafe:     {label:'☕ 카페', color:'#10b981'},
-    compare:  {label:'💰 가격비교', color:'#f43f5e'}
+    shopping:{label:'🛒 쇼핑',    color:'#f59e0b'},
+    blog:    {label:'📝 블로그',  color:'#0891b2'},
+    news:    {label:'📰 뉴스',    color:'#6366f1'},
+    cafe:    {label:'☕ 카페',    color:'#10b981'},
+    compare: {label:'💰 가격비교',color:'#f43f5e'}
   };
 
-  // 소스별 그룹핑
   var groups = {};
   si.forEach(function(item){
     var src = item.source||'shopping';
     if(!groups[src]) groups[src]=[];
     groups[src].push(item);
   });
-
-  // 소스 없으면 shopping으로 묶기
   if(!Object.keys(groups).length) groups['shopping']=si;
 
   var html='';
   Object.keys(groups).forEach(function(src){
     var meta = SRC_META[src]||{label:src, color:'#94a3b8'};
-    var uid  = 'sg_'+c.id.replace(/[^a-z0-9]/gi,'_')+'_'+src;
+    var uid  = 'sg_'+Math.random().toString(36).slice(2)+'_'+src;
     html += '<div style="margin-bottom:6px">'
-      +'<div onclick="toggleSampleGroup(\''+uid+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:#f1f5f9;border-radius:8px;cursor:pointer;border:1px solid var(--bdr)">'
+      +'<div id="'+uid+'_hdr" style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:#f1f5f9;border-radius:8px;cursor:pointer;border:1px solid var(--bdr);user-select:none">'
         +'<span style="font-size:11px;font-weight:700;color:'+meta.color+'">'+meta.label+'</span>'
         +'<span style="display:flex;align-items:center;gap:6px">'
           +'<span style="font-size:10px;color:var(--faint)">'+groups[src].length+'개</span>'
           +'<span id="'+uid+'_arr" style="font-size:10px;color:var(--faint)">▼</span>'
         +'</span>'
       +'</div>'
-      +'<div id="'+uid+'" style="display:none;margin-top:4px">';
+      +'<div id="'+uid+'_body" style="display:none;margin-top:4px">';
 
-    // 최대 10개
-    var items = groups[src].slice(0,10);
-    items.forEach(function(item){
+    groups[src].slice(0,10).forEach(function(item){
       html += '<a href="'+(item.link||'#')+'" target="_blank" rel="noopener"'
         +' style="display:flex;align-items:flex-start;gap:6px;padding:7px 10px;background:#fff;border-radius:7px;text-decoration:none;margin-bottom:3px;border:1px solid var(--bdr)">'
-        +'<span style="font-size:14px;flex-shrink:0">'+(meta.label.split(' ')[0])+'</span>'
+        +'<span style="font-size:13px;flex-shrink:0">'+(meta.label.split(' ')[0])+'</span>'
         +'<div>'
           +'<div style="font-size:11px;color:var(--txt);line-height:1.5">'+(item.title||'')+'</div>'
           +(item.price&&item.price>0?'<div style="font-size:10px;color:'+meta.color+';font-weight:700;margin-top:2px">'+Number(item.price).toLocaleString()+'원</div>':'')
         +'</div>'
       +'</a>';
     });
-
     html += '</div></div>';
+
+    // setTimeout으로 DOM 생성 후 이벤트 바인딩
+    setTimeout(function(id){
+      var hdr  = document.getElementById(id+'_hdr');
+      var body = document.getElementById(id+'_body');
+      var arr  = document.getElementById(id+'_arr');
+      if(!hdr||!body) return;
+      hdr.addEventListener('click', function(){
+        var open = body.style.display==='none';
+        body.style.display = open?'block':'none';
+        if(arr) arr.textContent = open?'▲':'▼';
+      });
+    }, 0, uid);
   });
   return html;
-}
-
-function toggleSampleGroup(uid){
-  var el  = document.getElementById(uid);
-  var arr = document.getElementById(uid+'_arr');
-  if(!el) return;
-  var open = el.style.display==='none';
-  el.style.display  = open?'block':'none';
-  if(arr) arr.textContent = open?'▲':'▼';
 }
 
 function velocityHtml(c, field, type){
