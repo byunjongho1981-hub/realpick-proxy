@@ -231,11 +231,28 @@ async function getGroqReason(kw, yt, blog, shop, dl, score, jdg) {
 async function extractCandidates(seedKw) {
   try {
     var d = await naverGet('/v1/search/shop.json', { query: seedKw, display: 40, sort: 'sim' });
-    var stop = new Set(['이','가','을','를','의','에','는','은','도','와','과','세트','상품','제품','판매','추천','구매','할인']);
+    var stop = new Set([
+      // 조사/접속사
+      '이','가','을','를','의','에','는','은','도','와','과','로','으로','에서','부터','까지','만','도','라','이라',
+      // 색상
+      '블랙','화이트','레드','블루','그린','옐로우','핑크','실버','골드','베이지','그레이','네이비','브라운','퍼플','오렌지',
+      '검정','흰색','빨강','파랑','초록','노랑','분홍','회색','하늘','남색',
+      // 형용사/부사
+      '가벼운','가벼운','튼튼한','편한','편안한','슬림','스마트','프리미엄','고급','특가','신상',
+      // 쇼핑 일반어
+      '세트','상품','제품','판매','추천','구매','할인','무료','배송','당일','정품','공식','브랜드','인기','최신','신제품',
+      '스타일','디자인','사이즈','색상','옵션','모델','버전','에디션','패키지','구성','포함',
+      // 숫자형
+      '1개','2개','3개','10개','100g','500ml'
+    ]);
     var freq = {};
     (d.items || []).forEach(function(item) {
       clean(item.title || '').split(/\s+/).filter(function(w) {
-        return w.length >= 2 && !stop.has(w) && w !== seedKw && /[가-힣]/.test(w);
+        return w.length >= 3       // ★ 2자 → 3자 이상으로 강화
+          && !stop.has(w)
+          && w !== seedKw
+          && /[가-힣]{2,}/.test(w) // ★ 한글 2자 이상 포함된 단어만
+          && !/^\d+$/.test(w);     // ★ 순수 숫자 제외
       }).forEach(function(w) { freq[w] = (freq[w] || 0) + 1; });
     });
     var related = Object.entries(freq).sort(function(a, b) { return b[1] - a[1]; }).slice(0, 9).map(function(e) { return e[0]; });
