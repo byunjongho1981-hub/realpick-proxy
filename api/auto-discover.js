@@ -228,11 +228,20 @@ function shopSearch(keyword, catId){
   }).catch(function(){ return {items:[], totalCount:0}; });
 }
 
-function calcScore(result, maxTotal){
+function calcSurgeScore(velocity){
+  if(!velocity) return 0;
+  var r = velocity.surgeRate;
+  if(r >= 50) return 20;
+  if(r >= 20) return 10;
+  if(r >= 0)  return 5;
+  return 0;
+}
+
+function calcScore(result, maxTotal, velocity){
   var items      = result.items;
   var totalCount = result.totalCount;
 
-  if(!items.length) return {totalScore:0, breakdown:{}, grade:'C', confidence:'low'};
+  if(!items.length) return {totalScore:0, breakdown:{}, grade:'C', confidence:'low', surgeScore:0};
 
   var searchScore = maxTotal>0 ? Math.round((Math.min(totalCount,maxTotal)/maxTotal)*40) : 0;
 
@@ -249,9 +258,10 @@ function calcScore(result, maxTotal){
     priceScore = range>0 ? Math.round(Math.min(range/(maxP*0.5),1)*20) : 5;
   }
 
-  var countScore = Math.round(Math.min(items.length/40,1)*10);
+  var countScore  = Math.round(Math.min(items.length/40,1)*10);
+  var surgeScore  = calcSurgeScore(velocity);
 
-  var total = Math.min(100, searchScore+mallScore+priceScore+countScore);
+  var total = Math.min(120, searchScore+mallScore+priceScore+countScore+surgeScore);
   var grade = total>=GRADE_A?'A':total>=GRADE_B?'B':'C';
   var confidence = mallCount>=5?'high':mallCount>=2?'medium':'low';
 
@@ -261,10 +271,12 @@ function calcScore(result, maxTotal){
       shopping: searchScore,
       blog:     mallScore,
       news:     priceScore,
-      trend:    countScore
+      trend:    countScore,
+      surge:    surgeScore
     },
     grade:      grade,
-    confidence: confidence
+    confidence: confidence,
+    surgeScore: surgeScore
   };
 }
 
@@ -297,7 +309,7 @@ function makeSummary(name, score, trend, intent){
 }
 
 function buildCandidateFromResult(kw, result, maxTotal, intentOverride, velocity){
-  var score  = calcScore(result, maxTotal);
+  var score  = calcScore(result, maxTotal, velocity);
   var trend  = judgeT(result.totalCount);
   var intent = intentOverride || detectIntent(kw);
   var base   = makeSummary(kw, score, trend, intent);
