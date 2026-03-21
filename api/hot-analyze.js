@@ -94,7 +94,7 @@ function sleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
 // ── YouTube 분석 ──────────────────────────────────────────────
 async function analyzeYouTube(keyword) {
   var key = process.env.YOUTUBE_API_KEY;
-  if (!key) return { videoCount: 0, avgViews: 0, shortsRatio: 0, channelRepeat: 0, error: 'NO_KEY' };
+  if (!key) return { videoCount: 0, avgViews: 0, shortsRatio: 0, channelRepeat: 0, topVideos: [], error: 'NO_KEY' };
   try {
     var ago7 = new Date(); ago7.setDate(ago7.getDate() - 7);
     var sp = '/youtube/v3/search?part=snippet&q=' + encodeURIComponent(keyword) +
@@ -102,10 +102,10 @@ async function analyzeYouTube(keyword) {
       '&maxResults=50&order=viewCount&relevanceLanguage=ko&key=' + key;
     var sd = await ytGet(sp).catch(function() { return {}; });
     var items = sd.items || [];
-    if (!items.length) return { videoCount: 0, avgViews: 0, shortsRatio: 0, channelRepeat: 0 };
+    if (!items.length) return { videoCount: 0, avgViews: 0, shortsRatio: 0, channelRepeat: 0, topVideos: [] };
 
     var ids = items.map(function(i) { return i.id && i.id.videoId; }).filter(Boolean).slice(0, 50).join(',');
-    var vd = await ytGet('/youtube/v3/videos?part=statistics,contentDetails&id=' + ids + '&key=' + key).catch(function() { return {}; });
+    var vd = await ytGet('/youtube/v3/videos?part=statistics,contentDetails,snippet&id=' + ids + '&key=' + key).catch(function() { return {}; });
     var vids = vd.items || [];
 
     var totalViews = 0, shorts = 0, channels = {};
@@ -117,14 +117,32 @@ async function analyzeYouTube(keyword) {
       var ch = (i.snippet || {}).channelId;
       if (ch) channels[ch] = (channels[ch] || 0) + 1;
     });
+
+    // ★ 상위 5개 영상 데이터
+    var topVideos = vids.slice(0, 5).map(function(v) {
+      var sn2 = v.snippet || {}, st = v.statistics || {}, cd = v.contentDetails || {};
+      return {
+        id:        v.id,
+        title:     sn2.title || '',
+        channel:   sn2.channelTitle || '',
+        thumbnail: (sn2.thumbnails && (sn2.thumbnails.medium || sn2.thumbnails.default) || {}).url || '',
+        views:     sn(st.viewCount),
+        likes:     sn(st.likeCount),
+        duration:  parseDuration(cd.duration),
+        publishedAt: (sn2.publishedAt || '').slice(0, 10),
+        url:       'https://www.youtube.com/watch?v=' + v.id
+      };
+    });
+
     return {
       videoCount: items.length,
       avgViews: vids.length ? Math.round(totalViews / vids.length) : 0,
       shortsRatio: vids.length ? shorts / vids.length : 0,
       channelRepeat: Object.values(channels).filter(function(c) { return c > 1; }).length,
-      totalViews: totalViews
+      totalViews: totalViews,
+      topVideos: topVideos
     };
-  } catch(e) { return { videoCount: 0, avgViews: 0, shortsRatio: 0, channelRepeat: 0 }; }
+  } catch(e) { return { videoCount: 0, avgViews: 0, shortsRatio: 0, channelRepeat: 0, topVideos: [] }; }
 }
 
 // ── 네이버 블로그 분석 ─────────────────────────────────────────
@@ -304,7 +322,7 @@ module.exports = async function(req, res) {
         judge: r.jdg,
         aiReason: r.aiReason || null,
         data: {
-          youtube:  { videoCount: r.yt.videoCount, avgViews: r.yt.avgViews, shortsRatio: Math.round((r.yt.shortsRatio || 0) * 100), channelRepeat: r.yt.channelRepeat },
+          youtube:  { videoCount: r.yt.videoCount, avgViews: r.yt.avgViews, shortsRatio: Math.round((r.yt.shortsRatio || 0) * 100), channelRepeat: r.yt.channelRepeat, topVideos: r.yt.topVideos || [] },
           blog:     { total: r.blog.total, reviewRatio: Math.round((r.blog.reviewRatio || 0) * 100) },
           shopping: { total: r.shop.total, itemCount: r.shop.itemCount, avgPrice: r.shop.avgPrice },
           datalab:  { surgeRate: r.dl.surgeRate, trend: r.dl.trend, avgRatio: r.dl.avgRatio }
