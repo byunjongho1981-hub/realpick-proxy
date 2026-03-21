@@ -389,7 +389,7 @@ async function extractCandidates(seedKw) {
     var related = Object.entries(freq).sort(function(a,b){return b[1]-a[1];}).slice(0,9).map(function(e){return e[0];});
     var out = [seedKw];
     related.forEach(function(kw){ if(out.indexOf(kw)<0) out.push(kw); });
-    return out.slice(0,10);
+    return out.slice(0,3);
   } catch(e) { return [seedKw]; }
 }
 
