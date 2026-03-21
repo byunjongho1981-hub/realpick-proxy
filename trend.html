@@ -381,6 +381,19 @@ function buildSampleHtml(c){
   return html;
 }
 
+// 샘플 그룹 토글 — 이벤트 위임
+document.getElementById('dp-body').addEventListener('click', function(e){
+  var hdr = e.target.closest('.sg-hdr');
+  if(!hdr) return;
+  var uid  = hdr.dataset.target;
+  var body = document.getElementById(uid);
+  if(!body) return;
+  var open = body.style.display==='none';
+  body.style.display = open?'block':'none';
+  var arr = hdr.querySelector('span span:last-child');
+  if(arr) arr.textContent = open?'▲':'▼';
+});
+
 function velocityHtml(c, field, type){
   if(!c.velocity) return '<span style="color:var(--faint);font-size:10px">–</span>';
   var val = c.velocity[field];
