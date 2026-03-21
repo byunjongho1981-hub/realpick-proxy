@@ -78,7 +78,7 @@ async function discoverCategory(catId, period){
     return buildCandidate(v.kw, v.result, maxTotal, null, vMap[v.kw]||null, siMap[v.kw]||null);
   }).filter(function(c){return c.score.totalScore>0;});
   candidates.sort(function(a,b){return b.score.totalScore-a.score.totalScore;});
-  return {candidates:candidates.slice(0,30), apiStatus:{search:withItems.length+'/'+kws.length+' 성공'}};
+  return {candidates:candidates.slice(0,10), apiStatus:{search:withItems.length+'/'+kws.length+' 성공'}};
 }
 
 async function discoverAll(){
@@ -129,7 +129,7 @@ async function discoverAll(){
   });
   candidates.sort(function(a,b){return b.score.totalScore-a.score.totalScore;});
   return {
-    candidates:candidates.slice(0,50),
+    candidates:candidates.slice(0,10),
     apiStatus:{completed:completed.length+'/'+CFG.CAT_ORDER.length+' 카테고리', failed:failed.length?failed.join(', '):'없음'},
     processLog:{completed:completed, failed:failed}
   };
@@ -175,7 +175,7 @@ async function discoverSeed(seedKw, period){
     return buildCandidate(v.kw, v.result, maxTotal, v.intent, vMap[v.kw]||null, siMap[v.kw]||null);
   });
   candidates.sort(function(a,b){return b.score.totalScore-a.score.totalScore;});
-  return {candidates:candidates.slice(0,50), apiStatus:{search:valid.length+'/'+unique.length+' 성공'}};
+  return {candidates:candidates.slice(0,10), apiStatus:{search:valid.length+'/'+unique.length+' 성공'}};
 }
 
 module.exports=async function(req,res){
