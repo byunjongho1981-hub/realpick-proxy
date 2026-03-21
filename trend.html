@@ -321,9 +321,7 @@ function confHtml(conf){var m={low:1,medium:2,high:3},lvl=m[conf]||0,dots='';for
 function sparkHtml(count,status){if(!count)return '<span style="color:var(--faint);font-size:10px">–</span>';var c=status==='rising'?'var(--rising)':status==='falling'?'var(--falling)':'var(--stable)',bars='';for(var i=0;i<7;i++){var r=status==='rising'?0.3+(i/6)*0.7:status==='falling'?1-(i/6)*0.5:0.4+Math.sin(i)*0.1+0.3;bars+='<div class="sp-bar" style="height:'+Math.max(3,Math.round(r*18))+'px;background:'+c+'"></div>';}return '<div class="spark">'+bars+'</div>';}
 
 function velocityHtml(c,field,type){
-  if(!c.velocity){
-    return '<span style="font-size:10px;color:#c4cad4">미수집</span>';
-  }
+  if(!c.velocity) return '<span style="color:var(--faint);font-size:10px">–</span>';
   var val=c.velocity[field],vl=c.velocityLabel;
   if(val===undefined||val===null) return '<span style="color:var(--faint);font-size:10px">–</span>';
   var color=val>=20?'var(--rising)':val>=5?'#6366f1':val<=-10?'var(--falling)':'var(--faint)';
