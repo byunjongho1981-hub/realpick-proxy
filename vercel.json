@@ -4,15 +4,16 @@
   "outputDirectory": ".",
   "functions": {
     "api/auto-discover.js": { "maxDuration": 300 },
+    "api/hot-analyze.js":   { "maxDuration": 120 },
     "api/google-hot.js":    { "maxDuration": 30  },
     "api/sns-hot.js":       { "maxDuration": 60  }
   },
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1" },
     { "src": "/",         "dest": "/index.html" },
-    { "src": "/hot.html", "dest": "/hot.html" },
+    { "src": "/hot.html", "dest": "/hot.html"   },
     { "src": "/trend.html","dest": "/trend.html" },
-    { "src": "/ai.html",  "dest": "/ai.html" },
-    { "src": "/data.html","dest": "/data.html" }
+    { "src": "/ai.html",  "dest": "/ai.html"    },
+    { "src": "/data.html","dest": "/data.html"  }
   ]
 }
