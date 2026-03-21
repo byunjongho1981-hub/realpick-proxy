@@ -145,8 +145,60 @@ function calcCommercialScore(kw, result, intent){
   return {score:s, bonus:s>=20?20:s>=10?10:0, label:label, type:type};
 }
 
-// ── ENV
-function checkEnv(){
+// ── 키워드 클러스터링
+function clusterCandidates(candidates){
+  var clusters = {}, order = [];
+
+  candidates.forEach(function(c){
+    var name = c.name||'';
+    // 첫 단어(2자 이상)를 클러스터 키로 사용
+    var tokens = name.split(/\s+/).filter(function(t){return t.length>=2;});
+    var root   = tokens[0]||name;
+
+    // 기존 클러스터 중 root를 포함하는 것 탐색
+    var matched = null;
+    for(var i=0;i<order.length;i++){
+      var k=order[i];
+      if(root.indexOf(k)===0 || k.indexOf(root)===0){
+        matched=k; break;
+      }
+    }
+
+    if(!matched){
+      // 새 클러스터
+      clusters[root] = {
+        root: root,
+        representative: c,
+        members: [c],
+        totalCount: c.totalCount||0,
+        maxScore: c.score.totalScore
+      };
+      order.push(root);
+    } else {
+      clusters[matched].members.push(c);
+      clusters[matched].totalCount += (c.totalCount||0);
+      if(c.score.totalScore > clusters[matched].maxScore){
+        clusters[matched].maxScore = c.score.totalScore;
+        clusters[matched].representative = c;
+      }
+    }
+  });
+
+  // 클러스터 배열로 변환, 멤버 수 내림차순 정렬
+  return order.map(function(k){
+    var cl = clusters[k];
+    return {
+      root:           cl.root,
+      representative: cl.representative,
+      members:        cl.members,
+      memberCount:    cl.members.length,
+      totalCount:     cl.totalCount,
+      maxScore:       cl.maxScore
+    };
+  }).sort(function(a,b){ return b.memberCount - a.memberCount || b.maxScore - a.maxScore; });
+}
+
+
   var miss=[];
   if(!process.env.NAVER_CLIENT_ID)     miss.push('NAVER_CLIENT_ID');
   if(!process.env.NAVER_CLIENT_SECRET) miss.push('NAVER_CLIENT_SECRET');
@@ -372,13 +424,15 @@ module.exports=async function(req,res){
         return res.status(200).json(result);
       }
       var cr=await discoverCategory(catId);
-      return res.status(200).json({candidates:cr.candidates,mode:mode,categoryId:catId,categoryName:CAT_NAMES[catId]||catId,period:period,total:cr.candidates.length,apiStatus:cr.apiStatus,updatedAt:new Date().toISOString()});
+      var clusters=clusterCandidates(cr.candidates);
+      return res.status(200).json({candidates:cr.candidates,clusters:clusters,mode:mode,categoryId:catId,categoryName:CAT_NAMES[catId]||catId,period:period,total:cr.candidates.length,apiStatus:cr.apiStatus,updatedAt:new Date().toISOString()});
     }
     if(mode==='seed'){
       var seedKw=String(req.query.keyword||'').trim().slice(0,30);
       if(!seedKw) return res.status(400).json({error:'키워드를 입력해주세요'});
       var sr=await discoverSeed(seedKw);
-      return res.status(200).json({candidates:sr.candidates,mode:mode,seedKeyword:seedKw,period:period,total:sr.candidates.length,apiStatus:sr.apiStatus,updatedAt:new Date().toISOString()});
+      var clusters=clusterCandidates(sr.candidates);
+      return res.status(200).json({candidates:sr.candidates,clusters:clusters,mode:mode,seedKeyword:seedKw,period:period,total:sr.candidates.length,apiStatus:sr.apiStatus,updatedAt:new Date().toISOString()});
     }
     return res.status(400).json({error:'알 수 없는 mode'});
   }catch(e){
