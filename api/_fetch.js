@@ -23,6 +23,28 @@ function httpGet(path, params){
   });
 }
 
+function httpPost(path, body){
+  return new Promise(function(resolve, reject){
+    var buf = Buffer.from(JSON.stringify(body), 'utf8');
+    var t = setTimeout(function(){reject(new Error('timeout'));}, CFG.TIMEOUT);
+    var req = https.request({
+      hostname:'openapi.naver.com', path:path, method:'POST',
+      headers:{
+        'X-Naver-Client-Id':     process.env.NAVER_CLIENT_ID,
+        'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET,
+        'Content-Type':          'application/json',
+        'Content-Length':        buf.length
+      }
+    }, function(res){
+      var raw='';
+      res.on('data', function(c){raw+=c;});
+      res.on('end',  function(){clearTimeout(t); try{resolve(JSON.parse(raw));}catch(e){resolve({});}});
+    });
+    req.on('error', function(e){clearTimeout(t); reject(e);});
+    req.write(buf); req.end();
+  });
+}
+
 function cleanText(t){
   return String(t||'').replace(/<[^>]+>/g,'').replace(/[^\w가-힣\s]/g,' ').replace(/\s+/g,' ').trim();
 }
@@ -32,85 +54,145 @@ function isClean(t){
   return true;
 }
 function safeNum(v){ var n=Number(v); return isNaN(n)?0:n; }
+function sleep(ms){ return new Promise(function(r){setTimeout(r,ms);}); }
 
-// ★ 배치 처리 — 10개씩 나눠서 호출, 배치 사이 200ms 대기 (rate limit 방지)
+// ── 날짜 헬퍼 ────────────────────────────────────────────────
+function fmtDate(d){
+  var pad=function(n){return String(n).padStart(2,'0');};
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+}
+function agoDate(n){
+  var d=new Date(); d.setDate(d.getDate()-n); return d;
+}
+
+// ── 배치 쇼핑 검색 ────────────────────────────────────────────
 async function batchShopSearch(keywords){
-  var BATCH = 10, results = [];
+  var BATCH=10, results=[];
   for(var i=0; i<keywords.length; i+=BATCH){
-    var chunk = keywords.slice(i, i+BATCH);
-    var settled = await Promise.allSettled(chunk.map(function(kw){ return shopSearch(kw, null); }));
-    settled.forEach(function(r, j){
+    var chunk=keywords.slice(i,i+BATCH);
+    var settled=await Promise.allSettled(chunk.map(function(kw){return shopSearch(kw,null);}));
+    settled.forEach(function(r,j){
       results.push({
         kw: chunk[j],
-        result: r.status==='fulfilled' ? r.value : {items:[], totalCount:0}
+        result: r.status==='fulfilled' ? r.value : {items:[],totalCount:0}
       });
     });
-    if(i+BATCH < keywords.length) await new Promise(function(r){setTimeout(r, 200);});
+    if(i+BATCH<keywords.length) await sleep(200);
   }
   return results;
 }
 
 function shopSearch(keyword, catId){
-  var p = {query:keyword, display:40, sort:'sim'};
-  if(catId&&catId!=='all') p.category = catId;
+  var p={query:keyword, display:40, sort:'sim'};
+  if(catId&&catId!=='all') p.category=catId;
   return httpGet('/v1/search/shop.json', p).then(function(data){
-    if(!data||!Array.isArray(data.items)) return {items:[], totalCount:0};
-    var items = [];
+    if(!data||!Array.isArray(data.items)) return {items:[],totalCount:0};
+    var items=[];
     data.items.forEach(function(item){
-      var title = cleanText(item.title||''), price = safeNum(item.lprice||item.price);
+      var title=cleanText(item.title||''), price=safeNum(item.lprice||item.price);
       if(isClean(title)) items.push({title:title, link:item.link||'', price:price, mall:item.mallName||''});
     });
     return {items:items, totalCount:safeNum(data.total)};
-  }).catch(function(){ return {items:[], totalCount:0}; });
+  }).catch(function(){return {items:[],totalCount:0};});
 }
 
+// ── 검색어트렌드 (기존 유지) ─────────────────────────────────
 function fetchVelocity(keyword, period){
-  var now=new Date();
-  var pad=function(n){return String(n).padStart(2,'0');};
-  var fmt=function(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());};
-  var ago=function(n){var d=new Date(now);d.setDate(d.getDate()-n);return d;};
-
-  var totalDays = period==='today' ? 4 : period==='month' ? 60 : 14;
-  var startDate = fmt(ago(totalDays));
-  var endDate   = fmt(now);
-  var timeUnit  = period==='month' ? 'week' : 'date';
-
-  var body=JSON.stringify({
-    startDate:startDate, endDate:endDate, timeUnit:timeUnit,
+  var totalDays = period==='today'?4 : period==='month'?60 : 14;
+  var timeUnit  = period==='month'?'week':'date';
+  var body={
+    startDate: fmtDate(agoDate(totalDays+1)),
+    endDate:   fmtDate(agoDate(1)),
+    timeUnit:  timeUnit,
     keywordGroups:[{groupName:keyword, keywords:[keyword]}]
-  });
+  };
   return new Promise(function(resolve){
     var t=setTimeout(function(){resolve(null);}, CFG.TIMEOUT);
-    var req=https.request({
-      hostname:'openapi.naver.com', path:'/v1/datalab/search', method:'POST',
-      headers:{
-        'X-Naver-Client-Id':     process.env.NAVER_CLIENT_ID,
-        'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET,
-        'Content-Type':'application/json',
-        'Content-Length':Buffer.byteLength(body)
-      }
-    }, function(res){
-      var raw='';
-      res.on('data',function(c){raw+=c;});
-      res.on('end',function(){
+    httpPost('/v1/datalab/search', body)
+      .then(function(d){
         clearTimeout(t);
         try{
-          var pts=((JSON.parse(raw).results||[])[0]||{}).data||[];
+          if(d.errorCode) return resolve(null);
+          var pts=((d.results||[])[0]||{}).data||[];
           if(pts.length<4) return resolve(null);
           var h=Math.floor(pts.length/2), prev=pts.slice(0,h), curr=pts.slice(h);
-          var avg=function(a){return a.reduce(function(s,p){return s+Number(p.ratio||0);},0)/(a.length||1);};
+          var avg=function(a){return a.reduce(function(s,p){return s+safeNum(p.ratio);},0)/(a.length||1);};
           var pa=avg(prev), ca=avg(curr);
           var surge=pa>0?Math.round(((ca-pa)/pa)*100):(ca>0?100:0);
           var eh=curr.slice(0,Math.floor(curr.length/2)), rh=curr.slice(Math.floor(curr.length/2));
           var accel=avg(eh)>0?Math.round(((avg(rh)-avg(eh))/avg(eh))*100):0;
-          var all=avg(pts), dur=Math.round((pts.filter(function(p){return Number(p.ratio||0)>=all;}).length/pts.length)*100);
+          var all=avg(pts), dur=Math.round((pts.filter(function(p){return safeNum(p.ratio)>=all;}).length/pts.length)*100);
           resolve({surgeRate:surge, accel:accel, durability:dur});
         }catch(e){resolve(null);}
-      });
-    });
-    req.on('error',function(){clearTimeout(t);resolve(null);});
-    req.write(body); req.end();
+      })
+      .catch(function(){clearTimeout(t); resolve(null);});
   });
 }
 
-module.exports = {shopSearch:shopSearch, batchShopSearch:batchShopSearch, fetchVelocity:fetchVelocity, cleanText:cleanText};
+// ── ★ 쇼핑인사이트 클릭트렌드 (신규) ────────────────────────
+// 검색어트렌드(검색량 기반)와 달리 실제 쇼핑 클릭수 기반 → 구매 의도 반영
+function fetchShoppingInsight(keyword, period){
+  var totalDays = period==='today'?4 : period==='month'?60 : 14;
+  var timeUnit  = period==='month'?'week':'date';
+  var body={
+    startDate: fmtDate(agoDate(totalDays+1)),
+    endDate:   fmtDate(agoDate(1)),
+    timeUnit:  timeUnit,
+    keyword:   keyword,
+    device:    '',
+    gender:    '',
+    ages:      []
+  };
+  return new Promise(function(resolve){
+    var t=setTimeout(function(){resolve(null);}, CFG.TIMEOUT);
+    httpPost('/v1/datalab/shopping/keyword/ratio', body)
+      .then(function(d){
+        clearTimeout(t);
+        try{
+          if(d.errorCode){
+            console.error('[ShoppingInsight error]', d.errorCode, d.errorMessage);
+            return resolve(null);
+          }
+          var pts=((d.results||[])[0]||{}).data||[];
+          if(pts.length<4) return resolve(null);
+
+          var h=Math.floor(pts.length/2), prev=pts.slice(0,h), curr=pts.slice(h);
+          var avg=function(a){return a.reduce(function(s,p){return s+safeNum(p.ratio);},0)/(a.length||1);};
+          var pa=avg(prev), ca=avg(curr);
+
+          // 쇼핑 클릭 급상승률
+          var clickSurge=pa>0?Math.round(((ca-pa)/pa)*100):(ca>0?100:0);
+
+          // 최근 3일 vs 이전 3일 (단기 가속도)
+          var last3=pts.slice(-3), prev3=pts.slice(Math.max(0,pts.length-6),-3);
+          var l3=avg(last3), p3=avg(prev3);
+          var clickAccel=p3>0?Math.round(((l3-p3)/p3)*100):(l3>0?50:0);
+
+          // 지속성: 평균 이상 비율
+          var all=avg(pts);
+          var clickDurability=Math.round((pts.filter(function(p){return safeNum(p.ratio)>=all;}).length/pts.length)*100);
+
+          // 현재 클릭 강도 (0~100 상대값)
+          var currentRatio=Math.round(ca*10)/10;
+
+          resolve({
+            clickSurge:     clickSurge,
+            clickAccel:     clickAccel,
+            clickDurability:clickDurability,
+            currentRatio:   currentRatio,
+            // 쇼핑인사이트 트렌드 판정
+            shopTrend: clickSurge>=30?'hot' : clickSurge>=10?'rising' : clickSurge>=-10?'stable' : 'falling'
+          });
+        }catch(e){ resolve(null); }
+      })
+      .catch(function(){clearTimeout(t); resolve(null);});
+  });
+}
+
+module.exports = {
+  shopSearch:           shopSearch,
+  batchShopSearch:      batchShopSearch,
+  fetchVelocity:        fetchVelocity,
+  fetchShoppingInsight: fetchShoppingInsight,  // ★ 신규 export
+  cleanText:            cleanText
+};
