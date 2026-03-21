@@ -437,7 +437,7 @@ function qlFetch(type, name){
 
   if(type==='shop'){
     el.innerHTML='<div style="font-size:11px;color:var(--faint);padding:6px">🛒 쇼핑 검색 중...</div>';
-    fetch('/api/naver-shop?query='+encodeURIComponent(name)+'&display=5')
+    fetch('/api/naver-shop?query='+encodeURIComponent(name)+'&display=5&sort=sim')
       .then(function(r){return r.json();})
       .then(function(d){
         var items=(d.items||[]).slice(0,5);
@@ -458,7 +458,7 @@ function qlFetch(type, name){
       .catch(function(){el.innerHTML='<div style="font-size:11px;color:#f43f5e;padding:6px">쇼핑 API 오류</div>';});
   } else if(type==='blog'){
     el.innerHTML='<div style="font-size:11px;color:var(--faint);padding:6px">📝 블로그 검색 중...</div>';
-    fetch('/api/naver-search?query='+encodeURIComponent(name)+'&type=blog')
+    fetch('/api/naver-search?query='+encodeURIComponent(name)+'&type=blog&sort=sim')
       .then(function(r){return r.json();})
       .then(function(d){
         var items=(d.items||[]).slice(0,5);
