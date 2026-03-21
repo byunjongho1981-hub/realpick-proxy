@@ -1,5 +1,6 @@
 var https = require('https');
 var CFG   = require('./_config');
+
 function httpGet(path, params){
   return new Promise(function(resolve, reject){
     var qs = Object.keys(params).map(function(k){
@@ -21,6 +22,7 @@ function httpGet(path, params){
     req.end();
   });
 }
+
 function cleanText(t){
   return String(t||'').replace(/<[^>]+>/g,'').replace(/[^\w가-힣\s]/g,' ').replace(/\s+/g,' ').trim();
 }
@@ -30,6 +32,24 @@ function isClean(t){
   return true;
 }
 function safeNum(v){ var n=Number(v); return isNaN(n)?0:n; }
+
+// ★ 배치 처리 — 10개씩 나눠서 호출, 배치 사이 200ms 대기 (rate limit 방지)
+async function batchShopSearch(keywords){
+  var BATCH = 10, results = [];
+  for(var i=0; i<keywords.length; i+=BATCH){
+    var chunk = keywords.slice(i, i+BATCH);
+    var settled = await Promise.allSettled(chunk.map(function(kw){ return shopSearch(kw, null); }));
+    settled.forEach(function(r, j){
+      results.push({
+        kw: chunk[j],
+        result: r.status==='fulfilled' ? r.value : {items:[], totalCount:0}
+      });
+    });
+    if(i+BATCH < keywords.length) await new Promise(function(r){setTimeout(r, 200);});
+  }
+  return results;
+}
+
 function shopSearch(keyword, catId){
   var p = {query:keyword, display:40, sort:'sim'};
   if(catId&&catId!=='all') p.category = catId;
@@ -44,10 +64,6 @@ function shopSearch(keyword, catId){
   }).catch(function(){ return {items:[], totalCount:0}; });
 }
 
-// ★ period별 날짜 범위 분리
-// today : 최근 4일 (2일 vs 2일 비교)
-// week  : 최근 14일 (7일 vs 7일 비교)
-// month : 최근 60일 (30일 vs 30일 비교)
 function fetchVelocity(keyword, period){
   var now=new Date();
   var pad=function(n){return String(n).padStart(2,'0');};
@@ -96,4 +112,5 @@ function fetchVelocity(keyword, period){
     req.write(body); req.end();
   });
 }
-module.exports = {shopSearch:shopSearch, fetchVelocity:fetchVelocity, cleanText:cleanText};
+
+module.exports = {shopSearch:shopSearch, batchShopSearch:batchShopSearch, fetchVelocity:fetchVelocity, cleanText:cleanText};
