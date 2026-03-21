@@ -7,15 +7,7 @@
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{background:#f0f4ff;color:#1e293b;font-family:'Noto Sans KR',sans-serif;min-height:100vh;display:flex;flex-direction:column}
-
-    /* ── 상단 네비게이션 */
-    nav{
-      position:fixed;top:0;left:0;right:0;z-index:100;
-      background:rgba(255,255,255,0.85);
-      backdrop-filter:blur(12px);
-      border-bottom:1px solid #e2e8f0;
-      height:60px;display:flex;align-items:center;padding:0 32px;gap:0;
-    }
+    nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,0.85);backdrop-filter:blur(12px);border-bottom:1px solid #e2e8f0;height:60px;display:flex;align-items:center;padding:0 32px;gap:0}
     .nav-logo{font-size:18px;font-weight:900;color:#6366f1;letter-spacing:-0.5px;margin-right:36px;white-space:nowrap}
     .nav-logo span{color:#1e293b}
     .nav-links{display:flex;gap:4px}
@@ -24,17 +16,8 @@
     .nav-link.active{background:#6366f1;color:#fff;font-weight:700}
     .nav-right{margin-left:auto;display:flex;align-items:center;gap:8px}
     .nav-badge{background:#6366f1;color:#fff;font-size:10px;padding:3px 10px;border-radius:20px;font-weight:700}
-
-    /* ── 본문 레이아웃 */
     .layout{display:flex;flex:1;margin-top:60px;min-height:calc(100vh - 60px)}
-
-    /* ── 왼쪽 사이드바 */
-    .sidebar{
-      width:260px;min-width:260px;
-      background:linear-gradient(160deg,#6366f1 0%,#4f46e5 40%,#3730a3 100%);
-      padding:40px 28px;display:flex;flex-direction:column;gap:0;
-      position:sticky;top:60px;height:calc(100vh - 60px);overflow:hidden;
-    }
+    .sidebar{width:260px;min-width:260px;background:linear-gradient(160deg,#6366f1 0%,#4f46e5 40%,#3730a3 100%);padding:40px 28px;display:flex;flex-direction:column;gap:0;position:sticky;top:60px;height:calc(100vh - 60px);overflow:hidden}
     .sidebar-en{font-size:11px;font-weight:700;color:#a5b4fc;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px}
     .sidebar-title{font-size:26px;font-weight:900;color:#fff;line-height:1.3;margin-bottom:8px;letter-spacing:-0.5px}
     .sidebar-title span{color:#c7d2fe}
@@ -49,16 +32,12 @@
     .sidebar-tag{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.12);border-radius:8px;padding:8px 14px;font-size:11px;color:#c7d2fe;font-weight:600}
     .dot{width:7px;height:7px;border-radius:50%;background:#34d399;flex-shrink:0;animation:pulse 2s infinite}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-
-    /* ── 메인 콘텐츠 */
     .main{flex:1;padding:40px 36px;overflow-y:auto}
     .section-label{font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:2px;text-transform:uppercase;margin-bottom:20px}
     .hero{background:#fff;border-radius:20px;padding:36px 40px;margin-bottom:28px;border:1px solid #e2e8f0;display:flex;align-items:center;gap:32px}
     .hero-text h2{font-size:22px;font-weight:900;color:#1e293b;margin-bottom:8px;letter-spacing:-0.5px}
     .hero-text p{font-size:13px;color:#64748b;line-height:1.7;max-width:420px}
     .hero-icon{font-size:56px;margin-left:auto;flex-shrink:0}
-
-    /* ── 카드 그리드 */
     .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px}
     .card{background:#fff;border-radius:16px;padding:24px;border:1px solid #e2e8f0;cursor:pointer;transition:all .2s}
     .card:hover{border-color:#6366f1;box-shadow:0 4px 20px #6366f120;transform:translateY(-2px)}
@@ -66,40 +45,28 @@
     .card-title{font-size:14px;font-weight:700;color:#1e293b;margin-bottom:6px}
     .card-desc{font-size:12px;color:#94a3b8;line-height:1.6}
     .card-tag{display:inline-block;margin-top:14px;font-size:11px;padding:3px 10px;border-radius:20px;font-weight:700}
-
-    /* ── 하단 상태 바 */
     .status-bar{background:#fff;border-radius:14px;padding:18px 24px;border:1px solid #e2e8f0;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
     .status-item{display:flex;align-items:center;gap:8px;font-size:12px;color:#64748b}
     .status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-
-    @media(max-width:768px){
-      .sidebar{display:none}
-      .grid{grid-template-columns:1fr 1fr}
-      .hero{flex-direction:column;gap:16px}
-      .hero-icon{margin:0}
-    }
+    @media(max-width:768px){.sidebar{display:none}.grid{grid-template-columns:1fr 1fr}.hero{flex-direction:column;gap:16px}.hero-icon{margin:0}}
   </style>
 </head>
 <body>
-
-  <!-- 네비게이션 -->
   <nav>
     <div class="nav-logo">Real<span>Pick</span></div>
     <div class="nav-links">
-      <a class="nav-link active" href="/index.html">🏠 홈</a>
-      <a class="nav-link" href="/trend.html">🔍 트렌드 탐색</a>
-      <a class="nav-link" href="/ai.html">⚡ AI 추천</a>
-      <a class="nav-link" href="/data.html">🗂 데이터 뷰</a>
+      <a class="nav-link active" href="#">🏠 홈</a>
+      <a class="nav-link" href="#">🔍 트렌드 탐색</a>
+      <a class="nav-link" href="/hot.html" style="color:#ef4444;font-weight:700">🔥 지금 뜨는 제품</a>
+      <a class="nav-link" href="#">⚡ AI 추천</a>
+      <a class="nav-link" href="#">🗂 데이터 뷰</a>
     </div>
     <div class="nav-right">
       <span class="nav-badge">BETA</span>
     </div>
   </nav>
 
-  <!-- 레이아웃 -->
   <div class="layout">
-
-    <!-- 왼쪽 사이드바 -->
     <aside class="sidebar">
       <div class="sidebar-en">Content Studio</div>
       <div class="sidebar-title">Crafted for<br/><span>Real Trends.</span><br/>Built to Win.</div>
@@ -136,11 +103,8 @@
       </div>
     </aside>
 
-    <!-- 메인 콘텐츠 -->
     <main class="main">
       <div class="section-label">Overview</div>
-
-      <!-- 히어로 -->
       <div class="hero">
         <div class="hero-text">
           <h2>경쟁자보다 24~72시간 먼저 🚀</h2>
@@ -149,10 +113,9 @@
         <div class="hero-icon">📡</div>
       </div>
 
-      <!-- 기능 카드 -->
       <div class="section-label">Features</div>
       <div class="grid">
-        <div class="card" onclick="location.href='/trend.html'" style="cursor:pointer">
+        <div class="card">
           <div class="card-icon">🔍</div>
           <div class="card-title">트렌드 탐색</div>
           <div class="card-desc">카테고리별 인기 키워드와 검색 트렌드를 시각화합니다.</div>
@@ -172,7 +135,6 @@
         </div>
       </div>
 
-      <!-- API 상태 -->
       <div class="section-label">System Status</div>
       <div class="status-bar">
         <div class="status-item">
@@ -192,8 +154,6 @@
         </div>
       </div>
     </main>
-
   </div>
-
 </body>
 </html>
