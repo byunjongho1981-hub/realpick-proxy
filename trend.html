@@ -233,6 +233,10 @@ th{padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--f
     <div class="dp">
       <div class="dp-hdr">상세 분석</div>
       <div id="dp-body"><div class="dp-empty"><div style="font-size:36px">📋</div><div>항목을 클릭하면<br/>상세 분석이 표시됩니다</div></div></div>
+      <div style="border-top:1px solid var(--bdr)">
+        <div style="padding:10px 16px;font-size:10px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:1px">🗂 키워드 클러스터</div>
+        <div id="cluster-panel" style="padding:0 10px 10px 10px;font-size:11px;color:var(--faint)">탐색 후 표시됩니다</div>
+      </div>
     </div>
 
     <div class="tbl-panel">
@@ -304,7 +308,7 @@ var FILTERS={
   blog_cafe:function(c){return c&&Array.isArray(c.sources)&&c.sources.some(function(s){return s==='blog'||s==='cafe';});},
   high_conf:function(c){return c&&c.score&&c.score.confidence==='high';}
 };
-var S={mode:'category',catId:'50000003',period:'week',seedKw:'',depth:1,filterStatus:'all',sortBy:'score',candidates:[],filtered:[],selected:null,saved:{shorts:[],blog:[]},favorites:new Set(),loading:false,lastUpdated:null,apiStatus:{}};
+var S={mode:'category',catId:'50000003',period:'week',seedKw:'',depth:1,filterStatus:'all',sortBy:'score',candidates:[],clusters:[],filtered:[],selected:null,saved:{shorts:[],blog:[]},favorites:new Set(),loading:false,lastUpdated:null,apiStatus:{}};
 var RH={};
 function n(v){var x=Number(v);return isNaN(x)?0:x;}
 function fmtDate(iso){try{return new Date(iso).toLocaleString('ko-KR',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}catch(e){return '';}}
@@ -411,7 +415,42 @@ function runSeed(){var kw=document.getElementById('seed-input').value.trim();if(
 function runQuickSearch(){var kw=document.getElementById('qs-input').value.trim();if(!kw){document.getElementById('qs-input').focus();return;}switchMode('seed');document.getElementById('seed-input').value=kw;S.seedKw=kw;setLoading(true,'"'+kw+'" 검색 중...');apiFetch('/api/auto-discover?mode=seed&keyword='+encodeURIComponent(kw)+'&period='+S.period).then(function(d){handleResult(d);}).catch(function(e){showErr(e.message);}).finally(function(){setLoading(false);});}
 function handleResult(data){showErr(null);if(!data||!Array.isArray(data.candidates))throw new Error('응답 형식 오류');S.candidates=data.candidates;S.apiStatus=data.apiStatus||{};S.lastUpdated=data.updatedAt||new Date().toISOString();applySort();renderAll();}
 function applySort(){var fn=FILTERS[S.filterStatus]||FILTERS.all,list=S.candidates.filter(fn);if(S.sortBy==='score')list.sort(function(a,b){return n((b.score||{}).totalScore)-n((a.score||{}).totalScore);});else if(S.sortBy==='count')list.sort(function(a,b){return n(b.count)-n(a.count);});else list.sort(function(a,b){return(a.name||'').localeCompare(b.name||'');});S.filtered=list;}
-function renderAll(){renderCards();renderTable();renderDetail();renderMeta();renderApiBar();renderQL();}
+function renderAll(){renderCards();renderTable();renderDetail();renderMeta();renderApiBar();renderClusters();}
+
+function renderClusters(){
+  var el=document.getElementById('cluster-panel');
+  if(!el) return;
+  var cls=Array.isArray(S.clusters)?S.clusters:[];
+  if(!cls.length){el.innerHTML='<div style="font-size:11px;color:var(--faint);padding:8px">클러스터 없음</div>';return;}
+  el.innerHTML=cls.map(function(cl){
+    var rep=cl.representative||{}, sc=rep.score||{};
+    var gc=sc.grade==='A'?'var(--ga)':sc.grade==='B'?'var(--gb)':'var(--gc)';
+    var members=cl.members.filter(function(m){return m.name!==cl.root;});
+    return '<div style="margin-bottom:8px;border:1px solid var(--bdr);border-radius:10px;overflow:hidden">'
+      +'<div style="display:flex;align-items:center;gap:6px;padding:8px 10px;background:#f8faff;cursor:pointer" onclick="clusterClick(\''+cl.root+'\')">'
+        +'<span style="font-size:12px;font-weight:800;color:var(--txt);flex:1">'+cl.root+'</span>'
+        +'<span style="font-size:10px;background:'+gc+';color:#fff;border-radius:4px;padding:1px 6px;font-weight:700">'+sc.grade+'</span>'
+        +'<span style="font-size:10px;color:var(--faint)">×'+cl.memberCount+'</span>'
+      +'</div>'
+      +(members.length?'<div style="padding:4px 8px 6px 8px;display:flex;flex-wrap:wrap;gap:3px">'
+        +members.map(function(m){
+          return '<span onclick="clusterMemberClick(\''+m.name+'\')" style="font-size:10px;background:#f1f5f9;color:#475569;border-radius:5px;padding:2px 7px;cursor:pointer;border:1px solid var(--bdr)">'+m.name+'</span>';
+        }).join('')
+      +'</div>':'')
+    +'</div>';
+  }).join('');
+}
+
+function clusterClick(root){
+  for(var i=0;i<S.filtered.length;i++){
+    if(S.filtered[i]&&S.filtered[i].name===root){selItem(i);return;}
+  }
+}
+function clusterMemberClick(name){
+  for(var i=0;i<S.filtered.length;i++){
+    if(S.filtered[i]&&S.filtered[i].name===name){selItem(i);return;}
+  }
+}
 function renderCards(){var cs=Array.isArray(S.candidates)?S.candidates:[];function set(id,v){var el=document.getElementById(id);if(el)el.textContent=v;}if(!cs.length){['sc-total','sc-rising','sc-agrade','sc-shop','sc-avg','sc-low'].forEach(function(id){set(id,'–');});set('sc-rising-sub','–');return;}var rising=cs.filter(function(c){return c&&c.trend&&c.trend.status==='rising';}),aGrade=cs.filter(function(c){return c&&c.score&&c.score.grade==='A';}),shop=cs.filter(function(c){return c&&Array.isArray(c.sources)&&c.sources.indexOf('shopping')>-1;}),low=cs.filter(function(c){return c&&c.score&&c.score.confidence==='low';}),avg=cs.length?Math.round(cs.reduce(function(s,c){return s+n(c&&c.score&&c.score.totalScore);},0)/cs.length):0;set('sc-total',cs.length);set('sc-rising',rising.length);set('sc-rising-sub',(rising[0]&&rising[0].name)||'–');set('sc-agrade',aGrade.length);set('sc-shop',shop.length);set('sc-avg',avg);set('sc-low',low.length);}
 function renderTable(){var tbody=document.getElementById('result-body'),table=document.getElementById('result-tbl'),empty=document.getElementById('empty-st');if(!S.filtered.length){table.style.display='none';empty.style.display='flex';return;}empty.style.display='none';table.style.display='table';tbody.innerHTML=S.filtered.map(function(c,i){if(!c)return'';var sc=c.score||{},tr=c.trend||{},gc=GRADE_C[sc.grade]||'var(--gc)',isSel=S.selected&&S.selected.id===c.id,isFav=S.favorites.has(c.id),srcs=(c.sources||[]).map(function(s){return'<span style="background:#f1f5f9;color:#475569;border-radius:4px;padding:1px 5px;font-size:10px;margin-right:2px">'+s+'</span>';}).join('');return'<tr class="r-row'+(isSel?' sel':'')+'" onclick="selItem('+i+')">'+'<td style="padding:9px 12px"><div style="font-weight:700;font-size:13px">'+(isFav?'⭐ ':'')+(c.name||'–')+'</div></td>'+'<td style="padding:9px 12px;font-weight:900;font-size:15px;color:'+gc+'">'+Math.round(n(sc.totalScore))+'</td>'+'<td style="padding:9px 12px">'+gradeBdg(sc.grade)+'</td>'+'<td style="padding:9px 12px">'+trendBdg(tr.status)+'</td>'+'<td style="padding:9px 12px">'+confHtml(sc.confidence)+'</td>'+'<td style="padding:9px 12px">'+sparkHtml(c.count,tr.status)+'</td>'+'<td style="padding:9px 12px">'+srcs+'</td>'+'<td style="padding:9px 12px">'+actBdg(c.action)+'</td>'+'<td style="padding:9px 12px;font-size:11px;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(c.summary||'–')+'</td>'      +'<td style="padding:9px 12px;vertical-align:top"><div class="r-acts">'+'<button class="ra-btn" onclick="event.stopPropagation();doSave(\''+c.id+'\',\'shorts\')" title="쇼츠 저장">📱</button>'+'<button class="ra-btn" onclick="event.stopPropagation();doSave(\''+c.id+'\',\'blog\')" title="블로그 저장">📝</button>'+'<button class="ra-btn" onclick="event.stopPropagation();doFav(\''+c.id+'\')" title="즐겨찾기">'+(isFav?'⭐':'☆')+'</button>'+'</div></td>'    // 바로가기 인라인 행
     +(isSel?'<tr class="ql-inline-row" style="background:#f0f4ff"><td colspan="11" style="padding:6px 18px 10px 24px">'
