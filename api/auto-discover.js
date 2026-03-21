@@ -11,8 +11,8 @@ var CACHE_CAT = {}; // { catId: {data, ts} }
 
 function getCacheAll(){ return CACHE_ALL.data&&(Date.now()-CACHE_ALL.ts<TTL)?CACHE_ALL.data:null; }
 function setCacheAll(d){ CACHE_ALL.data=d; CACHE_ALL.ts=Date.now(); }
-function getCacheCat(catId){ var c=CACHE_CAT[catId]; return c&&c.data&&(Date.now()-c.ts<TTL)?c.data:null; }
-function setCacheCat(catId,d){ CACHE_CAT[catId]={data:d,ts:Date.now()}; }
+function getCacheCat(catId,period){ var k=catId+'_'+period; var c=CACHE_CAT[k]; return c&&c.data&&(Date.now()-c.ts<TTL)?c.data:null; }
+function setCacheCat(catId,period,d){ var k=catId+'_'+period; CACHE_CAT[k]={data:d,ts:Date.now()}; }
 
 function checkEnv(){
   var miss=[];
@@ -151,11 +151,11 @@ module.exports=async function(req,res){
         return res.status(200).json(result);
       }
       // ★ 카테고리별 캐시 적용
-      var cachedCat=getCacheCat(catId);
-      if(cachedCat){cachedCat.fromCache=true;cachedCat.cacheAge=Math.round((Date.now()-CACHE_CAT[catId].ts)/1000)+'초 전';return res.status(200).json(cachedCat);}
+      var cachedCat=getCacheCat(catId,period);
+      if(cachedCat){cachedCat.fromCache=true;cachedCat.cacheAge=Math.round((Date.now()-CACHE_CAT[catId+'_'+period].ts)/1000)+'초 전';return res.status(200).json(cachedCat);}
       var cr=await discoverCategory(catId);
       var catResult={candidates:cr.candidates, clusters:ANALYZE.clusterCandidates(cr.candidates), mode:mode, categoryId:catId, categoryName:CFG.CAT_NAMES[catId]||catId, period:period, total:cr.candidates.length, apiStatus:cr.apiStatus, updatedAt:new Date().toISOString(), fromCache:false};
-      setCacheCat(catId, catResult);
+      setCacheCat(catId, period, catResult);
       return res.status(200).json(catResult);
     }
     if(mode==='seed'){
