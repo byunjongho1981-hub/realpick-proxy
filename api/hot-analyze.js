@@ -402,53 +402,80 @@ module.exports = async function(req, res) {
   var keyword = String(req.query.keyword||'').trim().slice(0,30);
   if (!keyword) return res.status(400).json({error:'키워드를 입력해주세요'});
 
-  // 환경변수 체크
   var envCheck = {
-    NAVER: !!(process.env.NAVER_CLIENT_ID && process.env.NAVER_CLIENT_SECRET),
+    NAVER:   !!(process.env.NAVER_CLIENT_ID && process.env.NAVER_CLIENT_SECRET),
     YOUTUBE: !!process.env.YOUTUBE_API_KEY,
-    GROQ: !!process.env.GROQ_API_KEY
+    GROQ:    !!process.env.GROQ_API_KEY
   };
 
   try {
     var candidates = await extractCandidates(keyword);
-    var results = [];
-    var BATCH = 3;
 
+    // ── Phase 1: 네이버만으로 전체 후보 점수 계산 (YouTube/Datalab 없이)
+    var BATCH = 3;
+    var phase1 = [];
     for (var i=0; i<candidates.length; i+=BATCH) {
       var chunk = candidates.slice(i,i+BATCH);
       var settled = await Promise.allSettled(chunk.map(async function(kw) {
-        var [yt,blog,shop,dl] = await Promise.all([
-          analyzeYouTube(kw),
-          analyzeBlog(kw),
-          analyzeShopping(kw),
-          analyzeDatalab(kw)
-        ]);
-        var score = calcScore(yt,blog,shop,dl);
-        var jdg   = judge(yt,blog,shop,dl);
-        return {kw, yt, blog, shop, dl, score, jdg};
+        var [blog, shop] = await Promise.all([analyzeBlog(kw), analyzeShopping(kw)]);
+        return { kw, blog, shop };
       }));
-      settled.forEach(function(r){ if(r.status==='fulfilled') results.push(r.value); });
-      if (i+BATCH < candidates.length) await sleep(300);
+      settled.forEach(function(r){ if(r.status==='fulfilled') phase1.push(r.value); });
+      if (i+BATCH < candidates.length) await sleep(150);
     }
+
+    // 네이버 점수로 1차 정렬 → 상위 5개만 YouTube + Datalab 호출
+    var TOP_N = 5;
+    phase1.sort(function(a,b){
+      var sa = (a.shop.itemCount||0)*2 + Math.round((a.blog.reviewRatio||0)*10);
+      var sb = (b.shop.itemCount||0)*2 + Math.round((b.blog.reviewRatio||0)*10);
+      return sb-sa;
+    });
+
+    var topKws  = phase1.slice(0, TOP_N).map(function(r){return r.kw;});
+    var restKws = phase1.slice(TOP_N).map(function(r){return r.kw;});
+
+    // ── Phase 2: 상위 5개만 YouTube + Datalab 호출
+    var ytMap={}, dlMap={};
+    for (var j=0; j<topKws.length; j++) {
+      var kw = topKws[j];
+      var [yt, dl] = await Promise.all([analyzeYouTube(kw), analyzeDatalab(kw)]);
+      ytMap[kw] = yt;
+      dlMap[kw] = dl;
+      if (j < topKws.length-1) await sleep(200);
+    }
+
+    // 나머지는 YouTube/Datalab 빈 값
+    var emptyYt = { videoCount:0, avgViews:0, shortsRatio:0, channelRepeat:0, totalChannels:0, topVideos:[], apiStatus:'SKIPPED' };
+    var emptyDl = { surgeRate:0, surge3d:0, surge7d:0, trend:'unknown', avgRatio:0, apiStatus:'SKIPPED' };
+    restKws.forEach(function(kw){ ytMap[kw]=emptyYt; dlMap[kw]=emptyDl; });
+
+    // ── 전체 결과 조합
+    var results = phase1.map(function(r){
+      var yt    = ytMap[r.kw]  || emptyYt;
+      var dl    = dlMap[r.kw]  || emptyDl;
+      var score = calcScore(yt, r.blog, r.shop, dl);
+      var jdg   = judge(yt, r.blog, r.shop, dl);
+      return { kw:r.kw, yt, blog:r.blog, shop:r.shop, dl, score, jdg };
+    });
 
     results.sort(function(a,b){ return b.score.total - a.score.total; });
 
-    // Groq 상위 10개만
-    await Promise.allSettled(results.slice(0,10).map(async function(r){
+    // ── Groq: 상위 5개만
+    await Promise.allSettled(results.slice(0,5).map(async function(r){
       r.aiReason = await getGroqReason(r.kw, r.yt, r.blog, r.shop, r.dl, r.score, r.jdg);
     }));
 
     var out = results.map(function(r){
       return {
         id: r.kw, name: r.kw,
-        score: r.score,
-        judge: r.jdg,
+        score: r.score, judge: r.jdg,
         aiReason: r.aiReason || null,
         apiStatus: {
           youtube:  r.yt.apiStatus  || 'unknown',
+          datalab:  r.dl.apiStatus  || 'unknown',
           blog:     r.blog.apiStatus || 'unknown',
-          shopping: r.shop.apiStatus || 'unknown',
-          datalab:  r.dl.apiStatus   || 'unknown'
+          shopping: r.shop.apiStatus || 'unknown'
         },
         data: {
           youtube:  { videoCount:r.yt.videoCount, avgViews:r.yt.avgViews, shortsRatio:Math.round((r.yt.shortsRatio||0)*100), channelRepeat:r.yt.channelRepeat, totalChannels:r.yt.totalChannels, topVideos:r.yt.topVideos||[] },
@@ -460,15 +487,12 @@ module.exports = async function(req, res) {
     });
 
     return res.status(200).json({
-      keyword: keyword,
-      candidates: out,
-      total: out.length,
-      envCheck: envCheck,   // ★ 환경변수 체크 포함
-      updatedAt: new Date().toISOString()
+      keyword, candidates: out, total: out.length,
+      envCheck, updatedAt: new Date().toISOString()
     });
 
   } catch(e) {
     console.error('[hot-analyze]', e.message);
-    return res.status(500).json({ error:'분석 중 오류 발생', detail:e.message, envCheck: envCheck });
+    return res.status(500).json({ error:'분석 중 오류 발생', detail:e.message, envCheck });
   }
 };
