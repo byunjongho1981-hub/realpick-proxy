@@ -3,13 +3,16 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
   if (req.method === "OPTIONS") return res.status(200).end();
 
-  const { query, type } = req.query;
+  const { query, type, sort } = req.query;
   if (!query) return res.status(400).json({ error: "query required" });
 
   const validTypes = ["blog", "news", "cafearticle"];
   const searchType = validTypes.includes(type) ? type : "blog";
 
-  const url = `https://openapi.naver.com/v1/search/${searchType}.json?query=${encodeURIComponent(query)}&display=20`;
+  const validSorts = ["sim", "date"];
+  const sortParam = validSorts.includes(sort) ? sort : "sim";
+
+  const url = `https://openapi.naver.com/v1/search/${searchType}.json?query=${encodeURIComponent(query)}&display=20&sort=${sortParam}`;
 
   try {
     const response = await fetch(url, {
