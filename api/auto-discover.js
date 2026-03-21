@@ -45,12 +45,8 @@ function buildCandidate(kw, result, maxTotal, intentOverride, velocity){
 
 async function discoverCategory(catId, period){
   var kws=CFG.CAT_SEEDS[catId]||CFG.CAT_SEEDS['50000003'];
-  var res=await Promise.allSettled(kws.map(function(kw){return FETCH.shopSearch(kw,null);}));
-  var valid=[];
-  for(var i=0;i<kws.length;i++){
-    var r=res[i].status==='fulfilled'?res[i].value:{items:[],totalCount:0};
-    valid.push({kw:kws[i], result:r});
-  }
+  // ★ batchShopSearch — 10개씩 배치 호출로 rate limit 방지
+  var valid=await FETCH.batchShopSearch(kws);
   var withItems = valid.filter(function(v){return v.result.items.length>0;});
   var noItems   = valid.filter(function(v){return v.result.items.length===0;});
   valid = withItems.concat(noItems);
