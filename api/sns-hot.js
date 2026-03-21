@@ -118,17 +118,17 @@ async function fetchTikTok(keyword){
   var key = process.env.RAPIDAPI_KEY;
   if(!key) return {ok:false, error:'RAPIDAPI_KEY 없음'};
 
-  var host = 'tiktok-api23.p.rapidapi.com';
+  var host = 'tiktok-api-fast-reliable-data-scraper.p.rapidapi.com';
   var headers = {
     'x-rapidapi-key':  key,
     'x-rapidapi-host': host
   };
 
   var r = await httpGet(host,
-    '/api/search/video?keywords='+encodeURIComponent(keyword)+'&count=20&cursor=0', headers);
+    '/search/keyword?keyword='+encodeURIComponent(keyword)+'&count=20', headers);
   if(!r||r.status!==200||!r.data) return {ok:false, error:'TikTok API 실패 '+(r?r.status:'timeout')};
 
-  var items = r.data.data||r.data.item_list||r.data.videos||[];
+  var items = r.data.data||r.data.item_list||r.data.videos||r.data.result||[];
   if(!Array.isArray(items)||!items.length) return {ok:true, videoCount:0, avgViews:0, shortRatio:0};
 
   var totalViews=0, shorts=0;
