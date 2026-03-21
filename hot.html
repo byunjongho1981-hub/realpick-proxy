@@ -9,8 +9,14 @@
   --bg:#fff5f5;--surf:#fff;--bdr:#e2e8f0;
   --txt:#1e293b;--muted:#64748b;--faint:#94a3b8;
   --pri:#ef4444;--pri-lt:#fef2f2;--pri-bdr:#fecaca;
-  --rising:#10b981;--spreading:#6366f1;--plateau:#f59e0b;--falling:#f43f5e;
-  --ga:#10b981;--gb:#6366f1;--gc:#94a3b8;
+  /* 태그 색상 체계 고정 */
+  --c-red:#ef4444;    --b-red:#fef2f2;   /* 위험/고경쟁/하락 */
+  --c-green:#10b981;  --b-green:#ecfdf5; /* 저경쟁/유리 */
+  --c-orange:#f97316; --b-orange:#fff7ed;/* 급상승/타이밍 */
+  --c-purple:#8b5cf6; --b-purple:#f5f3ff;/* 쇼츠 */
+  --c-yellow:#d97706; --b-yellow:#fffbeb;/* 판매형 */
+  --c-blue:#6366f1;   --b-blue:#eff0ff;  /* 확산/정보 */
+  --c-gray:#64748b;   --b-gray:#f8fafc;  /* 기타 */
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--txt);font-family:'Noto Sans KR',sans-serif;font-size:13px}
@@ -36,33 +42,84 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
 .s-btn:hover{background:#dc2626}
 .s-btn:disabled{opacity:.5;cursor:not-allowed}
 
-/* 요약 바 */
+/* 요약 */
 .sum-bar{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px}
-.s-card{min-width:100px;background:#fff;border:1px solid var(--bdr);border-radius:10px;padding:9px 13px;flex-shrink:0}
+.s-card{min-width:130px;background:#fff;border:1px solid var(--bdr);border-radius:10px;padding:9px 13px;flex-shrink:0}
 .s-lbl{font-size:10px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.7px;margin-bottom:3px}
-.s-val{font-size:20px;font-weight:900;line-height:1;margin-bottom:2px}
-.s-sub{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px}
+.s-val{font-size:18px;font-weight:900;line-height:1;margin-bottom:2px}
+.s-sub{font-size:10px;color:var(--muted);line-height:1.4}
 
 /* 필터 */
 .flt-bar{background:#fff;border:1px solid var(--bdr);border-radius:12px;padding:8px 16px;display:flex;align-items:center;gap:6px;margin-bottom:16px;flex-wrap:wrap}
 .f-btn{padding:4px 12px;border-radius:20px;border:1.5px solid var(--bdr);font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;background:#fff;transition:all .15s}
 .f-btn.on{border-color:var(--pri);background:var(--pri);color:#fff}
-.f-sep{width:1px;height:16px;background:var(--bdr)}
 
-/* 결과 */
-.result-list{display:flex;flex-direction:column;gap:12px}
-.r-card{background:#fff;border:1px solid var(--bdr);border-radius:14px;padding:18px 20px;transition:all .2s}
-.r-card:hover{border-color:var(--pri);box-shadow:0 2px 14px rgba(239,68,68,.1)}
-.r-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+/* 카드 */
+.result-list{display:flex;flex-direction:column;gap:14px}
+.r-card{background:#fff;border:1px solid var(--bdr);border-radius:16px;padding:18px 20px;transition:border-color .2s}
+.r-card:hover{border-color:var(--pri);box-shadow:0 2px 14px rgba(239,68,68,.08)}
+
+/* 카드 헤더 */
+.r-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
 .r-rank{width:28px;height:28px;border-radius:8px;background:var(--pri-lt);color:var(--pri);font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .r-name{font-size:16px;font-weight:900;flex:1}
-.r-score{font-size:22px;font-weight:900;color:var(--pri);margin-right:4px}
+.r-score-wrap{display:flex;align-items:baseline;gap:4px}
+.r-score{font-size:24px;font-weight:900;color:var(--pri)}
+.r-score-sub{font-size:11px;color:var(--faint)}
+
+/* 결정 배지 */
+.decision-bdg{display:inline-flex;align-items:center;padding:5px 14px;border-radius:20px;font-size:13px;font-weight:900;letter-spacing:-.3px;flex-shrink:0}
+
+/* 태그 배지 */
 .bdg{display:inline-flex;align-items:center;border-radius:6px;padding:2px 9px;font-size:11px;font-weight:700;white-space:nowrap}
-.r-badges{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
-.r-data{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
-.d-cell{background:#f8fafc;border-radius:8px;padding:6px 10px;font-size:11px;color:var(--muted)}
-.d-val{font-size:13px;font-weight:700;color:var(--txt);display:block}
-.r-ai{background:linear-gradient(135deg,#eff0ff,#fef2f2);border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;color:#1e293b;margin-bottom:10px;border-left:3px solid var(--pri)}
+.r-badges{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
+
+/* 데이터 셀 */
+.r-data{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.d-cell{background:#f8fafc;border-radius:8px;padding:7px 11px;font-size:11px;color:var(--muted);min-width:80px}
+.d-val{font-size:14px;font-weight:800;color:var(--txt);display:block;margin-bottom:1px}
+
+/* 점수 분석 */
+.score-breakdown{background:#f8fafc;border-radius:10px;padding:10px 14px;margin-bottom:12px}
+.sb-title{font-size:10px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px}
+.sb-grid{display:flex;gap:6px;flex-wrap:wrap}
+.sb-item{display:flex;flex-direction:column;align-items:center;background:#fff;border:1px solid var(--bdr);border-radius:8px;padding:6px 10px;min-width:62px}
+.sb-val{font-size:16px;font-weight:900;line-height:1}
+.sb-lbl{font-size:10px;color:var(--faint);margin-top:2px}
+
+/* 경쟁도 이유 */
+.compete-reasons{background:#f8fafc;border-radius:10px;padding:10px 14px;margin-bottom:12px}
+.cr-title{font-size:10px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.cr-item{display:flex;align-items:flex-start;gap:5px;font-size:12px;color:var(--muted);margin-bottom:3px;line-height:1.5}
+
+/* 타이밍 분석 */
+.timing-analysis{border-radius:10px;padding:10px 14px;margin-bottom:12px}
+.ta-title{font-size:10px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px}
+.ta-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.ta-item{background:#fff;border:1px solid var(--bdr);border-radius:8px;padding:6px 12px;display:flex;flex-direction:column;align-items:center;min-width:90px}
+.ta-val{font-size:17px;font-weight:900;line-height:1}
+.ta-lbl{font-size:10px;color:var(--faint);margin-top:2px}
+.ta-arrow{font-size:20px;color:var(--faint)}
+.ta-result{display:inline-flex;align-items:center;padding:5px 14px;border-radius:20px;font-size:13px;font-weight:900}
+
+/* AI 이유 */
+.r-ai{border-radius:10px;padding:10px 14px;font-size:12px;font-weight:600;color:#1e293b;margin-bottom:12px;border-left:3px solid var(--pri);background:linear-gradient(135deg,#eff0ff,#fef2f2);line-height:1.7}
+
+/* 영상 */
+.r-videos{margin-bottom:12px}
+.rv-title{font-size:10px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px;display:flex;align-items:center;gap:6px}
+.rv-label{display:inline-flex;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700;background:#eff0ff;color:#6366f1}
+.rv-list{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.v-card{flex-shrink:0;width:155px;background:#f8fafc;border:1px solid var(--bdr);border-radius:10px;overflow:hidden;text-decoration:none;transition:all .18s;display:block}
+.v-card:hover{border-color:#6366f1;box-shadow:0 2px 8px rgba(99,102,241,.15)}
+.v-thumb{width:100%;height:88px;object-fit:cover;background:#e2e8f0;display:block}
+.v-info{padding:7px 8px}
+.v-title{font-size:11px;font-weight:600;color:var(--txt);line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;margin-bottom:4px}
+.v-meta{display:flex;justify-content:space-between;font-size:10px;color:var(--faint)}
+.v-views{color:var(--pri);font-weight:700}
+.v-shorts{background:#eff0ff;color:#6366f1;border-radius:4px;padding:1px 5px;font-size:9px;font-weight:700}
+
+/* 바로가기 */
 .r-links{display:flex;gap:5px;flex-wrap:wrap}
 .r-lnk{display:inline-flex;align-items:center;gap:3px;padding:4px 10px;background:#f8fafc;border:1px solid var(--bdr);border-radius:7px;text-decoration:none;font-size:11px;font-weight:600;color:#475569;transition:all .15s}
 .r-lnk:hover{border-color:#6366f1;color:#6366f1}
@@ -73,16 +130,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
 .loading-box{display:flex;flex-direction:column;align-items:center;padding:60px 20px;gap:14px;color:var(--muted);background:#fff;border-radius:14px;border:1px solid var(--bdr)}
 @keyframes spin{to{transform:rotate(360deg)}}
 .spinner{width:30px;height:30px;border:3px solid var(--bdr);border-top:3px solid var(--pri);border-radius:50%;animation:spin .8s linear infinite}
-.r-videos{margin-bottom:10px}
-.r-videos-title{font-size:10px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px}
-.r-videos-list{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
-.v-card{flex-shrink:0;width:160px;background:#f8fafc;border:1px solid var(--bdr);border-radius:10px;overflow:hidden;text-decoration:none;transition:all .2s}
-.v-card:hover{border-color:#6366f1;box-shadow:0 2px 8px rgba(99,102,241,.15)}
-.v-thumb{width:100%;height:90px;object-fit:cover;background:#e2e8f0}
-.v-info{padding:7px 8px}
-.v-title{font-size:11px;font-weight:600;color:var(--txt);line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;margin-bottom:4px}
-.v-meta{display:flex;justify-content:space-between;font-size:10px;color:var(--faint)}
-.v-views{color:var(--pri);font-weight:700}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#475569;background:#f1f5f9;padding:2px 9px;border-radius:20px;font-weight:600}
 </style>
 </head>
 <body>
@@ -99,10 +147,9 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
 </nav>
 
 <div class="wrap">
-  <!-- 검색 -->
   <div class="search-box">
     <div class="search-title">🔥 지금 뜨는 제품</div>
-    <div class="search-sub">YouTube × 네이버 × AI 기반 — 이거 뜨냐? 돈 되냐? 지금 들어가냐?</div>
+    <div class="search-sub">YouTube × 네이버 × AI — 이거 해야 되냐? 지금 들어가냐? 돈 되냐?</div>
     <div class="search-row">
       <input id="hot-inp" class="s-inp" type="text" placeholder="예: 스마트폰, 캠핑텐트, 무선이어폰..." maxlength="30"
         onkeydown="if(event.key==='Enter')runHot()"/>
@@ -110,59 +157,71 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
     </div>
   </div>
 
-  <!-- 요약 -->
   <div class="sum-bar" id="sum-bar" style="display:none">
-    <div class="s-card"><div class="s-lbl">전체</div><div class="s-val" id="sc-total" style="color:var(--pri)">–</div><div class="s-sub">후보 제품</div></div>
-    <div class="s-card"><div class="s-lbl">🔥 급상승</div><div class="s-val" id="sc-rising" style="color:var(--rising)">–</div><div class="s-sub" id="sc-rising-sub">–</div></div>
-    <div class="s-card"><div class="s-lbl">🔥 지금 진입</div><div class="s-val" id="sc-now" style="color:var(--pri)">–</div><div class="s-sub">타이밍 최적</div></div>
-    <div class="s-card"><div class="s-lbl">💰 판매형</div><div class="s-val" id="sc-sell" style="color:#f59e0b">–</div><div class="s-sub">수익화 가능</div></div>
-    <div class="s-card"><div class="s-lbl">🟢 저경쟁</div><div class="s-val" id="sc-low" style="color:var(--rising)">–</div><div class="s-sub">진입 쉬움</div></div>
-    <div class="s-card"><div class="s-lbl">🎬 쇼츠 적합</div><div class="s-val" id="sc-shorts" style="color:#6366f1">–</div><div class="s-sub">Shorts 추천</div></div>
+    <div class="s-card"><div class="s-lbl">전체</div><div class="s-val" id="sc-total" style="color:var(--pri)">–</div><div class="s-sub" id="sc-total-sub">후보 제품</div></div>
+    <div class="s-card"><div class="s-lbl">🔥 급상승</div><div class="s-val" id="sc-rising" style="color:var(--c-orange)">–</div><div class="s-sub" id="sc-rising-sub">급상승 후보 없음</div></div>
+    <div class="s-card"><div class="s-lbl">🔥 지금 진입</div><div class="s-val" id="sc-now" style="color:var(--pri)">–</div><div class="s-sub" id="sc-now-sub">지금 진입 가능한 키워드 없음</div></div>
+    <div class="s-card"><div class="s-lbl">💰 판매형</div><div class="s-val" id="sc-sell" style="color:var(--c-yellow)">–</div><div class="s-sub" id="sc-sell-sub">수익형 후보 없음</div></div>
+    <div class="s-card"><div class="s-lbl">🟢 저경쟁</div><div class="s-val" id="sc-low" style="color:var(--c-green)">–</div><div class="s-sub" id="sc-low-sub">진입 쉬운 키워드 없음</div></div>
+    <div class="s-card"><div class="s-lbl">🎬 쇼츠 적합</div><div class="s-val" id="sc-shorts" style="color:var(--c-purple)">–</div><div class="s-sub" id="sc-shorts-sub">쇼츠 적합 없음</div></div>
   </div>
 
-  <!-- 필터 -->
   <div class="flt-bar" id="flt-bar" style="display:none">
     <button class="f-btn on" data-f="all"      onclick="onFilter(this,'all')">전체</button>
-    <button class="f-btn"    data-f="now"      onclick="onFilter(this,'now')">🔥 지금 진입</button>
+    <button class="f-btn"    data-f="go"       onclick="onFilter(this,'go')">🔥 지금 실행</button>
+    <button class="f-btn"    data-f="now"      onclick="onFilter(this,'now')">⚡ 지금 진입</button>
     <button class="f-btn"    data-f="rising"   onclick="onFilter(this,'rising')">📈 급상승</button>
     <button class="f-btn"    data-f="sell"     onclick="onFilter(this,'sell')">💰 판매형</button>
     <button class="f-btn"    data-f="low"      onclick="onFilter(this,'low')">🟢 저경쟁</button>
     <button class="f-btn"    data-f="shorts"   onclick="onFilter(this,'shorts')">🎬 쇼츠 적합</button>
   </div>
 
-  <!-- 결과 -->
   <div id="result"></div>
 </div>
 
 <script>
-var TREND_LBL  = {rising:'🔥 급상승', spreading:'🚀 확산중', plateau:'⏳ 정체', falling:'❌ 하락', unknown:'❓ 미확인'};
-var TREND_C    = {rising:'#10b981',   spreading:'#6366f1',   plateau:'#f59e0b', falling:'#f43f5e', unknown:'#94a3b8'};
-var TREND_BG   = {rising:'#ecfdf5',   spreading:'#eff0ff',   plateau:'#fffbeb', falling:'#fff1f2', unknown:'#f8fafc'};
-var SALES_LBL  = {'sell':'💰 판매형',  'mixed':'🔀 혼합형',   'info':'📘 정보형'};
-var SALES_C    = {'sell':'#f59e0b',   'mixed':'#6366f1',     'info':'#94a3b8'};
-var SALES_BG   = {'sell':'#fffbeb',   'mixed':'#eff0ff',     'info':'#f8fafc'};
-var COMP_LBL   = {'low':'🟢 저경쟁',  'medium':'🟡 중경쟁',  'high':'🔴 고경쟁'};
-var COMP_C     = {'low':'#10b981',    'medium':'#f59e0b',    'high':'#f43f5e'};
-var COMP_BG    = {'low':'#ecfdf5',    'medium':'#fffbeb',    'high':'#fff1f2'};
-var TIMING_LBL = {'now':'🔥 지금 진입','wait':'⏳ 관망',      'late':'❌ 늦음'};
-var TIMING_C   = {'now':'#ef4444',    'wait':'#f59e0b',      'late':'#94a3b8'};
-var TIMING_BG  = {'now':'#fef2f2',    'wait':'#fffbeb',      'late':'#f8fafc'};
-var SHORTS_LBL = {'great':'🎬 매우 적합','ok':'🎬 보통',      'bad':'🎬 부적합'};
-var SHORTS_C   = {'great':'#6366f1',  'ok':'#94a3b8',        'bad':'#f43f5e'};
-var SHORTS_BG  = {'great':'#eff0ff',  'ok':'#f8fafc',        'bad':'#fff1f2'};
-var GRADE_C    = {A:'#10b981', B:'#6366f1', C:'#94a3b8'};
-var GRADE_BG   = {A:'#ecfdf5', B:'#eff0ff', C:'#f8fafc'};
+// ── 라벨/색상 맵 ──────────────────────────────────────────────
+var TREND_LBL  = {rising:'🔥 급상승',spreading:'🚀 확산중',plateau:'⏳ 정체',falling:'❌ 하락',unknown:'❓ 미확인'};
+var TREND_C    = {rising:'var(--c-orange)',spreading:'var(--c-blue)',plateau:'var(--c-yellow)',falling:'var(--c-red)',unknown:'var(--c-gray)'};
+var TREND_BG   = {rising:'var(--b-orange)',spreading:'var(--b-blue)',plateau:'var(--b-yellow)',falling:'var(--b-red)',unknown:'var(--b-gray)'};
+var SALES_LBL  = {sell:'💰 판매형',mixed:'🔀 혼합형',info:'📘 정보형'};
+var SALES_C    = {sell:'var(--c-yellow)',mixed:'var(--c-blue)',info:'var(--c-gray)'};
+var SALES_BG   = {sell:'var(--b-yellow)',mixed:'var(--b-blue)',info:'var(--b-gray)'};
+var COMP_LBL   = {low:'🟢 저경쟁',medium:'🟡 중경쟁',high:'🔴 고경쟁'};
+var COMP_C     = {low:'var(--c-green)',medium:'var(--c-yellow)',high:'var(--c-red)'};
+var COMP_BG    = {low:'var(--b-green)',medium:'var(--b-yellow)',high:'var(--b-red)'};
+var TIMING_LBL = {now:'🔥 지금 진입',wait:'⏳ 관망',late:'❌ 늦음'};
+var TIMING_C   = {now:'var(--c-orange)',wait:'var(--c-yellow)',late:'var(--c-gray)'};
+var TIMING_BG  = {now:'var(--b-orange)',wait:'var(--b-yellow)',late:'var(--b-gray)'};
+var SHORTS_LBL = {great:'🎬 매우 적합',ok:'🎬 보통',bad:'🎬 부적합'};
+var SHORTS_C   = {great:'var(--c-purple)',ok:'var(--c-gray)',bad:'var(--c-red)'};
+var SHORTS_BG  = {great:'var(--b-purple)',ok:'var(--b-gray)',bad:'var(--b-red)'};
+var GRADE_C    = {A:'var(--c-green)',B:'var(--c-blue)',C:'var(--c-gray)'};
+var GRADE_BG   = {A:'var(--b-green)',B:'var(--b-blue)',C:'var(--b-gray)'};
 
-var ALL = [], FILTERED = [], ACTIVE_F = 'all';
+// 최종 결정 배지
+var DECISION = {
+  go:          {lbl:'🔥 지금 실행', c:'#fff',      bg:'#ef4444'},
+  conditional: {lbl:'⚠️ 조건부 실행',c:'#92400e',  bg:'#fef3c7'},
+  wait:        {lbl:'⏳ 관망',       c:'#92400e',  bg:'#fffbeb'},
+  no:          {lbl:'❌ 비추천',     c:'#475569',  bg:'#f1f5f9'}
+};
+
+// 점수 항목 라벨
+var SB_LBL = {trend:'트렌드',views:'조회수',shorts:'쇼츠',sales:'판매성',compete:'경쟁도',timing:'타이밍'};
+var SB_MAX = {trend:25,views:20,shorts:15,sales:20,compete:10,timing:10};
+
+var ALL=[], FILTERED=[], ACTIVE_F='all';
 
 function bdg(t,c,bg){return '<span class="bdg" style="color:'+c+';background:'+bg+'">'+t+'</span>';}
 function sn(v){var n=Number(v);return isNaN(n)?0:n;}
 function fmtN(n){return sn(n).toLocaleString();}
+function pct(v){return (v>=0?'+':'')+v+'%';}
 function fmtDate(iso){try{return new Date(iso).toLocaleString('ko-KR',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}catch(e){return '';}}
 
 function setLoading(on){
-  document.getElementById('hot-btn').disabled = on;
-  document.getElementById('hot-inp').disabled = on;
+  document.getElementById('hot-btn').disabled=on;
+  document.getElementById('hot-inp').disabled=on;
   if(on){
     document.getElementById('result').innerHTML='<div class="loading-box"><div class="spinner"></div><div style="font-weight:700">YouTube × 네이버 분석 중...</div><div style="font-size:11px;color:#c4cad4">최대 30초 소요</div></div>';
     document.getElementById('sum-bar').style.display='none';
@@ -171,18 +230,18 @@ function setLoading(on){
 }
 
 function runHot(){
-  var kw = document.getElementById('hot-inp').value.trim();
+  var kw=document.getElementById('hot-inp').value.trim();
   if(!kw){document.getElementById('hot-inp').focus();return;}
   setLoading(true);
   fetch('/api/hot-analyze?keyword='+encodeURIComponent(kw))
     .then(function(r){return r.json();})
     .then(function(data){
       if(data.error) throw new Error(data.error);
-      ALL = data.candidates || [];
-      ACTIVE_F = 'all';
-      document.querySelectorAll('.f-btn').forEach(function(b){b.classList.toggle('on', b.dataset.f==='all');});
+      ALL=data.candidates||[];
+      ACTIVE_F='all';
+      document.querySelectorAll('.f-btn').forEach(function(b){b.classList.toggle('on',b.dataset.f==='all');});
       applyFilter();
-      renderSummary(data);
+      renderSummary();
       document.getElementById('sum-bar').style.display='flex';
       document.getElementById('flt-bar').style.display='flex';
     })
@@ -193,60 +252,76 @@ function runHot(){
 }
 
 function applyFilter(){
-  var FILTERS = {
-    all:    function(c){return true;},
-    now:    function(c){return c.judge&&c.judge.timing==='now';},
-    rising: function(c){return c.judge&&c.judge.trendStatus==='rising';},
-    sell:   function(c){return c.judge&&c.judge.salesType==='sell';},
-    low:    function(c){return c.judge&&c.judge.competition==='low';},
-    shorts: function(c){return c.judge&&c.judge.shortsfit==='great';}
+  var FILTERS={
+    all:     function(c){return true;},
+    go:      function(c){return c.judge&&c.judge.decision==='go';},
+    now:     function(c){return c.judge&&c.judge.timing==='now';},
+    rising:  function(c){return c.judge&&c.judge.trendStatus==='rising';},
+    sell:    function(c){return c.judge&&c.judge.salesType==='sell';},
+    low:     function(c){return c.judge&&c.judge.competition==='low';},
+    shorts:  function(c){return c.judge&&c.judge.shortsfit==='great';}
   };
-  FILTERED = ALL.filter(FILTERS[ACTIVE_F]||FILTERS.all);
+  FILTERED=ALL.filter(FILTERS[ACTIVE_F]||FILTERS.all);
   renderList();
 }
 
-function onFilter(el, val){
+function onFilter(el,val){
   document.querySelectorAll('.f-btn').forEach(function(b){b.classList.remove('on');});
-  el.classList.add('on');
-  ACTIVE_F = val;
-  applyFilter();
+  el.classList.add('on'); ACTIVE_F=val; applyFilter();
 }
 
-function renderSummary(data){
-  var cs = ALL;
+function renderSummary(){
+  var cs=ALL;
   function set(id,v){var el=document.getElementById(id);if(el)el.textContent=v;}
-  set('sc-total', cs.length);
-  var rising = cs.filter(function(c){return c.judge&&c.judge.trendStatus==='rising';});
-  set('sc-rising', rising.length);
-  var rsub = document.getElementById('sc-rising-sub');
-  if(rsub) rsub.textContent = rising.length ? (rising[0].name||'–') : '–';
-  set('sc-now',    cs.filter(function(c){return c.judge&&c.judge.timing==='now';}).length);
-  set('sc-sell',   cs.filter(function(c){return c.judge&&c.judge.salesType==='sell';}).length);
-  set('sc-low',    cs.filter(function(c){return c.judge&&c.judge.competition==='low';}).length);
-  set('sc-shorts', cs.filter(function(c){return c.judge&&c.judge.shortsfit==='great';}).length);
+  function setSub(id,n,singular,plural){
+    var el=document.getElementById(id);
+    if(!el)return;
+    el.textContent = n>0 ? n+'개 '+plural : singular;
+  }
+  set('sc-total',cs.length);
+  setSub('sc-total-sub',cs.length,'후보 제품','후보 제품');
+  var rising=cs.filter(function(c){return c.judge&&c.judge.trendStatus==='rising';});
+  set('sc-rising',rising.length);
+  setSub('sc-rising-sub',rising.length,'급상승 후보 없음','급상승 중');
+  var now=cs.filter(function(c){return c.judge&&c.judge.timing==='now';});
+  set('sc-now',now.length);
+  setSub('sc-now-sub',now.length,'지금 진입 가능한 키워드 없음','지금 진입 가능');
+  var sell=cs.filter(function(c){return c.judge&&c.judge.salesType==='sell';});
+  set('sc-sell',sell.length);
+  setSub('sc-sell-sub',sell.length,'수익형 후보 없음','수익형 후보');
+  var low=cs.filter(function(c){return c.judge&&c.judge.competition==='low';});
+  set('sc-low',low.length);
+  setSub('sc-low-sub',low.length,'진입 쉬운 키워드 없음','진입 쉬운 키워드');
+  var sh=cs.filter(function(c){return c.judge&&c.judge.shortsfit==='great';});
+  set('sc-shorts',sh.length);
+  setSub('sc-shorts-sub',sh.length,'쇼츠 적합 없음','쇼츠 적합');
 }
 
 function renderList(){
-  var el = document.getElementById('result');
+  var el=document.getElementById('result');
   if(!FILTERED.length){
     el.innerHTML='<div class="empty-box"><div style="font-size:36px">😶</div><div style="font-weight:700">해당 조건의 제품이 없습니다</div></div>';
     return;
   }
   el.innerHTML='<div class="result-list">'+FILTERED.map(function(c,i){
-    var sc=c.score||{}, jdg=c.judge||{}, d=c.data||{}, yt=d.youtube||{}, blog=d.blog||{}, shop=d.shopping||{}, dl=d.datalab||{};
-    var gc=GRADE_C[sc.grade]||'#94a3b8', gbg=GRADE_BG[sc.grade]||'#f8fafc';
-    var score=sn(sc.total);
+    var sc=c.score||{}, jdg=c.judge||{}, d=c.data||{};
+    var yt=d.youtube||{}, blog=d.blog||{}, shop=d.shopping||{}, dl=d.datalab||{};
+    var bd=sc.breakdown||{};
+    var dec=DECISION[jdg.decision]||DECISION.wait;
 
-    // 판단 배지
+    // ── 결정 배지 ──
+    var decisionBdg='<span class="decision-bdg" style="color:'+dec.c+';background:'+dec.bg+'">'+dec.lbl+'</span>';
+
+    // ── 판단 배지 ──
     var badges=
-      bdg(TREND_LBL[jdg.trendStatus]||'–',  TREND_C[jdg.trendStatus]||'#94a3b8',  TREND_BG[jdg.trendStatus]||'#f8fafc')+
-      bdg(SALES_LBL[jdg.salesType]||'–',    SALES_C[jdg.salesType]||'#94a3b8',    SALES_BG[jdg.salesType]||'#f8fafc')+
-      bdg(COMP_LBL[jdg.competition]||'–',   COMP_C[jdg.competition]||'#94a3b8',   COMP_BG[jdg.competition]||'#f8fafc')+
-      bdg(TIMING_LBL[jdg.timing]||'–',      TIMING_C[jdg.timing]||'#94a3b8',      TIMING_BG[jdg.timing]||'#f8fafc')+
-      bdg(SHORTS_LBL[jdg.shortsfit]||'–',   SHORTS_C[jdg.shortsfit]||'#94a3b8',   SHORTS_BG[jdg.shortsfit]||'#f8fafc')+
-      bdg(sc.grade||'–', gc, gbg);
+      bdg(TREND_LBL[jdg.trendStatus]||'–', TREND_C[jdg.trendStatus]||'var(--c-gray)', TREND_BG[jdg.trendStatus]||'var(--b-gray)')+
+      bdg(SALES_LBL[jdg.salesType]||'–',   SALES_C[jdg.salesType]||'var(--c-gray)',   SALES_BG[jdg.salesType]||'var(--b-gray)')+
+      bdg(COMP_LBL[jdg.competition]||'–',  COMP_C[jdg.competition]||'var(--c-gray)',  COMP_BG[jdg.competition]||'var(--b-gray)')+
+      bdg(TIMING_LBL[jdg.timing]||'–',     TIMING_C[jdg.timing]||'var(--c-gray)',     TIMING_BG[jdg.timing]||'var(--b-gray)')+
+      bdg(SHORTS_LBL[jdg.shortsfit]||'–',  SHORTS_C[jdg.shortsfit]||'var(--c-gray)',  SHORTS_BG[jdg.shortsfit]||'var(--b-gray)')+
+      bdg(sc.grade||'–', GRADE_C[sc.grade]||'var(--c-gray)', GRADE_BG[sc.grade]||'var(--b-gray)');
 
-    // 데이터 셀
+    // ── 데이터 셀 ──
     var cells=
       '<div class="d-cell"><span class="d-val">'+fmtN(yt.videoCount)+'개</span>YT 7일 영상</div>'+
       '<div class="d-cell"><span class="d-val">'+fmtN(yt.avgViews)+'</span>평균 조회수</div>'+
@@ -256,7 +331,76 @@ function renderList(){
       '<div class="d-cell"><span class="d-val">'+(blog.reviewRatio||0)+'%</span>리뷰 비율</div>'+
       (shop.avgPrice?'<div class="d-cell"><span class="d-val">'+fmtN(shop.avgPrice)+'원</span>평균가</div>':'');
 
-    // 바로가기
+    // ── 점수 분석 ──
+    var sbItems=['trend','views','shorts','sales','compete','timing'].map(function(k){
+      var v=bd[k]||0, max=SB_MAX[k]||10;
+      var pct2=Math.round((v/max)*100);
+      var col=pct2>=80?'var(--c-green)':pct2>=50?'var(--c-blue)':pct2>=30?'var(--c-yellow)':'var(--c-red)';
+      return '<div class="sb-item"><span class="sb-val" style="color:'+col+'">'+v+'</span><span class="sb-lbl">'+SB_LBL[k]+'/'+max+'</span></div>';
+    }).join('');
+    var scoreBreakdown='<div class="score-breakdown">'
+      +'<div class="sb-title">📊 점수 분석 (합계 '+Math.min(100,Object.values(bd).reduce(function(a,b){return a+b;},0))+'점)</div>'
+      +'<div class="sb-grid">'+sbItems+'</div>'
+      +'</div>';
+
+    // ── 경쟁도 이유 ──
+    var reasons=(jdg.competeReasons||[]);
+    var competeHtml='<div class="compete-reasons">'
+      +'<div class="cr-title">⚔️ 경쟁도 분석 ('+COMP_LBL[jdg.competition]+')</div>'
+      +reasons.map(function(r){
+        var icon=r.indexOf('많음')>-1||r.indexOf('독점')>-1||r.indexOf('과다')>-1?'🔴':r.indexOf('낮음')>-1||r.indexOf('여유')>-1||r.indexOf('분산')>-1?'🟢':'🟡';
+        return '<div class="cr-item"><span>'+icon+'</span><span>'+r+'</span></div>';
+      }).join('')
+      +'</div>';
+
+    // ── 타이밍 분석 ──
+    var td=jdg.timingData||{};
+    var s3=sn(td.surge3d), s7=sn(td.surge7d);
+    var timingC=TIMING_C[jdg.timing]||'var(--c-gray)', timingBG=TIMING_BG[jdg.timing]||'var(--b-gray)';
+    var t3c=s3>0?'var(--c-green)':s3<0?'var(--c-red)':'var(--c-gray)';
+    var t7c=s7>0?'var(--c-green)':s7<0?'var(--c-red)':'var(--c-gray)';
+    var timingHtml='<div class="timing-analysis" style="background:'+timingBG+'">'
+      +'<div class="ta-title">🎯 타이밍 분석</div>'
+      +'<div class="ta-row">'
+        +'<div class="ta-item"><span class="ta-val" style="color:'+t3c+'">'+(s3>=0?'+':'')+s3+'%</span><span class="ta-lbl">최근 3일 변화</span></div>'
+        +'<div class="ta-item"><span class="ta-val" style="color:'+t7c+'">'+(s7>=0?'+':'')+s7+'%</span><span class="ta-lbl">최근 7일 변화</span></div>'
+        +'<span class="ta-arrow">→</span>'
+        +'<span class="ta-result" style="color:'+timingC+';background:#fff">'+TIMING_LBL[jdg.timing]+'</span>'
+      +'</div>'
+      +'</div>';
+
+    // ── AI 추천 이유 ──
+    var aiHtml=c.aiReason
+      ?'<div class="r-ai">🤖 '+c.aiReason.replace(/\n/g,'<br>')+'</div>':'';
+
+    // ── 관련 영상 ──
+    var videos=yt.topVideos||[];
+    var videoHtml='';
+    if(videos.length){
+      var shortsCount=videos.filter(function(v){return v.isShorts;}).length;
+      var label=shortsCount>=3?'쇼츠 반응 대표 영상':videos[0]&&sn(videos[0].views)>=100000?'조회수 상위 영상':'최근 업로드 영상';
+      videoHtml='<div class="r-videos">'
+        +'<div class="rv-title">▶️ 관련 영상 TOP '+videos.length+' <span class="rv-label">'+label+'</span></div>'
+        +'<div class="rv-list">'
+        +videos.map(function(v){
+          var dur=v.duration<=60?'Shorts':Math.floor(v.duration/60)+'분'+(v.duration%60?String(v.duration%60).padStart(2,'0')+'초':'');
+          var views=sn(v.views)>=10000?Math.round(sn(v.views)/10000)+'만':sn(v.views)>=1000?Math.round(sn(v.views)/1000)+'천':sn(v.views)+'';
+          return '<a href="'+v.url+'" target="_blank" rel="noopener" class="v-card">'
+            +(v.thumbnail?'<img class="v-thumb" src="'+v.thumbnail+'" loading="lazy" alt="">':'<div class="v-thumb"></div>')
+            +'<div class="v-info">'
+              +'<div class="v-title">'+v.title.replace(/</g,'&lt;').slice(0,50)+'</div>'
+              +'<div class="v-meta">'
+                +'<span class="v-views">👁 '+views+'</span>'
+                +(v.isShorts?'<span class="v-shorts">Shorts</span>':'<span>'+dur+'</span>')
+              +'</div>'
+              +'<div style="font-size:10px;color:var(--faint);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+v.channel+'</div>'
+            +'</div>'
+          +'</a>';
+        }).join('')
+        +'</div></div>';
+    }
+
+    // ── 바로가기 ──
     var links=
       '<a href="https://search.shopping.naver.com/search/all?query='+encodeURIComponent(c.name)+'" target="_blank" rel="noopener" class="r-lnk">🛒 네이버 쇼핑</a>'+
       '<a href="https://www.coupang.com/np/search?q='+encodeURIComponent(c.name)+'" target="_blank" rel="noopener" class="r-lnk">🟡 쿠팡</a>'+
@@ -264,52 +408,41 @@ function renderList(){
       '<a href="https://www.tiktok.com/search?q='+encodeURIComponent(c.name)+'" target="_blank" rel="noopener" class="r-lnk">🎵 틱톡</a>'+
       '<a href="https://www.instagram.com/explore/tags/'+encodeURIComponent(c.name.replace(/\s+/g,''))+'" target="_blank" rel="noopener" class="r-lnk">📸 인스타</a>';
 
-    // ★ 관련 영상 5개
-    var videos = (yt.topVideos || []);
-    var videoHtml = videos.length
-      ? '<div class="r-videos">'
-          +'<div class="r-videos-title">▶️ 관련 영상 TOP ' + videos.length + '</div>'
-          +'<div class="r-videos-list">'
-          + videos.map(function(v){
-              var dur = v.duration <= 60 ? '🎬 Shorts' : Math.floor(v.duration/60)+'분'+((v.duration%60)?String(v.duration%60).padStart(2,'0')+'초':'');
-              var views = v.views >= 10000 ? Math.round(v.views/10000)+'만' : v.views >= 1000 ? Math.round(v.views/1000)+'천' : v.views+'';
-              return '<a href="'+v.url+'" target="_blank" rel="noopener" class="v-card">'
-                +(v.thumbnail?'<img class="v-thumb" src="'+v.thumbnail+'" loading="lazy" alt="">':'<div class="v-thumb"></div>')
-                +'<div class="v-info">'
-                  +'<div class="v-title">'+v.title.replace(/</g,'&lt;').slice(0,50)+'</div>'
-                  +'<div class="v-meta"><span class="v-views">👁 '+views+'</span><span>'+dur+'</span></div>'
-                  +'<div style="font-size:10px;color:var(--faint);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+v.channel+'</div>'
-                +'</div>'
-              +'</a>';
-            }).join('')
-          +'</div>'
-        +'</div>'
-      : '';
-
     return '<div class="r-card">'
-      +'<div class="r-top">'
+      // 헤더: 랭크 + 이름 + 점수 + 결정배지
+      +'<div class="r-header">'
         +'<div class="r-rank">'+(i+1)+'</div>'
         +'<div class="r-name">'+(c.name||'–')+'</div>'
-        +'<div class="r-score">'+score+'점</div>'
-        +bdg(sc.grade||'–', gc, gbg)
+        +'<div class="r-score-wrap">'
+          +'<span class="r-score">'+sn(sc.total)+'점</span>'
+          +bdg(sc.grade||'–', GRADE_C[sc.grade]||'var(--c-gray)', GRADE_BG[sc.grade]||'var(--b-gray)')
+        +'</div>'
+        +decisionBdg
       +'</div>'
+      // 판단 배지
       +'<div class="r-badges">'+badges+'</div>'
+      // 데이터 셀
       +'<div class="r-data">'+cells+'</div>'
+      // 점수 분석
+      +scoreBreakdown
+      // 경쟁도 이유
+      +competeHtml
+      // 타이밍 분석
+      +timingHtml
+      // AI 추천 이유
+      +aiHtml
+      // 관련 영상
       +videoHtml
-      +(c.aiReason?'<div class="r-ai">🤖 '+c.aiReason+'</div>':'')
+      // 바로가기
       +'<div class="r-links">'+links+'</div>'
     +'</div>';
   }).join('')+'</div>';
 }
 
-// ★ trend.html → sessionStorage 키워드 자동 입력 + 자동 실행
+// ★ sessionStorage 자동 실행
 window.addEventListener('DOMContentLoaded', function(){
-  var kw = sessionStorage.getItem('hot-auto-kw');
-  if(kw){
-    sessionStorage.removeItem('hot-auto-kw');
-    document.getElementById('hot-inp').value = kw;
-    runHot();
-  }
+  var kw=sessionStorage.getItem('hot-auto-kw');
+  if(kw){sessionStorage.removeItem('hot-auto-kw');document.getElementById('hot-inp').value=kw;runHot();}
 });
 </script>
 </body>
