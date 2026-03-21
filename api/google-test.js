@@ -10,7 +10,7 @@ module.exports = async function(req, res){
   if(!cx)  return res.status(200).json({ok:false, error:'GOOGLE_CX 없음'});
 
   // 가장 단순한 검색 1건
-  var path = '/customsearch/v1?key='+key+'&cx='+cx+'&q=무선이어폰&num=1';
+  var path = '/customsearch/v1?key='+key+'&cx='+cx+'&q='+encodeURIComponent('무선이어폰')+'&num=1';
 
   var result = await new Promise(function(resolve){
     var t = setTimeout(function(){resolve({timeout:true});}, 8000);
