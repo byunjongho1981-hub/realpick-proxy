@@ -3,9 +3,16 @@ var FETCH   = require('./_fetch');
 var SCORE   = require('./_score');
 var ANALYZE = require('./_analyze');
 
-var CACHE = {data:null, ts:0, TTL:5*60*1000};
-function getCache(){ return CACHE.data&&(Date.now()-CACHE.ts<CACHE.TTL)?CACHE.data:null; }
-function setCache(d){ CACHE.data=d; CACHE.ts=Date.now(); }
+var TTL = 5*60*1000;
+
+// ★ 캐시 — 전체(all) + 카테고리별 분리
+var CACHE_ALL = {data:null, ts:0};
+var CACHE_CAT = {}; // { catId: {data, ts} }
+
+function getCacheAll(){ return CACHE_ALL.data&&(Date.now()-CACHE_ALL.ts<TTL)?CACHE_ALL.data:null; }
+function setCacheAll(d){ CACHE_ALL.data=d; CACHE_ALL.ts=Date.now(); }
+function getCacheCat(catId){ var c=CACHE_CAT[catId]; return c&&c.data&&(Date.now()-c.ts<TTL)?c.data:null; }
+function setCacheCat(catId,d){ CACHE_CAT[catId]={data:d,ts:Date.now()}; }
 
 function checkEnv(){
   var miss=[];
@@ -38,21 +45,21 @@ function buildCandidate(kw, result, maxTotal, intentOverride, velocity){
 
 async function discoverCategory(catId){
   var kws=CFG.CAT_SEEDS[catId]||CFG.CAT_SEEDS['50000003'];
-  // ★ catId 제거 → null로 호출해야 30개 키워드 모두 결과 반환
   var res=await Promise.allSettled(kws.map(function(kw){return FETCH.shopSearch(kw,null);}));
   var valid=[];
   for(var i=0;i<kws.length;i++){
     var r=res[i].status==='fulfilled'?res[i].value:{items:[],totalCount:0};
     valid.push({kw:kws[i], result:r});
   }
-  var withItems  = valid.filter(function(v){return v.result.items.length>0;});
-  var noItems    = valid.filter(function(v){return v.result.items.length===0;});
+  var withItems = valid.filter(function(v){return v.result.items.length>0;});
+  var noItems   = valid.filter(function(v){return v.result.items.length===0;});
   valid = withItems.concat(noItems);
 
   if(!valid.length) return {candidates:[], apiStatus:{search:'결과 없음'}};
+
+  // ★ maxTotal 고정 — 전체 결과 중 최댓값으로 고정해 점수 안정화
   var maxTotal=valid.reduce(function(m,v){return Math.max(m,v.result.totalCount);},0)||40;
 
-  // ★ velocity 조회 상위 20개로 확대
   var vMap={};
   await Promise.allSettled(
     valid.slice(0,20).sort(function(a,b){return b.result.totalCount-a.result.totalCount;})
@@ -136,15 +143,20 @@ module.exports=async function(req,res){
     if(mode==='category'){
       var catId=req.query.categoryId||'50000003';
       if(catId==='all'){
-        var cached=getCache();
-        if(cached){cached.fromCache=true;cached.cacheAge=Math.round((Date.now()-CACHE.ts)/1000)+'초 전';return res.status(200).json(cached);}
+        var cached=getCacheAll();
+        if(cached){cached.fromCache=true;cached.cacheAge=Math.round((Date.now()-CACHE_ALL.ts)/1000)+'초 전';return res.status(200).json(cached);}
         var ar=await discoverAll();
         var result={candidates:ar.candidates, clusters:ANALYZE.clusterCandidates(ar.candidates), mode:mode, categoryId:'all', categoryName:'전체', period:period, total:ar.candidates.length, apiStatus:ar.apiStatus, processLog:ar.processLog, updatedAt:new Date().toISOString(), fromCache:false};
-        setCache(result);
+        setCacheAll(result);
         return res.status(200).json(result);
       }
+      // ★ 카테고리별 캐시 적용
+      var cachedCat=getCacheCat(catId);
+      if(cachedCat){cachedCat.fromCache=true;cachedCat.cacheAge=Math.round((Date.now()-CACHE_CAT[catId].ts)/1000)+'초 전';return res.status(200).json(cachedCat);}
       var cr=await discoverCategory(catId);
-      return res.status(200).json({candidates:cr.candidates, clusters:ANALYZE.clusterCandidates(cr.candidates), mode:mode, categoryId:catId, categoryName:CFG.CAT_NAMES[catId]||catId, period:period, total:cr.candidates.length, apiStatus:cr.apiStatus, updatedAt:new Date().toISOString()});
+      var catResult={candidates:cr.candidates, clusters:ANALYZE.clusterCandidates(cr.candidates), mode:mode, categoryId:catId, categoryName:CFG.CAT_NAMES[catId]||catId, period:period, total:cr.candidates.length, apiStatus:cr.apiStatus, updatedAt:new Date().toISOString(), fromCache:false};
+      setCacheCat(catId, catResult);
+      return res.status(200).json(catResult);
     }
     if(mode==='seed'){
       var seedKw=String(req.query.keyword||'').trim().slice(0,30);
