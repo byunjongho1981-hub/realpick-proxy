@@ -150,7 +150,52 @@ function calcSurgeScore(velocity){
   return 0;
 }
 
-function checkEnv(){
+// ── 판매 가능성 점수
+var COMMERCIAL_KW  = ['추천','선물','구매','최저가','할인','세트','묶음','증정','인기'];
+var REVIEW_KW      = ['후기','리뷰','사용후기','솔직','평점','별점'];
+
+function calcCommercialScore(kw, result, intent){
+  var score = 0;
+  var tags  = [];
+  var kwLow = kw.toLowerCase();
+
+  // 쇼핑 API 결과 존재
+  if(result.items.length >= 10){ score+=8; }
+  else if(result.items.length >= 1){ score+=4; }
+
+  // 가격 정보 존재
+  var priced = result.items.filter(function(i){return i.price>0;});
+  if(priced.length >= 5){ score+=6; }
+  else if(priced.length >= 1){ score+=3; }
+
+  // 후기/리뷰 키워드
+  var hasReview = REVIEW_KW.some(function(w){return kwLow.indexOf(w)>-1;});
+  if(hasReview){ score+=3; tags.push('review'); }
+
+  // 선물/추천 키워드
+  var hasCommercial = COMMERCIAL_KW.some(function(w){return kwLow.indexOf(w)>-1;});
+  if(hasCommercial){ score+=5; tags.push('commercial'); }
+
+  // 구매형 의도
+  if(intent==='buy'||intent==='season'){ score+=5; }
+
+  // 등급 판정
+  var label, type;
+  if(score>=20){
+    label='🔥 핫딜형'; type='hot';
+  } else if(score>=10){
+    label='💰 판매형'; type='sell';
+  } else {
+    label='📊 정보형'; type='info';
+  }
+
+  // 보너스 점수
+  var bonus = score>=20?20 : score>=10?10 : 0;
+
+  return { score:score, bonus:bonus, label:label, type:type, tags:tags };
+}
+
+
   var miss=[];
   if(!process.env.NAVER_CLIENT_ID)     miss.push('NAVER_CLIENT_ID');
   if(!process.env.NAVER_CLIENT_SECRET) miss.push('NAVER_CLIENT_SECRET');
@@ -206,9 +251,9 @@ function shopSearch(keyword, catId){
   }).catch(function(){ return {items:[], totalCount:0}; });
 }
 
-function calcScore(result, maxTotal, velocity){
+function calcScore(result, maxTotal, velocity, commercial){
   var items=result.items, totalCount=result.totalCount;
-  if(!items.length) return {totalScore:0, breakdown:{}, grade:'C', confidence:'low', surgeScore:0};
+  if(!items.length) return {totalScore:0, breakdown:{}, grade:'C', confidence:'low', surgeScore:0, commercialBonus:0};
 
   var searchScore = maxTotal>0 ? Math.round((Math.min(totalCount,maxTotal)/maxTotal)*40) : 0;
   var malls={};
@@ -222,15 +267,16 @@ function calcScore(result, maxTotal, velocity){
     var range=maxP-minP;
     priceScore = range>0 ? Math.round(Math.min(range/(maxP*0.5),1)*20) : 5;
   }
-  var countScore  = Math.round(Math.min(items.length/40,1)*10);
-  var surgeScore  = calcSurgeScore(velocity);
-  var total       = Math.min(120, searchScore+mallScore+priceScore+countScore+surgeScore);
-  var grade       = total>=GRADE_A?'A':total>=GRADE_B?'B':'C';
-  var confidence  = mallCount>=5?'high':mallCount>=2?'medium':'low';
+  var countScore       = Math.round(Math.min(items.length/40,1)*10);
+  var surgeScore       = calcSurgeScore(velocity);
+  var commercialBonus  = commercial ? commercial.bonus : 0;
+  var total            = Math.min(140, searchScore+mallScore+priceScore+countScore+surgeScore+commercialBonus);
+  var grade            = total>=GRADE_A?'A':total>=GRADE_B?'B':'C';
+  var confidence       = mallCount>=5?'high':mallCount>=2?'medium':'low';
   return {
     totalScore:total,
-    breakdown:{shopping:searchScore, blog:mallScore, news:priceScore, trend:countScore, surge:surgeScore},
-    grade:grade, confidence:confidence, surgeScore:surgeScore
+    breakdown:{shopping:searchScore, blog:mallScore, news:priceScore, trend:countScore, surge:surgeScore, commercial:commercialBonus},
+    grade:grade, confidence:confidence, surgeScore:surgeScore, commercialBonus:commercialBonus
   };
 }
 
@@ -283,13 +329,14 @@ function buildReason(kw, score, trend, velocity, intent){
 }
 
 function buildCandidateFromResult(kw, result, maxTotal, intentOverride, velocity){
-  var score  = calcScore(result, maxTotal, velocity);
-  var trend  = judgeT(result.totalCount);
-  var intent = intentOverride||detectIntent(kw);
-  var base   = makeSummary(kw, score, trend, intent);
-  var action = velocity ? velocityAction(velocity, base.action) : base.action;
-  var vLabel = velocityLabel(velocity);
-  var reason = buildReason(kw, score, trend, velocity, intent);
+  var intent     = intentOverride||detectIntent(kw);
+  var commercial = calcCommercialScore(kw, result, intent);
+  var score      = calcScore(result, maxTotal, velocity, commercial);
+  var trend      = judgeT(result.totalCount);
+  var base       = makeSummary(kw, score, trend, intent);
+  var action     = velocity ? velocityAction(velocity, base.action) : base.action;
+  var vLabel     = velocityLabel(velocity);
+  var reason     = buildReason(kw, score, trend, velocity, intent);
   var samples=[];
   for(var i=0;i<Math.min(3,result.items.length);i++){
     samples.push({title:result.items[i].title, link:result.items[i].link, source:'shopping'});
@@ -298,6 +345,7 @@ function buildCandidateFromResult(kw, result, maxTotal, intentOverride, velocity
     id:kw, name:kw, keywords:[kw], sources:['shopping'],
     count:result.items.length, totalCount:result.totalCount,
     intent:intent, intentLabel:INTENT_LABEL[intent]||'–',
+    commercial:commercial,
     velocity:velocity||null, velocityLabel:vLabel,
     reason:reason,
     score:score, trend:trend,
