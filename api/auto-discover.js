@@ -53,7 +53,7 @@ async function discoverCategory(catId){
   );
   var candidates=valid.map(function(v){return buildCandidate(v.kw, v.result, maxTotal, null, vMap[v.kw]||null);});
   candidates.sort(function(a,b){return b.score.totalScore-a.score.totalScore;});
-  return {candidates:candidates.slice(0,20), apiStatus:{search:valid.length+'/'+kws.length+' 성공'}};
+  return {candidates:candidates.slice(0,30), apiStatus:{search:valid.length+'/'+kws.length+' 성공'}};
 }
 
 async function discoverAll(){
@@ -79,7 +79,7 @@ async function discoverAll(){
   });
   candidates.sort(function(a,b){return b.score.totalScore-a.score.totalScore;});
   return {
-    candidates:candidates.slice(0,20),
+    candidates:candidates.slice(0,30),
     apiStatus:{completed:completed.length+'/'+CFG.CAT_ORDER.length+' 카테고리', failed:failed.length?failed.join(', '):'없음'},
     processLog:{completed:completed, failed:failed}
   };
