@@ -4,8 +4,7 @@
  * Google Trends RSS 대신 Naver 카테고리별 인기 키워드 사용
  */
 
-var https  = require('https');
-var FETCH  = require('./_fetch');
+var https = require('https');
 
 var TIMEOUT = 8000;
 var CACHE   = {data:null, ts:0, TTL:10*60*1000};
