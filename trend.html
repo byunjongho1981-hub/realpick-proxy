@@ -555,12 +555,12 @@ window.addEventListener('DOMContentLoaded', function(){
     var d = JSON.parse(saved);
     if(!d||!Array.isArray(d.candidates)||!d.candidates.length) return;
 
-    // 상태 전체 복원
+    // 상태 복원
     S.catId       = d.catId       || S.catId;
     S.mode        = d.mode        || S.mode;
     S.period      = d.period      || S.period;
-    S.filterStatus= d.filterStatus|| S.filterStatus;
-    S.sortBy      = d.sortBy      || S.sortBy;
+    S.filterStatus= 'all'; // 복원 시 필터 초기화 (데이터 안 보이는 문제 방지)
+    S.sortBy      = d.sortBy      || 'score';
     S.candidates  = d.candidates;
     S.clusters    = d.clusters    || [];
     S.apiStatus   = d.apiStatus   || {};
@@ -573,8 +573,9 @@ window.addEventListener('DOMContentLoaded', function(){
     document.querySelectorAll('[data-period]').forEach(function(b){
       b.classList.toggle('on', b.dataset.period===S.period);
     });
+    // 필터 전체로 초기화
     document.querySelectorAll('[data-f]').forEach(function(b){
-      b.classList.toggle('on', b.dataset.f===S.filterStatus);
+      b.classList.toggle('on', b.dataset.f==='all');
     });
     document.querySelectorAll('.mode-tab').forEach(function(t,i){
       t.classList.toggle('active', ['category','seed'][i]===S.mode);
@@ -584,14 +585,21 @@ window.addEventListener('DOMContentLoaded', function(){
       if(el) el.style.display=id==='ctrl-'+S.mode?'flex':'none';
     });
 
-    // 빈 화면 강제 숨김
+    // 필터 적용 후 결과 있는지 확인
+    applySort();
+
+    // 결과가 비어있으면 필터 강제 초기화
+    if(!S.filtered.length && S.candidates.length){
+      S.filterStatus='all';
+      applySort();
+    }
+
+    // 빈 화면 숨기고 테이블 표시
     var emptyEl=document.getElementById('empty-st');
     var tableEl=document.getElementById('result-tbl');
     if(emptyEl) emptyEl.style.display='none';
     if(tableEl) tableEl.style.display='table';
 
-    // 렌더링
-    applySort();
     renderAll();
     showErr(null);
     showToast('📦 이전 탐색 결과 복원됨');
