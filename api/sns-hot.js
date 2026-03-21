@@ -1,10 +1,11 @@
 /**
  * /api/sns-hot.js
- * YouTube Data API v3 + RapidAPI (Instagram + TikTok)
+ * YouTube Data API v3 + Naver Datalab 기반 SNS 반응 분석
  *
  * 필요 환경변수:
  *   YOUTUBE_API_KEY
- *   RAPIDAPI_KEY  ← RapidAPI 대시보드에서 발급
+ *   NAVER_CLIENT_ID
+ *   NAVER_CLIENT_SECRET
  */
 
 var https = require('https');
@@ -13,7 +14,6 @@ var TIMEOUT = 10000;
 var CACHE   = {};
 var CACHE_TTL = 30 * 60 * 1000;
 
-// ── HTTP GET
 function httpGet(hostname, path, headers){
   return new Promise(function(resolve){
     var t = setTimeout(function(){resolve(null);}, TIMEOUT);
@@ -23,14 +23,35 @@ function httpGet(hostname, path, headers){
       res.on('end',function(){
         clearTimeout(t);
         try{resolve({status:res.statusCode, data:JSON.parse(raw)});}
-        catch(e){resolve({status:res.statusCode, data:null, raw:raw.slice(0,200)});}
+        catch(e){resolve({status:res.statusCode, data:null});}
       });
-    }).on('error',function(e){clearTimeout(t);resolve(null);});
+    }).on('error',function(){clearTimeout(t);resolve(null);});
+  });
+}
+
+function httpPost(hostname, path, body, headers){
+  return new Promise(function(resolve){
+    var buf = Buffer.from(JSON.stringify(body));
+    var t   = setTimeout(function(){resolve(null);}, TIMEOUT);
+    var req = https.request({
+      hostname:hostname, path:path, method:'POST',
+      headers:Object.assign({'Content-Type':'application/json','Content-Length':buf.length}, headers||{})
+    }, function(res){
+      var raw='';
+      res.on('data',function(c){raw+=c;});
+      res.on('end',function(){
+        clearTimeout(t);
+        try{resolve({status:res.statusCode, data:JSON.parse(raw)});}
+        catch(e){resolve({status:res.statusCode, data:null});}
+      });
+    });
+    req.on('error',function(){clearTimeout(t);resolve(null);});
+    req.write(buf); req.end();
   });
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// YouTube Data API v3
+// 1. YouTube Data API v3
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 async function fetchYouTube(keyword){
   var key = process.env.YOUTUBE_API_KEY;
@@ -39,14 +60,14 @@ async function fetchYouTube(keyword){
   var since = new Date();
   since.setDate(since.getDate()-7);
 
-  var searchPath = '/youtube/v3/search?part=snippet&type=video&order=date'
-    +'&regionCode=KR&maxResults=20'
+  var sr = await httpGet('www.googleapis.com',
+    '/youtube/v3/search?part=snippet&type=video&order=date&regionCode=KR&maxResults=20'
     +'&publishedAfter='+encodeURIComponent(since.toISOString())
     +'&q='+encodeURIComponent(keyword)
-    +'&key='+key;
+    +'&key='+key);
 
-  var sr = await httpGet('www.googleapis.com', searchPath);
-  if(!sr||sr.status!==200||!sr.data||!sr.data.items) return {ok:false, error:'YouTube 검색 실패 '+(sr?sr.status:'timeout')};
+  if(!sr||sr.status!==200||!sr.data||!sr.data.items)
+    return {ok:false, error:'YouTube 검색 실패 '+(sr?sr.status:'timeout')};
 
   var ids = sr.data.items.map(function(i){return i.id&&i.id.videoId;}).filter(Boolean).join(',');
   if(!ids) return {ok:true, videoCount:0, avgViews:0, shortsRatio:0, topChannels:[], recentCount:0};
@@ -77,118 +98,88 @@ async function fetchYouTube(keyword){
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Instagram via RapidAPI
-// host: instagram-scraper-api2.p.rapidapi.com
+// 2. Naver Datalab 검색량 트렌드
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-async function fetchInstagram(keyword){
-  var key = process.env.RAPIDAPI_KEY;
-  if(!key) return {ok:false, error:'RAPIDAPI_KEY 없음'};
+async function fetchNaverDatalab(keyword){
+  var cid = process.env.NAVER_CLIENT_ID;
+  var sec = process.env.NAVER_CLIENT_SECRET;
+  if(!cid||!sec) return {ok:false, error:'NAVER 키 없음'};
 
-  var tag = keyword.replace(/\s+/g,'');
-  var host = 'instagram-scraper-api2.p.rapidapi.com';
-  var headers = {
-    'x-rapidapi-key':  key,
-    'x-rapidapi-host': host
+  var now  = new Date();
+  var pad  = function(n){return String(n).padStart(2,'0');};
+  var fmt  = function(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());};
+  var ago  = function(n){var d=new Date(now);d.setDate(d.getDate()-n);return d;};
+
+  var body = {
+    startDate: fmt(ago(29)),
+    endDate:   fmt(now),
+    timeUnit:  'date',
+    keywordGroups:[{groupName:keyword, keywords:[keyword]}]
   };
-
-  var r = await httpGet(host, '/v1/hashtag?hashtag='+encodeURIComponent(tag), headers);
-  if(!r||r.status!==200||!r.data) return {ok:false, error:'Instagram API 실패 '+(r?r.status:'timeout')};
-
-  var d    = r.data;
-  var info = d.data||d||{};
-  var mediaCount  = Number(info.media_count||info.edge_hashtag_to_media&&info.edge_hashtag_to_media.count||0);
-  var recentCount = (info.edge_hashtag_to_media&&info.edge_hashtag_to_media.edges||[]).length;
-  var topCount    = (info.edge_hashtag_to_top_posts&&info.edge_hashtag_to_top_posts.edges||[]).length;
-
-  return {
-    ok:          true,
-    tag:         tag,
-    mediaCount:  mediaCount,
-    recentCount: recentCount,
-    topCount:    topCount,
-    hasTopMedia: topCount>0
-  };
-}
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// TikTok via RapidAPI
-// host: tiktok-api23.p.rapidapi.com
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-async function fetchTikTok(keyword){
-  var key = process.env.RAPIDAPI_KEY;
-  if(!key) return {ok:false, error:'RAPIDAPI_KEY 없음'};
-
-  var host = 'tiktok-api-fast-reliable-data-scraper.p.rapidapi.com';
-  var headers = {
-    'x-rapidapi-key':  key,
-    'x-rapidapi-host': host
-  };
-
-  // Search 엔드포인트
-  var r = await httpGet(host,
-    '/search?keyword='+encodeURIComponent(keyword)+'&cursor=0', headers);
-  if(!r||r.status!==200||!r.data){
-    // fallback: Trends 엔드포인트
-    r = await httpGet(host, '/trending?region=KR', headers);
-  }
-  if(!r||r.status!==200||!r.data) return {ok:false, error:'TikTok API 실패 '+(r?r.status:'timeout')};
-
-  var items = r.data.data||r.data.item_list||r.data.videos||r.data.result||r.data.items||[];
-  if(!Array.isArray(items)||!items.length) return {ok:true, videoCount:0, avgViews:0, shortRatio:0};
-
-  var totalViews=0, shorts=0;
-  items.forEach(function(v){
-    totalViews += Number(v.stats&&v.stats.playCount||v.play_count||v.playCount||0);
-    var dur = Number(v.video&&v.video.duration||v.duration||0);
-    if(dur>0&&dur<=60) shorts++;
+  var buf = Buffer.from(JSON.stringify(body));
+  var res = await new Promise(function(resolve){
+    var t   = setTimeout(function(){resolve(null);}, TIMEOUT);
+    var req = https.request({
+      hostname:'openapi.naver.com', path:'/v1/datalab/search', method:'POST',
+      headers:{
+        'X-Naver-Client-Id':     cid,
+        'X-Naver-Client-Secret': sec,
+        'Content-Type':          'application/json',
+        'Content-Length':        buf.length
+      }
+    }, function(r){
+      var raw='';
+      r.on('data',function(c){raw+=c;});
+      r.on('end',function(){
+        clearTimeout(t);
+        try{resolve({status:r.statusCode,data:JSON.parse(raw)});}
+        catch(e){resolve(null);}
+      });
+    });
+    req.on('error',function(){clearTimeout(t);resolve(null);});
+    req.write(buf); req.end();
   });
 
-  return {
-    ok:          true,
-    videoCount:  items.length,
-    avgViews:    Math.round(totalViews/items.length),
-    totalViews:  totalViews,
-    shortRatio:  Math.round((shorts/items.length)*100)
-  };
+  if(!res||res.status!==200||!res.data||!res.data.results)
+    return {ok:false, error:'Datalab 실패 '+(res?res.status:'timeout')};
+
+  var pts    = (res.data.results[0]&&res.data.results[0].data)||[];
+  if(!pts.length) return {ok:true, trend:'데이터 없음', surgeRate:0, avgRatio:0};
+
+  var recent = pts.slice(-7).reduce(function(s,p){return s+Number(p.ratio||0);},0)/7;
+  var older  = pts.slice(0,7).reduce(function(s,p){return s+Number(p.ratio||0);},0)/7;
+  var surge  = older>0 ? Math.round(((recent-older)/older)*100) : 0;
+  var trend  = surge>=20?'🔥 급상승':surge>=5?'📈 상승':surge<=-10?'📉 하락':'➡️ 보합';
+
+  return {ok:true, surgeRate:surge, trend:trend, avgRatio:Math.round(recent*10)/10, points:pts.length};
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 점수 계산
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function calcScore(yt, ig, tt){
+function calcScore(yt, dl){
   var score = 0;
 
   if(yt.ok){
-    score += Math.min(yt.avgViews/100000, 1) * 30;  // YouTube 조회수 30점
-    score += Math.min(yt.recentCount/20,  1) * 15;  // YouTube 최근성 15점
+    score += Math.min(yt.avgViews/100000, 1) * 35;  // YouTube 조회수 35점
+    score += Math.min(yt.recentCount/20,  1) * 20;  // YouTube 최근성 20점
     score += Math.min(yt.shortsRatio/100, 1) * 15;  // 쇼츠 비율 15점
   }
 
-  if(ig.ok){
-    var igS = 0;
-    if(ig.mediaCount>10000) igS+=5;
-    if(ig.recentCount>0)    igS+=5;
-    if(ig.hasTopMedia)      igS+=5;
-    score += Math.min(igS, 15);                      // Instagram 15점
+  if(dl.ok){
+    score += Math.min(dl.avgRatio/100, 1)   * 20;   // 검색량 20점
+    if(dl.surgeRate>=20)      score += 10;           // 급상승 보너스 10점
+    else if(dl.surgeRate>=5)  score += 5;
   }
-
-  if(tt.ok){
-    score += Math.min(tt.avgViews/50000, 1) * 10;   // TikTok 조회수 10점
-    score += Math.min(tt.videoCount/20,  1) * 5;    // TikTok 영상수 5점
-  }
-
-  // 반복 등장 10점
-  var srcs = [yt.ok&&yt.videoCount>0, ig.ok&&ig.recentCount>0, tt.ok&&tt.videoCount>0].filter(Boolean).length;
-  score += srcs>=3?10:srcs>=2?5:0;
 
   var total = Math.round(Math.min(score, 100));
   var grade = total>=80?'S':total>=60?'A':total>=40?'B':'C';
 
   var tags=[], reasons=[];
-  if(yt.ok&&yt.avgViews>50000){tags.push('🔥 급상승'); reasons.push('YouTube 평균 '+fmtN(yt.avgViews)+'회');}
-  if(yt.ok&&yt.shortsRatio>50){tags.push('🎬 쇼츠 적합'); reasons.push('쇼츠 비율 '+yt.shortsRatio+'%');}
-  if(ig.ok&&ig.recentCount>0) {tags.push('📱 SNS 반응'); reasons.push('Instagram 게시물 '+ig.mediaCount.toLocaleString()+'개');}
-  if(tt.ok&&tt.avgViews>10000) reasons.push('TikTok 평균 '+fmtN(tt.avgViews)+'회');
+  if(yt.ok&&yt.avgViews>50000)   {tags.push('🔥 급상승');    reasons.push('YouTube 평균 '+fmtN(yt.avgViews)+'회');}
+  if(yt.ok&&yt.shortsRatio>50)   {tags.push('🎬 쇼츠 적합'); reasons.push('쇼츠 비율 '+yt.shortsRatio+'%');}
+  if(dl.ok&&dl.surgeRate>=10)    {tags.push('📈 검색 급증');  reasons.push('네이버 검색량 '+dl.trend);}
+  if(yt.ok&&yt.videoCount>10)     tags.push('📺 콘텐츠 多');
   if(!reasons.length) reasons.push('데이터 수집 완료');
 
   return {total:total, grade:grade, tags:tags, reason:reasons.slice(0,2).join(' · ')};
@@ -224,20 +215,18 @@ module.exports = async function(req, res){
   }
 
   var envStatus = {
-    youtube:   !!process.env.YOUTUBE_API_KEY,
-    instagram: !!process.env.RAPIDAPI_KEY,
-    tiktok:    !!process.env.RAPIDAPI_KEY
+    youtube:  !!process.env.YOUTUBE_API_KEY,
+    naver:    !!(process.env.NAVER_CLIENT_ID&&process.env.NAVER_CLIENT_SECRET)
   };
 
   try{
     var results=[];
-    for(var i=0;i<keywords.length;i+=2){
-      var batch=keywords.slice(i,i+2);
+    for(var i=0;i<keywords.length;i+=3){
+      var batch=keywords.slice(i,i+3);
       var bRes=await Promise.allSettled(batch.map(async function(kw){
-        var yt = envStatus.youtube   ? await fetchYouTube(kw)   : {ok:false,error:'키 없음'};
-        var ig = envStatus.instagram ? await fetchInstagram(kw) : {ok:false,error:'키 없음'};
-        var tt = envStatus.tiktok    ? await fetchTikTok(kw)    : {ok:false,error:'키 없음'};
-        return {keyword:kw, score:calcScore(yt,ig,tt), youtube:yt, instagram:ig, tiktok:tt};
+        var yt = envStatus.youtube ? await fetchYouTube(kw)      : {ok:false,error:'키 없음'};
+        var dl = envStatus.naver   ? await fetchNaverDatalab(kw)  : {ok:false,error:'키 없음'};
+        return {keyword:kw, score:calcScore(yt,dl), youtube:yt, datalab:dl};
       }));
       bRes.forEach(function(r){if(r.status==='fulfilled') results.push(r.value);});
     }
@@ -248,7 +237,6 @@ module.exports = async function(req, res){
       results:results, total:results.length,
       top3:results.slice(0,3),
       envStatus:envStatus,
-      keywordSource:'trend_tab',
       updatedAt:new Date().toISOString(),
       fromCache:false
     };
