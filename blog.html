@@ -588,19 +588,19 @@ async function generateBlog() {
   setLoadingStep('본문 작성 중...', 50);
 
   try {
-    var res = await fetch('https://api.anthropic.com/v1/messages', {
+    var res = await fetch('/api/blog-generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4000,
         system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }]
+        user: userPrompt,
+        max_tokens: 4000
       })
     });
 
     var data = await res.json();
-    var raw  = data.content ? data.content.map(function(c){ return c.text || ''; }).join('') : '';
+    if (data.error) throw new Error(data.error);
+    var raw = data.text || '';
     var clean = raw.replace(/```json|```/g, '').trim();
     var result = JSON.parse(clean);
 
@@ -720,17 +720,14 @@ async function regenSection(section) {
   };
   showToast('재생성 중...');
   try {
-    var res = await fetch('https://api.anthropic.com/v1/messages', {
+    var res = await fetch('/api/blog-generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2000,
-        messages: [{ role: 'user', content: prompts[section] }]
-      })
+      body: JSON.stringify({ user: prompts[section], max_tokens: 2000 })
     });
     var data = await res.json();
-    var raw = data.content ? data.content.map(function(c){ return c.text || ''; }).join('') : '';
+    if (data.error) throw new Error(data.error);
+    var raw = data.text || '';
     if (section === 'body') {
       document.getElementById('body-textarea').value = raw.trim();
       updateCharCount();
