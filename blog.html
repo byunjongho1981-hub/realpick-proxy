@@ -421,18 +421,6 @@ async function analyzeUrl() {
       urlInfo: p
     });
 
-    // URL 분석 결과 표시
-    resultEl.style.display = 'flex';
-    resultEl.className = 'url-result';
-    resultEl.innerHTML =
-      '<div style="flex-basis:100%;font-size:11px;font-weight:800;color:#0891b2;margin-bottom:4px">✅ URL 분석 완료 — 제품 정보 자동 추출됨</div>'
-      + (p.productName ? '<span class="url-tag">📦 ' + p.productName + '</span>' : '')
-      + (p.price ? '<span class="url-tag">💰 ' + Number(p.price).toLocaleString() + '원</span>' : '')
-      + (p.priceGrade ? '<span class="url-tag">등급 ' + p.priceGrade + '</span>' : '')
-      + (p.platform ? '<span class="url-tag">🛒 ' + p.platform + '</span>' : '')
-      + (p.category ? '<span class="url-tag">' + p.category + '</span>' : '')
-      + (p.targetUser ? '<span class="url-tag" style="flex-basis:100%">👤 ' + p.targetUser + '</span>' : '');
-
     showToast('✅ URL 분석 완료 — 제품 정보 연결됨');
 
     // ★ 제목 입력창에 제품명 자동 세팅
@@ -684,7 +672,14 @@ function cleanMarkdown(text) {
     .trim();
 }
 
-function insertImagesIntoBody(body) {
+// ★ 제목 앞 이모지 자동 추가
+var TITLE_EMOJIS = ['🔥','⭐','💡','🎯','✅'];
+function ensureTitleEmoji(title, idx) {
+  // 이미 이모지로 시작하면 유지
+  var emojiReg = /^(\p{Emoji_Presentation}|\p{Extended_Pictographic})/u;
+  if (emojiReg.test(title.trim())) return title.trim();
+  return TITLE_EMOJIS[idx % TITLE_EMOJIS.length] + ' ' + title.trim();
+}
   // 유효한 이미지만 필터링
   var imgs = S_IMAGES.filter(Boolean);
   if (!imgs.length) return body;
@@ -700,12 +695,12 @@ function insertImagesIntoBody(body) {
 }
 
 function renderResult() {
-  var titleList = document.getElementById('title-list');
   titleList.innerHTML = S.titles.map(function(t, i) {
-    var len = t.length, ok = len >= 20 && len <= 50;
+    var title = ensureTitleEmoji(t, i); // ★ 이모지 보장
+    var len = title.length, ok = len >= 20 && len <= 55;
     return '<div class="title-item' + (i===S.selectedTitle?' selected':'') + '" onclick="selectTitle(' + i + ')">'
       + '<div class="title-num">' + (i+1) + '</div>'
-      + '<div class="title-text">' + t + '</div>'
+      + '<div class="title-text">' + title + '</div>'
       + '<span class="seo-score" style="background:' + (ok?'#ecfdf5;color:#10b981':'#fff7ed;color:#d97706') + '">' + len + '자' + (ok?' ✓':'') + '</span>'
       + '</div>';
   }).join('');
@@ -762,19 +757,45 @@ function updateCharCount() {
 
 async function regenSection(section) {
   if(!S.product || !S.generated){ showToast('⚠️ 먼저 생성해주세요'); return; }
+
+  // ★ 현재 본문 유지하면서 같은 주제로 다른 문체·표현만 재작성
+  var currentBody = document.getElementById('body-textarea').value;
   var prompts = {
-    body: '제품명: ' + S.product.name + '\n기존 본문을 다른 스타일로 재작성. 스킬 v10.1 전환 구조 적용. 본문만 출력.',
-    thumb: '제품명: ' + S.product.name + '\n썸네일 문구 재생성.\nJSON: {"main":"20자이내","sub":"15자이내","badge":"8자이내"}'
+    body:
+      '아래 블로그 본문을 같은 제품·같은 주제로 유지하되, 문체와 표현만 다르게 재작성하라.\n'
+      + '구조(섹션 순서, [📸] 위치)는 그대로 유지한다.\n'
+      + '## ** 기호 절대 금지. 이모지 적극 활용.\n'
+      + '본문 텍스트만 출력. JSON 금지.\n\n'
+      + '[현재 본문]\n' + currentBody,
+    thumb:
+      '제품명: ' + S.product.name + '\n'
+      + '썸네일 문구를 다른 표현으로 재생성.\n'
+      + 'JSON만 출력: {"main":"20자이내","sub":"15자이내","badge":"8자이내"}'
   };
-  showToast('재생성 중...');
+
+  showToast('재작성 중...');
   try {
-    var res = await fetch('/api/blog-generate', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user:prompts[section], max_tokens:2000 }) });
+    var res = await fetch('/api/blog-generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user: prompts[section], max_tokens: 4000 })
+    });
     var data = await res.json();
     if(data.error) throw new Error(data.error);
     var raw = data.text || '';
-    if(section==='body'){ document.getElementById('body-textarea').value=raw.trim(); updateCharCount(); showToast('✓ 본문 재생성 완료'); }
-    else if(section==='thumb'){ S.thumb=JSON.parse(raw.replace(/```json|```/g,'').trim()); updateThumbPreview(); showToast('✓ 썸네일 재생성 완료'); }
-  } catch(e){ showToast('⚠️ 재생성 오류'); }
+
+    if(section === 'body'){
+      var cleaned = cleanMarkdown(raw.trim());
+      var withImgs = insertImagesIntoBody(cleaned);
+      document.getElementById('body-textarea').value = withImgs;
+      updateCharCount();
+      showToast('✓ 본문 재작성 완료');
+    } else if(section === 'thumb'){
+      S.thumb = JSON.parse(raw.replace(/```json|```/g,'').trim());
+      updateThumbPreview();
+      showToast('✓ 썸네일 재작성 완료');
+    }
+  } catch(e){ showToast('⚠️ 재작성 오류: ' + e.message); }
 }
 
 function copySelected(type) {
