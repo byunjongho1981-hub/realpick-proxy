@@ -263,15 +263,18 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
           <div class="result-box-title">📝 제목 선택 (5개 중 1개)<button class="copy-btn" onclick="copySelected('title')">선택 복사</button></div>
           <div id="title-list"></div>
         </div>
-        <div class="result-box">
+        <div class="result-box" style="margin-top:0">
           <div class="result-box-title">📄 본문
             <div style="display:flex;gap:6px">
               <span id="char-count" style="font-size:10px;color:var(--faint);align-self:center"></span>
               <button class="copy-btn" onclick="copySelected('body')">복사</button>
               <button class="copy-btn" onclick="regenSection('body')" style="background:var(--green-lt);border-color:#a7f3d0;color:var(--green)">재생성</button>
+              <button class="copy-btn" onclick="togglePreview()" id="preview-btn" style="background:#fff7ed;border-color:#fed7aa;color:#f97316">미리보기</button>
             </div>
           </div>
           <textarea id="body-textarea" class="body-textarea" oninput="updateCharCount()"></textarea>
+          <!-- 이미지 포함 미리보기 -->
+          <div id="body-preview" style="display:none;border:1.5px solid var(--pri-bdr);border-radius:8px;padding:16px;background:#fafbff;font-size:13px;line-height:1.9;color:var(--txt);min-height:300px;white-space:pre-wrap;word-break:break-word"></div>
         </div>
         <div class="result-box">
           <div class="result-box-title"># 해시태그<button class="copy-btn" onclick="copySelected('hashtag')">복사</button></div>
@@ -778,6 +781,49 @@ function updateStep(active){
   }
   var hints={1:'제품 연결됨',2:'설정 후 생성 버튼',3:'제목 선택 후 업로드',4:'업로드 완료! 🎉'};
   var h=document.getElementById('step-hint'); if(h) h.textContent=hints[active]||'';
+}
+
+function togglePreview() {
+  var ta = document.getElementById('body-textarea');
+  var pv = document.getElementById('body-preview');
+  var btn = document.getElementById('preview-btn');
+  if (pv.style.display === 'none') {
+    pv.innerHTML = renderBodyWithImages(ta.value);
+    pv.style.display = 'block';
+    ta.style.display = 'none';
+    btn.textContent = '편집';
+    btn.style.background = '#f1f5f9';
+    btn.style.color = '#475569';
+  } else {
+    pv.style.display = 'none';
+    ta.style.display = 'block';
+    btn.textContent = '미리보기';
+    btn.style.background = '#fff7ed';
+    btn.style.color = '#f97316';
+  }
+}
+
+function renderBodyWithImages(text) {
+  // [📸N ...] 패턴을 실제 이미지로 교체
+  var escaped = text
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;');
+
+  return escaped.replace(/\[(?:📸|📷|🖼|📟)[^\]]*(\d)[^\]]*\]/g, function(match, num) {
+    var idx = parseInt(num) - 1;
+    var img = (idx >= 0 && idx < 6) ? S_IMAGES[idx] : null;
+    if (img && img.data) {
+      var src = 'data:' + img.mimeType + ';base64,' + img.data;
+      return '\n<img src="' + src + '" style="max-width:100%;border-radius:10px;margin:12px 0;display:block" alt="📸'+(idx+1)+'"/>\n';
+    }
+    if (img && img.url) {
+      return '\n<img src="' + img.url + '" style="max-width:100%;border-radius:10px;margin:12px 0;display:block" alt="📸'+(idx+1)+'" onerror="this.style.display=\'none\'"/>\n';
+    }
+    // 이미지 없으면 플레이스홀더
+    return '\n<div style="background:#f1f5f9;border:2px dashed #c7d2fe;border-radius:10px;padding:20px;text-align:center;color:#94a3b8;font-size:12px;margin:12px 0">'
+      + '📸 이미지 ' + (idx+1) + ' 슬롯 — 이미지를 첨부하면 여기에 표시됩니다</div>\n';
+  });
 }
 
 function showLoading(on){document.getElementById('loading-overlay').style.display=on?'flex':'none';}
