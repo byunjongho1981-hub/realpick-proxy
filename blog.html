@@ -644,11 +644,11 @@ async function generateBlog() {
   setLoadingStep('본문 작성 중...', 55);
 
   try {
-    // ★ max_tokens 8000 — 이미지는 미리보기에서만 표시
+    // ★ max_tokens 8000
     var res = await fetch('/api/blog-generate', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ user:userPrompt, max_tokens:8000 })
+      body:JSON.stringify({ user:userPrompt, max_tokens:8000, images:validImages.length>0?validImages:undefined })
     });
     var data2 = await res.json();
     if (data2.error) throw new Error(data2.error);
