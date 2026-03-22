@@ -686,7 +686,7 @@ function renderResult() {
       +'</div>';
   }).join('');
 
-  document.getElementById('body-textarea').value = insertImagesIntoBody(cleanMarkdown(S.body));
+  document.getElementById('body-textarea').value = cleanMarkdown(S.body);
   updateCharCount();
 
   document.getElementById('hashtag-wrap').innerHTML = S.hashtags.map(function(h){
