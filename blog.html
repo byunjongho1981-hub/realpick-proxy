@@ -206,7 +206,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
     <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px" id="img-slots">
       <!-- JS로 렌더 -->
     </div>
-    <input type="file" id="img-input-slot" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none" onchange="handleSlotFile(event)"/>
+    <input type="file" id="img-input-slot" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none"/>
   </div>
 
   <!-- 설정 -->
@@ -386,8 +386,19 @@ function renderSlots() {
 function openSlot(idx) {
   S_ACTIVE_SLOT = idx;
   var input = document.getElementById('img-input-slot');
-  input.onchange = function(e){ handleSlotFile(e, idx); };
-  input.click();
+  // 기존 이벤트 제거 후 재등록
+  var newInput = input.cloneNode(true);
+  input.parentNode.replaceChild(newInput, input);
+  newInput.addEventListener('change', function(e) {
+    var file = e.target.files[0]; if (!file) return;
+    resizeImage(file, 800, 0.7).then(function(imgData) {
+      S_IMAGES[idx] = imgData;
+      renderSlots();
+      showToast('📸 슬롯 '+(idx+1)+' 이미지 등록됨');
+    });
+    e.target.value = '';
+  });
+  newInput.click();
 }
 
 function focusSlot(idx) {
