@@ -518,6 +518,7 @@ function renderList(){
         +'<div class="r-name">'+(c.name||'–')+'</div>'
         +'<div class="r-score-wrap"><span class="r-score">'+sn(sc.total)+'점</span>'+bdg(sc.grade||'–',GRADE_C[sc.grade]||'var(--c-gray)',GRADE_BG[sc.grade]||'var(--b-gray)')+'</div>'
         +decisionBdg
+        +'<button onclick="event.stopPropagation();goToBlog(\''+c.name+'\')" style="display:inline-flex;align-items:center;gap:4px;padding:5px 12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:8px;font-size:11px;font-weight:800;color:#fff;cursor:pointer;white-space:nowrap;flex-shrink:0">✍️ 블로그제작</button>'
       +'</div>'
       +'<div class="r-badges">'+badges+'</div>'
       +entryBanner    // ★ 초기 진입 배너
@@ -531,6 +532,15 @@ function renderList(){
       +'<div class="r-links">'+links+'</div>'
     +'</div>';
   }).join('')+'</div>';
+}
+
+// ── 블로그제작 이동 ───────────────────────────────────────────
+function goToBlog(name){
+  var product = ALL.find(function(c){ return c.name === name; });
+  if(product){
+    try{ sessionStorage.setItem('blog-product', JSON.stringify(product)); }catch(e){}
+  }
+  location.href = '/blog.html';
 }
 
 // ── 토스트 ───────────────────────────────────────────────────
