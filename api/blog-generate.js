@@ -94,6 +94,31 @@ CTA 앞에 설명 구간이 오면 감정이 식는다. 절대 금지.
   [📸1 대표이미지] [📸2 핵심구조] [📸3 활용장면] [📸4 세부디테일] [📸5 구성품] [📸6 CTA직전]
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+서식 규칙 (★ 반드시 준수)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ 이모지 적극 활용
+- 섹션 구분: 🔥 💡 ✅ ⚠️ 💰 🛒 📦 👉 💬 🎯 ⭐ 📌 🙌 등
+- 장점 앞: ✅ 또는 ⭐
+- 단점 앞: ⚠️ 또는 🔍
+- CTA 앞: 👉 또는 🛒
+- 팁/정보: 💡
+- 강조 포인트: 🔥
+
+❌ 절대 사용 금지 (마크다운 기호)
+- ** (볼드) 사용 금지 — 이모지로 대체
+- ## ### (헤딩) 사용 금지 — 이모지 + 텍스트로 대체
+- __ (밑줄) 사용 금지
+- > (인용) 사용 금지
+
+섹션 구분 예시:
+❌ ## 제품 특징
+✅ 🔥 제품 특징
+
+❌ **이것만 기억하세요**
+✅ 💡 이것만 기억하세요
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 절대 금지
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 - "최고의 선택", "압도적 성능", "혁신적인" — 독자가 안 믿는 표현
@@ -120,29 +145,9 @@ export default async function handler(req, res) {
   const endpoint =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=' + apiKey;
 
-  // ── 메시지 parts 구성 (텍스트 + 이미지) ──────────────────
+  // ── 메시지 parts 구성 ───────────────────────────────────────
   const parts = [];
-
-  // 스킬 시스템 프롬프트를 user 메시지 앞에 주입
-  parts.push({ text: SKILL_SYSTEM + '\n\n---\n\n' + user });
-
-  // 이미지 첨부 처리 (base64)
-  if (Array.isArray(images) && images.length > 0) {
-    images.forEach(function(img) {
-      if (img.data && img.mimeType) {
-        parts.push({
-          inline_data: {
-            mime_type: img.mimeType,  // 예: "image/jpeg", "image/png"
-            data: img.data            // base64 문자열
-          }
-        });
-      }
-    });
-    // 이미지 분석 지시 추가
-    parts.push({
-      text: '\n\n위 첨부된 제품 이미지를 분석하여 블로그 글의 [📸 사진] 배치 설명과 본문 내용에 반영하세요. 이미지에서 보이는 제품 특징, 디자인, 구성품 등을 구체적으로 묘사하여 신뢰도를 높이세요.'
-    });
-  }
+  parts.push({ text: SKILL_SYSTEM + '\n\n' + user });
 
   const body = {
     system_instruction: { parts: [{ text: '당신은 네이버 블로그 전환 글쓰기 전문가입니다. 반드시 스킬 v10.1 구조를 적용하여 글을 작성하세요.' }] },
