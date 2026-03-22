@@ -202,11 +202,21 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
 
   <!-- 이미지 첨부 6슬롯 -->
   <div class="panel">
-    <div class="panel-title">🖼 제품 이미지 첨부 <span style="font-size:11px;font-weight:500;color:var(--muted)">(6슬롯 · 클릭 선택 또는 Ctrl+V 붙여넣기 · AI 분석 반영)</span></div>
-    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px" id="img-slots">
-      <!-- JS로 렌더 -->
+    <div class="panel-title">🖼 제품 이미지 첨부 <span style="font-size:11px;font-weight:500;color:var(--muted)">(6슬롯 · 클릭 선택 또는 Ctrl+V 붙여넣기)</span></div>
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px">
+      <label for="slot-file-0" class="img-slot" id="slot-0"><span style="font-size:20px">➕</span><div class="img-slot-label">📸1 대표이미지</div></label>
+      <label for="slot-file-1" class="img-slot" id="slot-1"><span style="font-size:20px">➕</span><div class="img-slot-label">📸2 핵심구조</div></label>
+      <label for="slot-file-2" class="img-slot" id="slot-2"><span style="font-size:20px">➕</span><div class="img-slot-label">📸3 활용장면</div></label>
+      <label for="slot-file-3" class="img-slot" id="slot-3"><span style="font-size:20px">➕</span><div class="img-slot-label">📸4 세부디테일</div></label>
+      <label for="slot-file-4" class="img-slot" id="slot-4"><span style="font-size:20px">➕</span><div class="img-slot-label">📸5 구성품</div></label>
+      <label for="slot-file-5" class="img-slot" id="slot-5"><span style="font-size:20px">➕</span><div class="img-slot-label">📸6 CTA직전</div></label>
     </div>
-    <input type="file" id="img-input-slot" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none" onchange="handleSlotFile(event)"/>
+    <input type="file" id="slot-file-0" accept="image/*" style="display:none" onchange="saveToSlot(0,this)">
+    <input type="file" id="slot-file-1" accept="image/*" style="display:none" onchange="saveToSlot(1,this)">
+    <input type="file" id="slot-file-2" accept="image/*" style="display:none" onchange="saveToSlot(2,this)">
+    <input type="file" id="slot-file-3" accept="image/*" style="display:none" onchange="saveToSlot(3,this)">
+    <input type="file" id="slot-file-4" accept="image/*" style="display:none" onchange="saveToSlot(4,this)">
+    <input type="file" id="slot-file-5" accept="image/*" style="display:none" onchange="saveToSlot(5,this)">
   </div>
 
   <!-- 설정 -->
@@ -263,15 +273,18 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
           <div class="result-box-title">📝 제목 선택 (5개 중 1개)<button class="copy-btn" onclick="copySelected('title')">선택 복사</button></div>
           <div id="title-list"></div>
         </div>
-        <div class="result-box">
+        <div class="result-box" style="margin-top:0">
           <div class="result-box-title">📄 본문
             <div style="display:flex;gap:6px">
               <span id="char-count" style="font-size:10px;color:var(--faint);align-self:center"></span>
               <button class="copy-btn" onclick="copySelected('body')">복사</button>
               <button class="copy-btn" onclick="regenSection('body')" style="background:var(--green-lt);border-color:#a7f3d0;color:var(--green)">재생성</button>
+              <button class="copy-btn" onclick="togglePreview()" id="preview-btn" style="background:#fff7ed;border-color:#fed7aa;color:#f97316">미리보기</button>
             </div>
           </div>
           <textarea id="body-textarea" class="body-textarea" oninput="updateCharCount()"></textarea>
+          <!-- 이미지 포함 미리보기 -->
+          <div id="body-preview" style="display:none;border:1.5px solid var(--pri-bdr);border-radius:8px;padding:16px;background:#fafbff;font-size:13px;line-height:1.9;color:var(--txt);min-height:300px;white-space:pre-wrap;word-break:break-word"></div>
         </div>
         <div class="result-box">
           <div class="result-box-title"># 해시태그<button class="copy-btn" onclick="copySelected('hashtag')">복사</button></div>
@@ -353,6 +366,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
 
 <script>
 var S = { product:null, titles:[], selectedTitle:0, body:'', hashtags:[], thumb:{}, seo:{}, generated:false };
+var S_IMAGES = [null,null,null,null,null,null];
+var S_URL_INFO = null; product:null, titles:[], selectedTitle:0, body:'', hashtags:[], thumb:{}, seo:{}, generated:false };
 var S_IMAGES = new Array(6).fill(null);
 var S_URL_INFO = null;
 var S_ACTIVE_SLOT = -1; // 현재 포커스된 슬롯
@@ -366,13 +381,13 @@ function renderSlots() {
     var img = S_IMAGES[i];
     if (img) {
       var src = img.data ? 'data:'+img.mimeType+';base64,'+img.data : (img.url||'');
-      return '<div class="img-slot filled" id="slot-'+i+'" onclick="focusSlot('+i+')">'
+      return '<div class="img-slot filled" id="slot-'+i+'" onclick="openSlot('+i+')">'
         +'<div class="img-slot-num">'+(i+1)+'</div>'
         +'<img src="'+src+'" alt="슬롯'+(i+1)+'"/>'
         +'<button class="img-slot-del" onclick="event.stopPropagation();clearSlot('+i+')">✕</button>'
         +'</div>';
     }
-    return '<div class="img-slot" id="slot-'+i+'" onclick="openSlot('+i+')" onpaste="pasteSlot(event,'+i+')">'
+    return '<div class="img-slot" id="slot-'+i+'" onclick="openSlot('+i+')">'
       +'<div style="font-size:20px">➕</div>'
       +'<div class="img-slot-label">'+label+'</div>'
       +'<div class="img-slot-paste">클릭 or Ctrl+V</div>'
@@ -383,8 +398,19 @@ function renderSlots() {
 function openSlot(idx) {
   S_ACTIVE_SLOT = idx;
   var input = document.getElementById('img-input-slot');
-  input.onchange = function(e){ handleSlotFile(e, idx); };
-  input.click();
+  // 기존 이벤트 제거 후 재등록
+  var newInput = input.cloneNode(true);
+  input.parentNode.replaceChild(newInput, input);
+  newInput.addEventListener('change', function(e) {
+    var file = e.target.files[0]; if (!file) return;
+    resizeImage(file, 800, 0.7).then(function(imgData) {
+      S_IMAGES[idx] = imgData;
+      renderSlots();
+      showToast('📸 슬롯 '+(idx+1)+' 이미지 등록됨');
+    });
+    e.target.value = '';
+  });
+  newInput.click();
 }
 
 function focusSlot(idx) {
@@ -393,33 +419,27 @@ function focusSlot(idx) {
   openSlot(idx);
 }
 
+// ── 이미지 처리 ──────────────────────────────────────────────
 function handleSlotFile(e, idx) {
   var file = e.target.files[0]; if (!file) return;
-  var reader = new FileReader();
-  reader.onload = function(ev) {
-    var b64 = ev.target.result.split(',')[1];
-    S_IMAGES[idx] = { data: b64, mimeType: file.type };
+  resizeImage(file, 800, 0.7).then(function(imgData) {
+    S_IMAGES[idx] = imgData;
     renderSlots();
     showToast('📸 슬롯 '+(idx+1)+' 이미지 등록됨');
-  };
-  reader.readAsDataURL(file);
+  });
   e.target.value = '';
 }
 
 function pasteSlot(e, idx) {
-  var items = (e.clipboardData||e.originalEvent&&e.originalEvent.clipboardData||{}).items||[];
+  var items = (e.clipboardData||{}).items||[];
   for (var i=0; i<items.length; i++) {
     if (items[i].type.indexOf('image') === -1) continue;
     var file = items[i].getAsFile(); if (!file) continue;
-    var reader = new FileReader();
-    (function(f, slotIdx){
-      reader.onload = function(ev) {
-        S_IMAGES[slotIdx] = { data: ev.target.result.split(',')[1], mimeType: f.type };
-        renderSlots();
-        showToast('📸 슬롯 '+(slotIdx+1)+' 붙여넣기 완료');
-      };
-      reader.readAsDataURL(f);
-    })(file, idx);
+    resizeImage(file, 800, 0.7).then(function(imgData) {
+      S_IMAGES[idx] = imgData;
+      renderSlots();
+      showToast('📸 슬롯 '+(idx+1)+' 붙여넣기 완료');
+    });
     e.preventDefault(); break;
   }
 }
@@ -430,15 +450,19 @@ function clearSlot(idx) {
   showToast('슬롯 '+(idx+1)+' 초기화됨');
 }
 
-// 전역 붙여넣기 (포커스된 슬롯 없으면 첫 빈 슬롯에)
 document.addEventListener('paste', function(e) {
   var items = (e.clipboardData||{}).items||[];
-  var hasImg = false;
-  for (var i=0;i<items.length;i++) if(items[i].type.indexOf('image')!==-1){hasImg=true;break;}
-  if (!hasImg) return;
+  var file = null;
+  for (var i=0;i<items.length;i++) if(items[i].type.indexOf('image')!==-1){file=items[i].getAsFile();break;}
+  if (!file) return;
   var targetIdx = S_ACTIVE_SLOT >= 0 ? S_ACTIVE_SLOT : S_IMAGES.indexOf(null);
   if (targetIdx < 0) { showToast('⚠️ 슬롯이 모두 찼습니다'); return; }
-  pasteSlot(e, targetIdx);
+  resizeImage(file, 800, 0.7).then(function(imgData) {
+    S_IMAGES[targetIdx] = imgData;
+    renderSlots();
+    showToast('📸 슬롯 '+(targetIdx+1)+' 붙여넣기 완료');
+  });
+  e.preventDefault();
 });
 
 window.addEventListener('DOMContentLoaded', function() {
@@ -620,11 +644,11 @@ async function generateBlog() {
   setLoadingStep('본문 작성 중...', 55);
 
   try {
-    // ★ max_tokens 8000
+    // ★ max_tokens 8000 — 이미지는 미리보기에서만 표시
     var res = await fetch('/api/blog-generate', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ user:userPrompt, max_tokens:8000, images:validImages.length>0?validImages:undefined })
+      body:JSON.stringify({ user:userPrompt, max_tokens:8000 })
     });
     var data2 = await res.json();
     if (data2.error) throw new Error(data2.error);
@@ -683,7 +707,7 @@ function renderResult() {
       +'</div>';
   }).join('');
 
-  document.getElementById('body-textarea').value = insertImagesIntoBody(cleanMarkdown(S.body));
+  document.getElementById('body-textarea').value = cleanMarkdown(S.body);
   updateCharCount();
 
   document.getElementById('hashtag-wrap').innerHTML = S.hashtags.map(function(h){
@@ -778,6 +802,49 @@ function updateStep(active){
   }
   var hints={1:'제품 연결됨',2:'설정 후 생성 버튼',3:'제목 선택 후 업로드',4:'업로드 완료! 🎉'};
   var h=document.getElementById('step-hint'); if(h) h.textContent=hints[active]||'';
+}
+
+function togglePreview() {
+  var ta = document.getElementById('body-textarea');
+  var pv = document.getElementById('body-preview');
+  var btn = document.getElementById('preview-btn');
+  if (pv.style.display === 'none') {
+    pv.innerHTML = renderBodyWithImages(ta.value);
+    pv.style.display = 'block';
+    ta.style.display = 'none';
+    btn.textContent = '편집';
+    btn.style.background = '#f1f5f9';
+    btn.style.color = '#475569';
+  } else {
+    pv.style.display = 'none';
+    ta.style.display = 'block';
+    btn.textContent = '미리보기';
+    btn.style.background = '#fff7ed';
+    btn.style.color = '#f97316';
+  }
+}
+
+function renderBodyWithImages(text) {
+  // [📸N ...] 패턴을 실제 이미지로 교체
+  var escaped = text
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;');
+
+  return escaped.replace(/\[(?:📸|📷|🖼|📟)[^\]]*(\d)[^\]]*\]/g, function(match, num) {
+    var idx = parseInt(num) - 1;
+    var img = (idx >= 0 && idx < 6) ? S_IMAGES[idx] : null;
+    if (img && img.data) {
+      var src = 'data:' + img.mimeType + ';base64,' + img.data;
+      return '\n<img src="' + src + '" style="max-width:100%;border-radius:10px;margin:12px 0;display:block" alt="📸'+(idx+1)+'"/>\n';
+    }
+    if (img && img.url) {
+      return '\n<img src="' + img.url + '" style="max-width:100%;border-radius:10px;margin:12px 0;display:block" alt="📸'+(idx+1)+'" onerror="this.style.display=\'none\'"/>\n';
+    }
+    // 이미지 없으면 플레이스홀더
+    return '\n<div style="background:#f1f5f9;border:2px dashed #c7d2fe;border-radius:10px;padding:20px;text-align:center;color:#94a3b8;font-size:12px;margin:12px 0">'
+      + '📸 이미지 ' + (idx+1) + ' 슬롯 — 이미지를 첨부하면 여기에 표시됩니다</div>\n';
+  });
 }
 
 function showLoading(on){document.getElementById('loading-overlay').style.display=on?'flex':'none';}
