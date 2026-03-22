@@ -375,7 +375,7 @@ function renderSlots() {
         +'<button class="img-slot-del" onclick="event.stopPropagation();clearSlot('+i+')">✕</button>'
         +'</div>';
     }
-    return '<div class="img-slot" id="slot-'+i+'" onclick="openSlot('+i+')" onpaste="pasteSlot(event,'+i+')">'
+    return '<div class="img-slot" id="slot-'+i+'" onclick="openSlot('+i+')">'
       +'<div style="font-size:20px">➕</div>'
       +'<div class="img-slot-label">'+label+'</div>'
       +'<div class="img-slot-paste">클릭 or Ctrl+V</div>'
