@@ -302,7 +302,7 @@ function renderResult() {
       +'</div>';
   }).join('');
 
-  document.getElementById('body-textarea').value = insertImagesIntoBody(cleanMarkdown(S.body));
+  document.getElementById('body-textarea').value = cleanMarkdown(S.body);
   updateCharCount();
 
   document.getElementById('hashtag-wrap').innerHTML = S.hashtags.map(function(h){
@@ -366,9 +366,22 @@ async function regenSection(section) {
 
 // ── 복사/업로드 ──────────────────────────────────────────────
 function copySelected(type){
+  if(type==='body'){
+    var raw = document.getElementById('body-textarea').value;
+    var html = renderBodyWithImages(raw);
+    // 이미지 포함 HTML 클립보드 복사 (붙여넣기 시 이미지 포함)
+    if(navigator.clipboard && window.ClipboardItem){
+      var blob = new Blob([html], {type:'text/html'});
+      navigator.clipboard.write([new ClipboardItem({'text/html': blob})])
+        .then(function(){ showToast('✓ 이미지 포함 복사됨 — 에디터에 붙여넣기 하세요'); })
+        .catch(function(){ copyText(raw); showToast('✓ 텍스트만 복사됨'); });
+    } else {
+      copyText(raw); showToast('✓ 복사됨');
+    }
+    return;
+  }
   var text='';
   if(type==='title') text=S.titles[S.selectedTitle]||'';
-  else if(type==='body') text=document.getElementById('body-textarea').value;
   else if(type==='hashtag') text=S.hashtags.map(function(h){return '#'+h.replace(/^#/,'');}).join(' ');
   else if(type==='thumb'){var t=S.thumb;text=(t.badge||'')+'\n'+(t.main||'')+'\n'+(t.sub||'');}
   copyText(text); showToast('✓ 복사됨');
