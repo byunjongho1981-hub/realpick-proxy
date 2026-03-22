@@ -238,6 +238,8 @@ function runHot(){
     .then(function(data){
       if(data.error) throw new Error(data.error);
       ALL=data.candidates||[];
+      // ★ sessionStorage 저장
+      try{ sessionStorage.setItem('hot-last-result', JSON.stringify({candidates:ALL, keyword:data.keyword, updatedAt:data.updatedAt})); }catch(e){};
 
       // ★ 환경변수 진단 토스트
       if(data.envCheck){
@@ -469,10 +471,26 @@ function showToast(msg){
   clearTimeout(t._t);t._t=setTimeout(function(){t.style.opacity='0';},4000);
 }
 
-// ★ sessionStorage 자동 실행
+// ★ sessionStorage 복원
 window.addEventListener('DOMContentLoaded', function(){
-  var kw=sessionStorage.getItem('hot-auto-kw');
-  if(kw){sessionStorage.removeItem('hot-auto-kw');document.getElementById('hot-inp').value=kw;runHot();}
+  var kw = sessionStorage.getItem('hot-auto-kw');
+  if(kw){ sessionStorage.removeItem('hot-auto-kw'); document.getElementById('hot-inp').value=kw; runHot(); return; }
+  // 이전 결과 복원
+  try{
+    var saved = sessionStorage.getItem('hot-last-result');
+    if(saved){
+      var d = JSON.parse(saved);
+      if(d&&Array.isArray(d.candidates)&&d.candidates.length){
+        ALL=d.candidates;
+        document.getElementById('hot-inp').value=d.keyword||'';
+        applyFilter();
+        renderSummary();
+        document.getElementById('sum-bar').style.display='flex';
+        document.getElementById('flt-bar').style.display='flex';
+        showToast('📦 이전 결과 복원됨');
+      }
+    }
+  }catch(e){}
 });
 </script>
 </body>
