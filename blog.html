@@ -202,11 +202,21 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
 
   <!-- 이미지 첨부 6슬롯 -->
   <div class="panel">
-    <div class="panel-title">🖼 제품 이미지 첨부 <span style="font-size:11px;font-weight:500;color:var(--muted)">(6슬롯 · 클릭 선택 또는 Ctrl+V 붙여넣기 · AI 분석 반영)</span></div>
-    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px" id="img-slots">
-      <!-- JS로 렌더 -->
+    <div class="panel-title">🖼 제품 이미지 첨부 <span style="font-size:11px;font-weight:500;color:var(--muted)">(6슬롯 · 클릭 선택 또는 Ctrl+V 붙여넣기)</span></div>
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px">
+      <label for="slot-file-0" class="img-slot" id="slot-0"><span style="font-size:20px">➕</span><div class="img-slot-label">📸1 대표이미지</div></label>
+      <label for="slot-file-1" class="img-slot" id="slot-1"><span style="font-size:20px">➕</span><div class="img-slot-label">📸2 핵심구조</div></label>
+      <label for="slot-file-2" class="img-slot" id="slot-2"><span style="font-size:20px">➕</span><div class="img-slot-label">📸3 활용장면</div></label>
+      <label for="slot-file-3" class="img-slot" id="slot-3"><span style="font-size:20px">➕</span><div class="img-slot-label">📸4 세부디테일</div></label>
+      <label for="slot-file-4" class="img-slot" id="slot-4"><span style="font-size:20px">➕</span><div class="img-slot-label">📸5 구성품</div></label>
+      <label for="slot-file-5" class="img-slot" id="slot-5"><span style="font-size:20px">➕</span><div class="img-slot-label">📸6 CTA직전</div></label>
     </div>
-    <input type="file" id="img-input-slot" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none"/>
+    <input type="file" id="slot-file-0" accept="image/*" style="display:none" onchange="saveToSlot(0,this)">
+    <input type="file" id="slot-file-1" accept="image/*" style="display:none" onchange="saveToSlot(1,this)">
+    <input type="file" id="slot-file-2" accept="image/*" style="display:none" onchange="saveToSlot(2,this)">
+    <input type="file" id="slot-file-3" accept="image/*" style="display:none" onchange="saveToSlot(3,this)">
+    <input type="file" id="slot-file-4" accept="image/*" style="display:none" onchange="saveToSlot(4,this)">
+    <input type="file" id="slot-file-5" accept="image/*" style="display:none" onchange="saveToSlot(5,this)">
   </div>
 
   <!-- 설정 -->
@@ -356,6 +366,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
 
 <script>
 var S = { product:null, titles:[], selectedTitle:0, body:'', hashtags:[], thumb:{}, seo:{}, generated:false };
+var S_IMAGES = [null,null,null,null,null,null];
+var S_URL_INFO = null; product:null, titles:[], selectedTitle:0, body:'', hashtags:[], thumb:{}, seo:{}, generated:false };
 var S_IMAGES = new Array(6).fill(null);
 var S_URL_INFO = null;
 var S_ACTIVE_SLOT = -1; // 현재 포커스된 슬롯
