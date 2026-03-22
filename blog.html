@@ -647,6 +647,32 @@ async function generateBlog() {
 }
 
 // ── 결과 렌더 ─────────────────────────────────────────────────
+function cleanMarkdown(text) {
+  return text
+    .replace(/#{1,6}\s*/g, '')        // ## ### 제거
+    .replace(/\*\*(.+?)\*\*/g, '$1')  // **볼드** → 텍스트만
+    .replace(/\*(.+?)\*/g, '$1')      // *이탤릭* → 텍스트만
+    .replace(/__(.+?)__/g, '$1')      // __밑줄__ → 텍스트만
+    .replace(/^>\s*/gm, '')           // > 인용 제거
+    .replace(/\n{3,}/g, '\n\n')       // 3줄 이상 공백 → 2줄로
+    .trim();
+}
+
+function insertImagesIntoBody(body) {
+  // 유효한 이미지만 필터링
+  var imgs = S_IMAGES.filter(Boolean);
+  if (!imgs.length) return body;
+
+  // [📸N ...] 패턴 찾아서 이미지 태그로 교체
+  var imgIdx = 0;
+  return body.replace(/\[📸\s*\d*[^\]]*\]/g, function(match) {
+    if (imgIdx >= imgs.length) return match; // 이미지 소진 시 텍스트 유지
+    var img = imgs[imgIdx++];
+    var src = 'data:' + img.mimeType + ';base64,' + img.data;
+    return '\n\n<img src="' + src + '" style="max-width:100%;border-radius:10px;margin:10px 0" alt="제품이미지"/>\n\n';
+  });
+}
+
 function renderResult() {
   var titleList = document.getElementById('title-list');
   titleList.innerHTML = S.titles.map(function(t, i) {
@@ -658,7 +684,9 @@ function renderResult() {
       + '</div>';
   }).join('');
 
-  document.getElementById('body-textarea').value = S.body;
+  // ★ 마크다운 클리닝 → 이미지 삽입
+  var bodyWithImages = insertImagesIntoBody(cleanMarkdown(S.body));
+  document.getElementById('body-textarea').value = bodyWithImages;
   updateCharCount();
 
   document.getElementById('hashtag-wrap').innerHTML = S.hashtags.map(function(h) {
