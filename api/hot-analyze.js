@@ -1,86 +1,69 @@
 // api/hot-analyze.js
-var https = require('https');
+// ★ 수정 3곳:
+// 1. https 모듈 → fetch API (DEP0169 해결)
+// 2. YouTube 403 핸들링 추가
+// 3. module.exports → export default (ESM 통일)
 
 // ── HTTP 헬퍼 ──────────────────────────────────────────────────
 function naverGet(path, params) {
-  return new Promise(function(resolve, reject) {
-    var qs = Object.keys(params).map(function(k) {
-      return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
-    }).join('&');
-    var t = setTimeout(function() { reject(new Error('NAVER_TIMEOUT')); }, 10000);
-    var req = https.request({
-      hostname: 'openapi.naver.com', path: path + '?' + qs, method: 'GET',
-      headers: {
-        'X-Naver-Client-Id': process.env.NAVER_CLIENT_ID,
-        'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET
-      }
-    }, function(res) {
-      var raw = '';
-      res.on('data', function(c) { raw += c; });
-      res.on('end', function() { clearTimeout(t); try { resolve(JSON.parse(raw)); } catch(e) { resolve({}); } });
-    });
-    req.on('error', function(e) { clearTimeout(t); reject(e); });
-    req.end();
-  });
+  var qs = Object.keys(params).map(function(k) {
+    return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+  }).join('&');
+  return fetch('https://openapi.naver.com' + path + '?' + qs, {
+    headers: {
+      'X-Naver-Client-Id'    : process.env.NAVER_CLIENT_ID,
+      'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET
+    },
+    signal: AbortSignal.timeout(10000)
+  })
+  .then(function(r) { return r.json(); })
+  .catch(function() { return {}; });
 }
 
 function naverPost(path, body) {
-  return new Promise(function(resolve, reject) {
-    var buf = Buffer.from(JSON.stringify(body), 'utf8');
-    var t = setTimeout(function() { reject(new Error('DATALAB_TIMEOUT')); }, 10000);
-    var req = https.request({
-      hostname: 'openapi.naver.com', path: path, method: 'POST',
-      headers: {
-        'X-Naver-Client-Id': process.env.NAVER_CLIENT_ID,
-        'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET,
-        'Content-Type': 'application/json',
-        'Content-Length': buf.length
-      }
-    }, function(res) {
-      var raw = '';
-      res.on('data', function(c) { raw += c; });
-      res.on('end', function() { clearTimeout(t); try { resolve(JSON.parse(raw)); } catch(e) { resolve({}); } });
-    });
-    req.on('error', function(e) { clearTimeout(t); reject(e); });
-    req.write(buf); req.end();
-  });
+  return fetch('https://openapi.naver.com' + path, {
+    method : 'POST',
+    headers: {
+      'X-Naver-Client-Id'    : process.env.NAVER_CLIENT_ID,
+      'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET,
+      'Content-Type'         : 'application/json'
+    },
+    body  : JSON.stringify(body),
+    signal: AbortSignal.timeout(10000)
+  })
+  .then(function(r) { return r.json(); })
+  .catch(function() { return {}; });
 }
 
+// ★ 수정 1: https.get → fetch (DEP0169 원인 제거)
 function ytGet(path) {
-  return new Promise(function(resolve, reject) {
-    var t = setTimeout(function() { reject(new Error('YT_TIMEOUT')); }, 10000);
-    https.get('https://www.googleapis.com' + path, function(res) {
-      var raw = '';
-      res.on('data', function(c) { raw += c; });
-      res.on('end', function() { clearTimeout(t); try { resolve(JSON.parse(raw)); } catch(e) { resolve({}); } });
-    }).on('error', function(e) { clearTimeout(t); reject(e); });
-  });
+  return fetch('https://www.googleapis.com' + path, {
+    signal: AbortSignal.timeout(10000)
+  })
+  .then(function(r) {
+    // ★ 수정 2: 403/400 상태를 에러 객체로 반환
+    if (r.status === 403) return { error: { code: 403, message: 'forbidden' } };
+    if (r.status === 400) return { error: { code: 400, message: 'bad_request' } };
+    return r.json();
+  })
+  .catch(function(e) { return { error: { code: 0, message: e.message } }; });
 }
 
 function groqPost(messages) {
-  return new Promise(function(resolve, reject) {
-    var buf = Buffer.from(JSON.stringify({
-      model: 'llama3-8b-8192', messages: messages, max_tokens: 250, temperature: 0.3
-    }), 'utf8');
-    var t = setTimeout(function() { reject(new Error('GROQ_TIMEOUT')); }, 15000);
-    var req = https.request({
-      hostname: 'api.groq.com', path: '/openai/v1/chat/completions', method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + process.env.GROQ_API_KEY,
-        'Content-Type': 'application/json',
-        'Content-Length': buf.length
-      }
-    }, function(res) {
-      var raw = '';
-      res.on('data', function(c) { raw += c; });
-      res.on('end', function() { clearTimeout(t); try { resolve(JSON.parse(raw)); } catch(e) { resolve({}); } });
-    });
-    req.on('error', function(e) { clearTimeout(t); reject(e); });
-    req.write(buf); req.end();
-  });
+  return fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method : 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + process.env.GROQ_API_KEY,
+      'Content-Type' : 'application/json'
+    },
+    body  : JSON.stringify({ model:'llama3-8b-8192', messages:messages, max_tokens:250, temperature:0.3 }),
+    signal: AbortSignal.timeout(15000)
+  })
+  .then(function(r) { return r.json(); })
+  .catch(function() { return {}; });
 }
 
-// ── 유틸 ──────────────────────────────────────────────────────
+// ── 유틸 (기존 유지) ──────────────────────────────────────────
 function parseDuration(d) {
   if (!d) return 0;
   var m = d.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
@@ -95,7 +78,7 @@ function fmtDate(d) {
   return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 }
 
-// ── 키워드→카테고리ID 동적 매핑 ──────────────────────────────
+// ── 키워드→카테고리ID 동적 매핑 (기존 유지) ──────────────────
 var _kwCatMap = null;
 function getKwCatMap() {
   if (_kwCatMap) return _kwCatMap;
@@ -122,18 +105,29 @@ async function analyzeYouTube(keyword) {
       '/youtube/v3/search?part=snippet&q='+encodeURIComponent(keyword)+
       '&type=video&publishedAfter='+encodeURIComponent(ago7.toISOString())+
       '&maxResults=50&order=viewCount&relevanceLanguage=ko&key='+key
-    ).catch(function(){return {};});
-    if (sd.error) return Object.assign({}, empty, {apiStatus:'API_ERROR'});
+    );
+
+    // ★ 403/400 처리
+    if (sd.error) {
+      console.error('[YouTube] error:', sd.error.code, sd.error.message);
+      var status = sd.error.code === 403 ? 'QUOTA_OR_KEY_ERROR' : 'API_ERROR_' + sd.error.code;
+      return Object.assign({}, empty, { apiStatus: status });
+    }
+
     var items = sd.items||[];
     if (!items.length) {
       var sd2 = await ytGet(
         '/youtube/v3/search?part=snippet&q='+encodeURIComponent(keyword)+'&type=video&maxResults=20&order=viewCount&relevanceLanguage=ko&key='+key
-      ).catch(function(){return {};});
+      );
+      if (sd2.error) return Object.assign({}, empty, { apiStatus: 'QUOTA_OR_KEY_ERROR' });
       items = sd2.items||[];
       if (!items.length) return Object.assign({}, empty, {apiStatus:'NO_RESULTS'});
     }
+
     var ids = items.map(function(i){return i.id&&i.id.videoId;}).filter(Boolean).slice(0,50).join(',');
-    var vd = await ytGet('/youtube/v3/videos?part=statistics,contentDetails,snippet&id='+ids+'&key='+key).catch(function(){return {};});
+    var vd = await ytGet('/youtube/v3/videos?part=statistics,contentDetails,snippet&id='+ids+'&key='+key);
+    if (vd.error) return Object.assign({}, empty, { apiStatus: 'QUOTA_OR_KEY_ERROR' });
+
     var vids = vd.items||[];
     var totalViews=0, shorts=0, channels={};
     vids.forEach(function(v) {
@@ -164,7 +158,8 @@ async function analyzeYouTube(keyword) {
   } catch(e) { return Object.assign({}, empty, {apiStatus:'ERROR:'+e.message}); }
 }
 
-// ── 네이버 블로그 분석 ─────────────────────────────────────────
+// ── 이하 기존 코드 완전 유지 ──────────────────────────────────
+
 async function analyzeBlog(keyword) {
   try {
     var d = await naverGet('/v1/search/blog.json', {query:keyword+' 리뷰 후기', display:30, sort:'date'});
@@ -178,7 +173,6 @@ async function analyzeBlog(keyword) {
   } catch(e) { return {total:0, reviewRatio:0, recentCount:0, apiStatus:'ERROR'}; }
 }
 
-// ── 네이버 쇼핑 분석 ──────────────────────────────────────────
 async function analyzeShopping(keyword) {
   try {
     var d = await naverGet('/v1/search/shop.json', {query:keyword, display:40, sort:'sim'});
@@ -194,7 +188,6 @@ async function analyzeShopping(keyword) {
   } catch(e) { return {total:0, itemCount:0, avgPrice:0, minPrice:0, maxPrice:0, apiStatus:'ERROR'}; }
 }
 
-// ── 네이버 데이터랩 ───────────────────────────────────────────
 async function analyzeDatalab(keyword) {
   try {
     var now  = new Date();
@@ -218,7 +211,6 @@ async function analyzeDatalab(keyword) {
   } catch(e) { return {surgeRate:0, surge3d:0, surge7d:0, trend:'unknown', avgRatio:0, apiStatus:'ERROR:'+e.message}; }
 }
 
-// ── 쇼핑인사이트 ─────────────────────────────────────────────
 async function analyzeShoppingInsight(keyword) {
   var catId = getKwCatMap()[keyword] || '50000003';
   try {
@@ -248,7 +240,6 @@ async function analyzeShoppingInsight(keyword) {
   } catch(e) { return null; }
 }
 
-// ── 점수 계산 ──────────────────────────────────────────────────
 function calcScore(yt, blog, shop, dl) {
   var s = {};
   var surge = dl.surgeRate||0;
@@ -266,7 +257,6 @@ function calcScore(yt, blog, shop, dl) {
   return {total:Math.min(100,total), breakdown:s, grade:total>=75?'A':total>=55?'B':'C'};
 }
 
-// ── 판단 ──────────────────────────────────────────────────────
 function judge(yt, blog, shop, dl, si) {
   var surge=dl.surgeRate||0, vc=yt.videoCount||0, av=yt.avgViews||0;
   var siSurge = si?(si.clickSurge||0):0;
@@ -307,7 +297,6 @@ function judge(yt, blog, shop, dl, si) {
   };
 }
 
-// ── Groq 추천 이유 ─────────────────────────────────────────────
 async function getGroqReason(kw, yt, blog, shop, dl, score, jdg) {
   if (!process.env.GROQ_API_KEY) return null;
   try {
@@ -326,7 +315,6 @@ async function getGroqReason(kw, yt, blog, shop, dl, score, jdg) {
   } catch(e) { return null; }
 }
 
-// ── 후보 키워드 추출 ──────────────────────────────────────────
 async function extractCandidates(seedKw) {
   try {
     var d = await naverGet('/v1/search/shop.json', {query:seedKw, display:40, sort:'sim'});
@@ -352,7 +340,8 @@ async function extractCandidates(seedKw) {
 }
 
 // ── Main ───────────────────────────────────────────────────────
-module.exports = async function(req, res) {
+// ★ 수정 3: module.exports → export default
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin','*');
   res.setHeader('Access-Control-Allow-Methods','GET,OPTIONS');
   if (req.method==='OPTIONS') return res.status(200).end();
@@ -368,8 +357,6 @@ module.exports = async function(req, res) {
 
   try {
     var candidates = await extractCandidates(keyword);
-
-    // Phase 1: 네이버 블로그+쇼핑으로 전체 점수
     var BATCH=3, phase1=[];
     for (var i=0; i<candidates.length; i+=BATCH) {
       var chunk = candidates.slice(i,i+BATCH);
@@ -382,7 +369,6 @@ module.exports = async function(req, res) {
       if (i+BATCH<candidates.length) await sleep(150);
     }
 
-    // 네이버 점수로 정렬 → 상위 3개 YouTube + Datalab + ShoppingInsight
     var TOP_N=3;
     phase1.sort(function(a,b){
       var sa=(a.shop.itemCount||0)*2+Math.round((a.blog.reviewRatio||0)*10);
@@ -392,9 +378,8 @@ module.exports = async function(req, res) {
 
     var topKws  = phase1.slice(0,TOP_N).map(function(r){return r.kw;});
     var restKws = phase1.slice(TOP_N).map(function(r){return r.kw;});
-
-    // Phase 2: 상위 3개 YouTube + Datalab + ShoppingInsight
     var ytMap={}, dlMap={}, siMap={};
+
     for (var j=0; j<topKws.length; j++) {
       var kw2 = topKws[j];
       var p2 = await Promise.all([
@@ -412,7 +397,6 @@ module.exports = async function(req, res) {
     var emptyDl = {surgeRate:0, surge3d:0, surge7d:0, trend:'unknown', avgRatio:0, apiStatus:'SKIPPED'};
     restKws.forEach(function(kw3){ ytMap[kw3]=emptyYt; dlMap[kw3]=emptyDl; siMap[kw3]=null; });
 
-    // 결과 조합
     var results = phase1.map(function(r) {
       var yt2 = ytMap[r.kw]||emptyYt;
       var dl2 = dlMap[r.kw]||emptyDl;
@@ -424,7 +408,6 @@ module.exports = async function(req, res) {
 
     results.sort(function(a,b){return b.score.total-a.score.total;});
 
-    // Groq 상위 3개만
     for (var k=0; k<Math.min(3,results.length); k++) {
       var rr = results[k];
       rr.aiReason = await getGroqReason(rr.kw, rr.yt, rr.blog, rr.shop, rr.dl, rr.score, rr.jdg);
@@ -459,4 +442,4 @@ module.exports = async function(req, res) {
     console.error('[hot-analyze]', e.message);
     return res.status(500).json({error:'분석 중 오류 발생', detail:e.message, envCheck:envCheck});
   }
-};
+}
