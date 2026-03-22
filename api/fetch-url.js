@@ -12,11 +12,9 @@ export default async function handler(req, res) {
   if (!url) return res.status(400).json({ error: 'url required' });
 
   try {
-    // ── 1. 단축 URL 리다이렉트 해결 ──────────────────────────
     const finalUrl = await resolveRedirect(url);
     console.log('[fetch-url] original:', url, '→ final:', finalUrl);
 
-    // ── 2. 플랫폼 감지 후 분기 ───────────────────────────────
     let productInfo = null;
 
     if (finalUrl.includes('search.shopping.naver.com') || finalUrl.includes('smartstore.naver.com') || finalUrl.includes('naver.me')) {
@@ -33,6 +31,15 @@ export default async function handler(req, res) {
 
     if (!productInfo) throw new Error('제품 정보를 가져올 수 없습니다');
 
+    // ★ 이미지 URL → 서버에서 base64 변환
+    if (productInfo.imageUrl) {
+      const imgData = await fetchImageAsBase64(productInfo.imageUrl);
+      if (imgData) {
+        productInfo.imageBase64  = imgData.base64;
+        productInfo.imageMimeType = imgData.mimeType;
+      }
+    }
+
     return res.status(200).json({ success: true, product: productInfo });
 
   } catch (err) {
@@ -41,22 +48,39 @@ export default async function handler(req, res) {
   }
 }
 
+// ── 이미지 URL → base64 ──────────────────────────────────────
+async function fetchImageAsBase64(imageUrl) {
+  try {
+    const r = await fetch(imageUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      signal: AbortSignal.timeout(6000)
+    });
+    if (!r.ok) return null;
+    const contentType = r.headers.get('content-type') || 'image/jpeg';
+    const mimeType = contentType.split(';')[0].trim();
+    if (!mimeType.startsWith('image/')) return null;
+    const buf = await r.arrayBuffer();
+    const base64 = Buffer.from(buf).toString('base64');
+    return { base64, mimeType };
+  } catch(e) {
+    console.warn('[fetchImageAsBase64] failed:', e.message);
+    return null;
+  }
+}
+
 // ── 단축 URL → 최종 URL 추적 ────────────────────────────────
 async function resolveRedirect(url) {
   try {
     const res = await fetch(url, {
       method: 'GET',
-      redirect: 'follow', // 리다이렉트 자동 추적
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      },
+      redirect: 'follow',
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
       signal: AbortSignal.timeout(8000)
     });
-    // 최종 도달한 URL 반환
     return res.url || url;
   } catch(e) {
     console.warn('[fetch-url] redirect resolve failed:', e.message);
-    return url; // 실패 시 원본 URL 사용
+    return url;
   }
 }
 
@@ -68,17 +92,14 @@ async function fetchNaver(url) {
     const urlObj = new URL(url);
     keyword = urlObj.searchParams.get('query') || urlObj.searchParams.get('q') || '';
 
-    // 스마트스토어 경로에서 추출
     if (!keyword && url.includes('smartstore')) {
       const parts = urlObj.pathname.split('/').filter(Boolean);
       keyword = decodeURIComponent(parts[parts.length - 1] || '');
     }
 
-    // 카탈로그 ID
     const catMatch = url.match(/catalog\/(\d+)/);
     if (!keyword && catMatch) keyword = catMatch[1];
 
-    // og:title 에서 추출 시도
     if (!keyword) {
       try {
         const r = await fetch(url, {
@@ -99,7 +120,7 @@ async function fetchNaver(url) {
 
   if (!keyword) throw new Error('URL에서 키워드를 추출할 수 없습니다. 제품명을 직접 입력해주세요.');
 
-  keyword = keyword.slice(0, 50); // 최대 50자
+  keyword = keyword.slice(0, 50);
 
   const apiUrl = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(keyword)}&display=5&sort=sim`;
   const response = await fetch(apiUrl, {
@@ -128,13 +149,16 @@ async function fetchNaver(url) {
     brand       : item.brand || '',
     platform    : '네이버쇼핑',
     originalUrl : url,
-    keyword
+    keyword,
+    imageUrl    : item.image || ''  // ★ 네이버 쇼핑 이미지
   });
 }
 
 // ── 쿠팡 ─────────────────────────────────────────────────────
 async function fetchCoupang(url) {
   let keyword = '';
+  let imageUrl = '';
+
   try {
     const r = await fetch(url, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1)' },
@@ -144,7 +168,9 @@ async function fetchCoupang(url) {
       const html = await r.text();
       const og   = (html.match(/<meta[^>]+property="og:title"[^>]+content="([^"]+)"/i)||[])[1];
       const t    = (html.match(/<title>([^<]+)<\/title>/i)||[])[1];
-      keyword = (og || t || '').replace(/\s*[|-].*쿠팡.*/i,'').trim();
+      keyword  = (og || t || '').replace(/\s*[|-].*쿠팡.*/i,'').trim();
+      // ★ og:image 추출
+      imageUrl = (html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i)||[])[1] || '';
     }
   } catch(e) {}
 
@@ -157,7 +183,6 @@ async function fetchCoupang(url) {
 
   if (!keyword) throw new Error('쿠팡 제품명을 추출할 수 없습니다. 직접 입력해주세요.');
 
-  // 네이버 API 교차 검색
   const apiUrl = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(keyword.slice(0,50))}&display=3&sort=sim`;
   const rr = await fetch(apiUrl, {
     headers: {
@@ -169,6 +194,8 @@ async function fetchCoupang(url) {
   const dd = rr.ok ? await rr.json() : {};
   const items = dd.items || [];
   const price = items.length ? parseInt(items[0].lprice) : 0;
+  // 쿠팡 og:image 없으면 네이버 이미지 fallback
+  if (!imageUrl && items.length) imageUrl = items[0].image || '';
 
   return enrichWithGemini({
     productName : keyword,
@@ -176,7 +203,8 @@ async function fetchCoupang(url) {
     category    : items.length ? (items[0].category1 || '') : '쇼핑',
     platform    : '쿠팡',
     originalUrl : url,
-    keyword
+    keyword,
+    imageUrl     // ★
   });
 }
 
@@ -205,13 +233,15 @@ async function fetchGeneral(url, platformName) {
   const ogDesc   = (html.match(/<meta[^>]+property="og:description"[^>]+content="([^"]+)"/i)||[])[1] || '';
   const titleTag = (html.match(/<title>([^<]+)<\/title>/i)||[])[1] || '';
   const priceStr = (html.match(/["']price["']\s*:\s*["']?([\d,]+)/i)||[])[1] || '0';
+  const imageUrl = (html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i)||[])[1] || ''; // ★
 
   return enrichWithGemini({
     productName : (ogTitle || titleTag.split('|')[0]).trim(),
     price       : parseInt(priceStr.replace(/,/g,'')) || 0,
     description : ogDesc,
     platform    : platformName,
-    originalUrl : url
+    originalUrl : url,
+    imageUrl     // ★
   });
 }
 
@@ -239,7 +269,8 @@ ${JSON.stringify(raw, null, 2)}
   "hookScene": "구매 검색하게 된 불편 장면 1~2문장",
   "reviewSummary": "후기 요약",
   "platform": "${raw.platform || '기타'}",
-  "originalUrl": "${raw.originalUrl || ''}"
+  "originalUrl": "${raw.originalUrl || ''}",
+  "imageUrl": "${raw.imageUrl || ''}"
 }`;
 
   try {
