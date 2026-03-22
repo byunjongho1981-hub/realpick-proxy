@@ -12,7 +12,6 @@
   --green:#10b981;--green-lt:#ecfdf5;
   --orange:#f97316;--orange-lt:#fff7ed;
   --red:#ef4444;--red-lt:#fef2f2;
-  --yellow:#d97706;--yellow-lt:#fffbeb;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--txt);font-family:'Noto Sans KR',sans-serif;font-size:13px}
@@ -28,7 +27,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
 .badge{background:var(--pri);color:#fff;font-size:10px;padding:2px 9px;border-radius:20px;font-weight:700}
 .wrap{margin-top:52px;padding:24px;max-width:1200px;margin-left:auto;margin-right:auto}
 
-/* 스텝 헤더 */
+/* 스텝 바 */
 .step-bar{display:flex;align-items:center;gap:0;margin-bottom:24px;background:#fff;border:1px solid var(--bdr);border-radius:14px;padding:16px 24px;overflow-x:auto}
 .step{display:flex;align-items:center;gap:10px;flex-shrink:0}
 .step-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;flex-shrink:0;transition:all .3s}
@@ -41,10 +40,12 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
 .step-label.idle{color:var(--faint)}
 .step-arrow{margin:0 12px;color:var(--bdr);font-size:16px;flex-shrink:0}
 
-/* 제품 연결 패널 */
-.product-panel{background:#fff;border:1px solid var(--bdr);border-radius:14px;padding:20px 24px;margin-bottom:16px}
+/* 패널 */
+.panel{background:#fff;border:1px solid var(--bdr);border-radius:14px;padding:20px 24px;margin-bottom:14px}
 .panel-title{font-size:14px;font-weight:800;margin-bottom:4px;display:flex;align-items:center;gap:8px}
-.panel-sub{font-size:11px;color:var(--muted);margin-bottom:16px}
+.panel-sub{font-size:11px;color:var(--muted);margin-bottom:14px}
+
+/* 제품 카드 */
 .product-card{background:linear-gradient(135deg,var(--pri-lt),#f5f3ff);border:1.5px solid var(--pri-bdr);border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 .product-card.empty{background:#f8fafc;border:1.5px dashed var(--bdr);justify-content:center;padding:28px}
 .pc-name{font-size:18px;font-weight:900;color:var(--pri)}
@@ -55,8 +56,27 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
 .pc-meta-val{font-size:16px;font-weight:900;color:var(--pri)}
 .pc-meta-lbl{font-size:10px;color:var(--faint)}
 
-/* 설정 패널 */
-.settings-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px}
+/* URL 입력 */
+.url-input-row{display:flex;gap:8px;margin-bottom:10px}
+.url-input{flex:1;padding:10px 14px;border:1.5px solid var(--bdr);border-radius:10px;font-size:13px;outline:none;background:#f8fafc;transition:border-color .15s}
+.url-input:focus{border-color:var(--pri);background:#fff}
+.url-btn{padding:10px 18px;background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;border:none;border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.url-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* URL 결과 */
+.url-result{background:linear-gradient(135deg,#ecfeff,#f0f9ff);border:1.5px solid #a5f3fc;border-radius:10px;padding:12px 16px;display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start}
+.url-tag{display:inline-flex;align-items:center;gap:3px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:#fff;border:1px solid #a5f3fc;color:#0891b2}
+
+/* 이미지 첨부 */
+.img-upload-area{border:2px dashed var(--pri-bdr);border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:all .15s;background:#f8faff}
+.img-upload-area:hover{border-color:var(--pri);background:var(--pri-lt)}
+.img-preview-wrap{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.img-thumb{position:relative;width:72px;height:72px;border-radius:8px;overflow:hidden;border:2px solid var(--pri-bdr);flex-shrink:0}
+.img-thumb img{width:100%;height:100%;object-fit:cover}
+.img-thumb-del{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.65);color:#fff;border:none;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer;line-height:1}
+
+/* 설정 */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px}
 .setting-box{background:#fff;border:1px solid var(--bdr);border-radius:12px;padding:14px 16px}
 .setting-label{font-size:10px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
 .setting-select{width:100%;padding:8px 10px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;color:var(--txt);background:#f8fafc;outline:none;cursor:pointer}
@@ -70,7 +90,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
 .gen-btn:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(99,102,241,.4)}
 .gen-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
 
-/* 결과 영역 */
+/* 결과 */
 .result-layout{display:grid;grid-template-columns:1fr 380px;gap:16px}
 .result-main{display:flex;flex-direction:column;gap:12px}
 .result-side{display:flex;flex-direction:column;gap:12px}
@@ -78,8 +98,6 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
 .result-box-title{font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
 .copy-btn{padding:3px 10px;background:var(--pri-lt);border:1px solid var(--pri-bdr);border-radius:6px;font-size:10px;font-weight:700;color:var(--pri);cursor:pointer}
 .copy-btn:hover{background:var(--pri);color:#fff}
-
-/* 제목 리스트 */
 .title-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f8fafc;border-radius:8px;margin-bottom:6px;cursor:pointer;border:1.5px solid transparent;transition:all .15s}
 .title-item:hover{border-color:var(--pri-bdr);background:var(--pri-lt)}
 .title-item.selected{border-color:var(--pri);background:var(--pri-lt)}
@@ -87,28 +105,17 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
 .title-item.selected .title-num{background:var(--pri);color:#fff;border-color:var(--pri)}
 .title-text{font-size:13px;font-weight:600;color:var(--txt);flex:1}
 .seo-score{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px}
-
-/* 본문 */
 .body-textarea{width:100%;min-height:320px;padding:14px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;line-height:1.9;color:var(--txt);resize:vertical;outline:none;font-family:inherit}
 .body-textarea:focus{border-color:var(--pri)}
-
-/* 해시태그 */
 .hashtag-wrap{display:flex;flex-wrap:wrap;gap:6px}
 .hashtag{display:inline-flex;align-items:center;padding:4px 10px;background:var(--pri-lt);border:1px solid var(--pri-bdr);border-radius:20px;font-size:12px;font-weight:600;color:var(--pri)}
-
-/* 썸네일 */
 .thumb-preview{background:linear-gradient(135deg,#1e293b,#334155);border-radius:10px;padding:24px;text-align:center;min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;margin-bottom:10px}
 .thumb-main{font-size:18px;font-weight:900;color:#fff;line-height:1.4}
 .thumb-sub{font-size:12px;color:#94a3b8}
 .thumb-badge{display:inline-flex;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;background:var(--red);color:#fff}
-
-/* SEO 체크리스트 */
 .seo-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f8fafc;font-size:12px}
 .seo-item:last-child{border-bottom:none}
 .seo-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-
-/* 업로드 패널 */
-.upload-panel{background:#fff;border:1px solid var(--bdr);border-radius:12px;padding:16px 18px}
 .upload-btn{width:100%;padding:11px;border-radius:10px;border:none;font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;transition:all .15s}
 .upload-btn:hover{opacity:.9;transform:translateY(-1px)}
 .upload-naver{background:#03c75a;color:#fff}
@@ -118,18 +125,13 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
 .schedule-row{display:flex;gap:8px;margin-bottom:8px}
 .schedule-input{flex:1;padding:8px 10px;border:1.5px solid var(--bdr);border-radius:8px;font-size:12px;outline:none}
 .schedule-input:focus{border-color:var(--pri)}
-
-/* 로딩 */
 .loading-overlay{position:fixed;inset:0;background:rgba(240,244,255,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;gap:16px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .spinner{width:40px;height:40px;border:4px solid var(--bdr);border-top:4px solid var(--pri);border-radius:50%;animation:spin .8s linear infinite}
 .loading-step{font-size:13px;color:var(--pri);font-weight:700}
 .loading-progress{width:260px;height:4px;background:#e2e8f0;border-radius:2px;overflow:hidden}
 .loading-bar{height:100%;background:linear-gradient(90deg,#6366f1,#8b5cf6);border-radius:2px;transition:width .4s}
-
-/* toast */
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 20px;border-radius:10px;font-size:12px;font-weight:600;z-index:999;transition:opacity .3s;pointer-events:none;white-space:nowrap}
-
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 20px;border-radius:10px;font-size:12px;font-weight:600;z-index:9999;transition:opacity .3s;pointer-events:none;white-space:nowrap}
 @media(max-width:900px){.result-layout{grid-template-columns:1fr}.settings-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:600px){.settings-grid{grid-template-columns:1fr}}
 </style>
@@ -151,56 +153,48 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
   <div class="spinner"></div>
   <div class="loading-step" id="loading-step">블로그 콘텐츠 생성 중...</div>
   <div class="loading-progress"><div class="loading-bar" id="loading-bar" style="width:0%"></div></div>
-  <div style="font-size:11px;color:var(--faint)" id="loading-sub">RSS + 네이버 + 유튜브 데이터 분석 중</div>
+  <div style="font-size:11px;color:var(--faint)" id="loading-sub">스킬 v10.1 적용 중</div>
 </div>
 
 <div class="wrap">
-
   <!-- 스텝 바 -->
   <div class="step-bar">
-    <div class="step">
-      <div class="step-num done" id="step1-num">✓</div>
-      <div class="step-label done" id="step1-label">제품 연결</div>
-    </div>
+    <div class="step"><div class="step-num done" id="step1-num">✓</div><div class="step-label done" id="step1-label">제품 연결</div></div>
     <div class="step-arrow">→</div>
-    <div class="step">
-      <div class="step-num active" id="step2-num">2</div>
-      <div class="step-label active" id="step2-label">설정</div>
-    </div>
+    <div class="step"><div class="step-num active" id="step2-num">2</div><div class="step-label active" id="step2-label">설정</div></div>
     <div class="step-arrow">→</div>
-    <div class="step">
-      <div class="step-num idle" id="step3-num">3</div>
-      <div class="step-label idle" id="step3-label">생성</div>
-    </div>
+    <div class="step"><div class="step-num idle" id="step3-num">3</div><div class="step-label idle" id="step3-label">생성</div></div>
     <div class="step-arrow">→</div>
-    <div class="step">
-      <div class="step-num idle" id="step4-num">4</div>
-      <div class="step-label idle" id="step4-label">업로드</div>
-    </div>
+    <div class="step"><div class="step-num idle" id="step4-num">4</div><div class="step-label idle" id="step4-label">업로드</div></div>
     <div style="margin-left:auto;font-size:11px;color:var(--faint)" id="step-hint">제품 데이터가 자동으로 연결됩니다</div>
   </div>
 
-  <!-- STEP 1: 제품 연결 -->
-  <div class="product-panel">
-    <div class="panel-title">
-      📦 연결된 제품
-      <span style="font-size:11px;font-weight:500;color:var(--muted)">지금 뜨는 제품에서 자동 연결 · 직접 입력도 가능</span>
-    </div>
-    <div class="panel-sub">제품을 선택하면 키워드, RSS 신호, 점수가 자동으로 반영됩니다</div>
-
-    <!-- 연결된 제품 카드 -->
+  <!-- 제품 연결 -->
+  <div class="panel">
+    <div class="panel-title">📦 연결된 제품</div>
+    <div class="panel-sub">지금 뜨는 제품 자동 연결 · URL 입력 · 직접 입력 중 선택</div>
     <div id="product-card" class="product-card empty">
       <div style="text-align:center">
         <div style="font-size:28px;margin-bottom:8px">📡</div>
         <div style="font-size:13px;font-weight:700;color:var(--faint);margin-bottom:6px">연결된 제품 없음</div>
-        <div style="font-size:11px;color:#c4cad4;margin-bottom:12px">지금 뜨는 제품에서 선택하거나 직접 입력하세요</div>
+        <div style="font-size:11px;color:#c4cad4;margin-bottom:12px">아래에서 제품을 연결하세요</div>
         <button onclick="openProductSearch()" style="padding:8px 18px;background:var(--pri);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🔥 지금 뜨는 제품에서 선택</button>
       </div>
     </div>
 
+    <!-- ★ URL 입력 -->
+    <div style="margin-top:14px;padding:14px;background:#f0f9ff;border:1.5px solid #a5f3fc;border-radius:10px">
+      <div style="font-size:11px;font-weight:800;color:#0891b2;margin-bottom:8px">🔗 제품 URL로 자동 분석 (쿠팡·네이버·11번가 등)</div>
+      <div class="url-input-row">
+        <input id="url-input" class="url-input" type="url" placeholder="https://www.coupang.com/vp/products/..." onkeydown="if(event.key==='Enter')analyzeUrl()"/>
+        <button id="url-btn" class="url-btn" onclick="analyzeUrl()">🔍 분석</button>
+      </div>
+      <div id="url-result" style="display:none"></div>
+    </div>
+
     <!-- 직접 입력 -->
     <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
-      <input id="manual-product" type="text" placeholder="직접 제품명 입력 (예: 무선 청소기)..."
+      <input id="manual-product" type="text" placeholder="직접 제품명 입력..."
         style="flex:1;min-width:200px;padding:8px 12px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;outline:none"
         onkeydown="if(event.key==='Enter')setManualProduct()"/>
       <button onclick="setManualProduct()" style="padding:8px 16px;background:#f1f5f9;border:1px solid var(--bdr);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;color:#475569">직접 입력</button>
@@ -208,7 +202,21 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
     </div>
   </div>
 
-  <!-- STEP 2: 설정 -->
+  <!-- ★ 이미지 첨부 -->
+  <div class="panel">
+    <div class="panel-title">🖼 제품 이미지 첨부 <span style="font-size:11px;font-weight:500;color:var(--muted)">(최대 5장 · Gemini가 직접 분석하여 블로그에 반영)</span></div>
+    <label for="img-input">
+      <div class="img-upload-area">
+        <div style="font-size:24px;margin-bottom:6px">📎</div>
+        <div style="font-size:13px;font-weight:700;color:var(--pri)">클릭하여 이미지 선택</div>
+        <div style="font-size:11px;color:var(--faint);margin-top:4px">JPG, PNG, WEBP 지원 · 최대 5장</div>
+      </div>
+    </label>
+    <input type="file" id="img-input" accept="image/jpeg,image/png,image/webp,image/gif" multiple style="display:none" onchange="handleImages(event)"/>
+    <div id="img-preview-wrap" class="img-preview-wrap"></div>
+  </div>
+
+  <!-- 설정 -->
   <div class="settings-grid">
     <div class="setting-box">
       <div class="setting-label">블로그 플랫폼</div>
@@ -250,43 +258,20 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
     </div>
   </div>
 
-  <!-- 이미지 첨부 -->
-  <div style="background:#fff;border:1px solid var(--bdr);border-radius:12px;padding:14px 18px;margin-bottom:16px">
-    <div style="font-size:10px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">🖼 제품 이미지 첨부 (최대 5장 · Gemini가 직접 분석)</div>
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <label style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--pri-lt);border:1.5px dashed var(--pri-bdr);border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;color:var(--pri)">
-        📎 이미지 선택
-        <input type="file" id="img-input" accept="image/*" multiple style="display:none" onchange="handleImages(this)"/>
-      </label>
-      <div id="img-preview" style="display:flex;gap:8px;flex-wrap:wrap"></div>
-    </div>
-  </div>
-
-  <!-- 생성 버튼 -->
   <button class="gen-btn" id="gen-btn" onclick="generateBlog()">
-    ⚡ 블로그 생성하기 — 제목 5개 + 본문 + 해시태그 + SEO
+    ⚡ 블로그 생성하기 — 스킬 v10.1 적용 · 제목 5개 + 본문 + 해시태그 + SEO
   </button>
 
-  <!-- STEP 3: 결과 -->
+  <!-- 결과 -->
   <div id="result-area" style="display:none">
     <div class="result-layout">
-
-      <!-- 메인: 제목 + 본문 + 해시태그 -->
       <div class="result-main">
-
-        <!-- 제목 5개 -->
         <div class="result-box">
-          <div class="result-box-title">
-            📝 제목 선택 (5개 중 1개)
-            <button class="copy-btn" onclick="copySelected('title')">선택 복사</button>
-          </div>
+          <div class="result-box-title">📝 제목 선택 (5개 중 1개)<button class="copy-btn" onclick="copySelected('title')">선택 복사</button></div>
           <div id="title-list"></div>
         </div>
-
-        <!-- 본문 -->
         <div class="result-box">
-          <div class="result-box-title">
-            📄 본문
+          <div class="result-box-title">📄 본문
             <div style="display:flex;gap:6px">
               <span id="char-count" style="font-size:10px;color:var(--faint);align-self:center"></span>
               <button class="copy-btn" onclick="copySelected('body')">복사</button>
@@ -295,44 +280,29 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
           </div>
           <textarea id="body-textarea" class="body-textarea" oninput="updateCharCount()"></textarea>
         </div>
-
-        <!-- 해시태그 -->
         <div class="result-box">
-          <div class="result-box-title">
-            # 해시태그
-            <button class="copy-btn" onclick="copySelected('hashtag')">복사</button>
-          </div>
+          <div class="result-box-title"># 해시태그<button class="copy-btn" onclick="copySelected('hashtag')">복사</button></div>
           <div id="hashtag-wrap" class="hashtag-wrap"></div>
         </div>
-
       </div>
-
-      <!-- 사이드: 썸네일 + SEO + 업로드 -->
       <div class="result-side">
-
-        <!-- 썸네일 -->
         <div class="result-box">
-          <div class="result-box-title">
-            🖼 썸네일 문구
-            <button class="copy-btn" onclick="regenSection('thumb')">재생성</button>
-          </div>
+          <div class="result-box-title">🖼 썸네일 문구<button class="copy-btn" onclick="regenSection('thumb')">재생성</button></div>
           <div class="thumb-preview" id="thumb-preview">
-            <div class="thumb-badge" id="thumb-badge">🔥 지금 뜨는 제품</div>
-            <div class="thumb-main" id="thumb-main">썸네일 문구가 여기에 표시됩니다</div>
-            <div class="thumb-sub" id="thumb-sub">부제목 문구</div>
+            <div class="thumb-badge" id="thumb-badge">🔥 HOT</div>
+            <div class="thumb-main" id="thumb-main">썸네일 문구</div>
+            <div class="thumb-sub" id="thumb-sub">부제목</div>
           </div>
           <div style="display:flex;gap:6px">
             <select id="thumb-style" class="setting-select" style="flex:1" onchange="updateThumbPreview()">
-              <option value="dark">다크 (기본)</option>
-              <option value="red">레드 임팩트</option>
-              <option value="green">그린 신뢰</option>
-              <option value="purple">퍼플 프리미엄</option>
+              <option value="dark">다크</option>
+              <option value="red">레드</option>
+              <option value="green">그린</option>
+              <option value="purple">퍼플</option>
             </select>
             <button class="copy-btn" onclick="copySelected('thumb')" style="padding:6px 12px">텍스트 복사</button>
           </div>
         </div>
-
-        <!-- SEO 체크리스트 -->
         <div class="result-box">
           <div class="result-box-title">✅ SEO 분석</div>
           <div id="seo-checklist"></div>
@@ -346,12 +316,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
             </div>
           </div>
         </div>
-
-        <!-- 업로드 -->
-        <div class="upload-panel">
+        <div class="panel" style="margin-bottom:0">
           <div style="font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">📤 업로드</div>
-
-          <!-- 예약 발행 설정 -->
           <div style="margin-bottom:12px;padding:10px;background:#f8fafc;border-radius:8px;border:1px solid var(--bdr)">
             <div style="font-size:10px;font-weight:700;color:var(--faint);margin-bottom:6px">⏰ 예약 발행</div>
             <div class="schedule-row">
@@ -362,31 +328,21 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
               <input type="checkbox" id="use-schedule"/> 예약 발행 사용
             </label>
           </div>
-
-          <button class="upload-btn upload-naver" onclick="uploadTo('naver')">
-            <span style="font-size:16px">N</span> 네이버 블로그에 업로드
-          </button>
-          <button class="upload-btn upload-tistory" onclick="uploadTo('tistory')">
-            <span style="font-size:16px">T</span> 티스토리에 업로드
-          </button>
-          <button class="upload-btn upload-schedule" onclick="uploadTo('both')">
-            📋 전체 복사 (수동 업로드)
-          </button>
-
+          <button class="upload-btn upload-naver" onclick="uploadTo('naver')"><span style="font-size:16px">N</span> 네이버 블로그에 업로드</button>
+          <button class="upload-btn upload-tistory" onclick="uploadTo('tistory')"><span style="font-size:16px">T</span> 티스토리에 업로드</button>
+          <button class="upload-btn upload-schedule" onclick="uploadTo('both')">📋 전체 복사 (수동 업로드)</button>
           <div style="margin-top:10px;padding:10px;background:#f8fafc;border-radius:8px;font-size:11px;color:var(--muted);line-height:1.7">
             💡 자동 업로드는 각 플랫폼 API 연동 필요<br>
             <a href="#" onclick="showApiSetup()" style="color:var(--pri);font-weight:700;text-decoration:none">API 연동 설정하기 →</a>
           </div>
         </div>
-
       </div>
     </div>
   </div>
-
 </div>
 
 <!-- 제품 선택 모달 -->
-<div id="product-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:flex;align-items:center;justify-content:center" onclick="if(event.target===this)closeModal()">
+<div id="product-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;align-items:center;justify-content:center" onclick="if(event.target===this)closeModal()">
   <div style="background:#fff;border-radius:16px;padding:24px;width:500px;max-width:90vw;max-height:80vh;overflow-y:auto">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
       <div style="font-size:15px;font-weight:900">🔥 지금 뜨는 제품에서 선택</div>
@@ -403,61 +359,128 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
 </div>
 
 <script>
-// ── 상태 ─────────────────────────────────────────────────────
-var S = {
-  product: null,   // 연결된 제품 데이터
-  titles: [],      // 생성된 제목 5개
-  selectedTitle: 0,
-  body: '',
-  hashtags: [],
-  thumb: { main: '', sub: '', badge: '' },
-  seo: {},
-  generated: false
-};
+var S = { product: null, titles: [], selectedTitle: 0, body: '', hashtags: [], thumb: {}, seo: {}, generated: false };
+var S_IMAGES = []; // { data: base64, mimeType }
+var S_URL_INFO = null; // URL 분석 결과
 
-// ── 초기화: sessionStorage에서 제품 데이터 복원 ──────────────
+// ── 초기화 ────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', function() {
-  // hot.html에서 넘어온 제품 데이터
   try {
     var hotProduct = sessionStorage.getItem('blog-product');
-    if (hotProduct) {
-      var p = JSON.parse(hotProduct);
-      sessionStorage.removeItem('blog-product');
-      setProduct(p);
-      return;
-    }
-  } catch(e) {}
-
-  // hot.html 마지막 결과에서 1순위 제품 자동 연결
-  try {
+    if (hotProduct) { setProduct(JSON.parse(hotProduct)); sessionStorage.removeItem('blog-product'); return; }
     var hotResult = sessionStorage.getItem('hot-last-result');
     if (hotResult) {
       var d = JSON.parse(hotResult);
-      if (d && d.candidates && d.candidates.length) {
-        setProduct(d.candidates[0]);
-        showToast('📦 지금 뜨는 제품 1순위 자동 연결됨');
-      }
+      if (d && d.candidates && d.candidates.length) { setProduct(d.candidates[0]); showToast('📦 지금 뜨는 제품 1순위 자동 연결됨'); }
     }
   } catch(e) {}
-
-  // 예약 날짜 기본값: 내일
   var tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
   document.getElementById('schedule-date').value = tomorrow.toISOString().slice(0, 10);
 });
 
+// ── ★ URL 분석 ────────────────────────────────────────────────
+async function analyzeUrl() {
+  var url = document.getElementById('url-input').value.trim();
+  if (!url) { showToast('⚠️ URL을 입력해주세요'); return; }
+  if (!url.startsWith('http')) { showToast('⚠️ http:// 또는 https://로 시작하는 URL을 입력해주세요'); return; }
+
+  var btn = document.getElementById('url-btn');
+  btn.disabled = true; btn.textContent = '분석 중...';
+
+  var resultEl = document.getElementById('url-result');
+  resultEl.style.display = 'none';
+
+  try {
+    var res = await fetch('/api/fetch-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    var data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    var p = data.product;
+    S_URL_INFO = p;
+
+    // URL 분석 결과로 제품 자동 세팅
+    setProduct({
+      name: p.productName || 'URL 제품',
+      judge: { trendStatus: 'spreading', decision: 'go' },
+      score: { total: 0, grade: p.priceGrade || 'B' },
+      rss: {},
+      data: { datalab: {}, youtube: {}, shopping: { avgPrice: p.price || 0 } },
+      urlInfo: p
+    });
+
+    // URL 분석 결과 표시
+    resultEl.style.display = 'flex';
+    resultEl.className = 'url-result';
+    resultEl.innerHTML =
+      '<div style="flex-basis:100%;font-size:11px;font-weight:800;color:#0891b2;margin-bottom:4px">✅ URL 분석 완료 — 제품 정보 자동 추출됨</div>'
+      + (p.productName ? '<span class="url-tag">📦 ' + p.productName + '</span>' : '')
+      + (p.price ? '<span class="url-tag">💰 ' + Number(p.price).toLocaleString() + '원</span>' : '')
+      + (p.priceGrade ? '<span class="url-tag">등급 ' + p.priceGrade + '</span>' : '')
+      + (p.platform ? '<span class="url-tag">🛒 ' + p.platform + '</span>' : '')
+      + (p.category ? '<span class="url-tag">' + p.category + '</span>' : '')
+      + (p.targetUser ? '<span class="url-tag" style="flex-basis:100%">👤 ' + p.targetUser + '</span>' : '');
+
+    showToast('✅ URL 분석 완료 — 제품 정보 연결됨');
+
+  } catch(e) {
+    showToast('⚠️ URL 분석 실패: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '🔍 분석';
+  }
+}
+
+// ── ★ 이미지 처리 (수정) ─────────────────────────────────────
+function handleImages(e) {
+  var files = Array.from(e.target.files).slice(0, 5);
+  if (!files.length) return;
+
+  S_IMAGES = [];
+  var wrap = document.getElementById('img-preview-wrap');
+  wrap.innerHTML = '';
+
+  files.forEach(function(file, idx) {
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      var result = ev.target.result;
+      var base64 = result.split(',')[1];
+      S_IMAGES[idx] = { data: base64, mimeType: file.type };
+
+      // 미리보기
+      var div = document.createElement('div');
+      div.className = 'img-thumb';
+      div.id = 'thumb-' + idx;
+      div.innerHTML =
+        '<img src="' + result + '" alt="제품이미지"/>'
+        + '<button class="img-thumb-del" onclick="removeImage(' + idx + ')">✕</button>';
+      wrap.appendChild(div);
+    };
+    reader.readAsDataURL(file);
+  });
+
+  setTimeout(function() {
+    var loaded = S_IMAGES.filter(Boolean).length;
+    showToast('📸 이미지 ' + loaded + '장 첨부됨 — 블로그 생성 시 자동 반영');
+  }, 500);
+}
+
+function removeImage(idx) {
+  S_IMAGES[idx] = null;
+  var el = document.getElementById('thumb-' + idx);
+  if (el) el.remove();
+  showToast('이미지 제거됨');
+}
+
 // ── 제품 설정 ─────────────────────────────────────────────────
 function setProduct(p) {
   S.product = p;
-  var jdg = p.judge || {};
-  var sc  = p.score || {};
-  var rss = p.rss   || {};
-  var d   = p.data  || {};
-  var dl  = d.datalab || {};
-
-  var statusColor = jdg.trendStatus === 'rising' ? '#10b981' : jdg.trendStatus === 'spreading' ? '#6366f1' : '#94a3b8';
+  var jdg = p.judge || {}, sc = p.score || {}, rss = p.rss || {}, d = p.data || {}, dl = d.datalab || {};
+  var statusColor = jdg.trendStatus === 'rising' ? '#10b981' : '#6366f1';
   var statusLabel = { rising:'🔥 급상승', spreading:'🚀 확산중', plateau:'⏳ 정체', falling:'❌ 하락' }[jdg.trendStatus] || '–';
-  var decLabel    = { go:'🔥 지금 실행', conditional:'⚠️ 조건부', wait:'⏳ 관망', no:'❌ 비추천' }[jdg.decision] || '–';
-  var rssText     = rss.detectionCount > 0 ? '📡 RSS ' + rss.detectionCount + '건' : '';
+  var decLabel = { go:'🔥 지금 실행', conditional:'⚠️ 조건부', wait:'⏳ 관망', no:'❌ 비추천' }[jdg.decision] || '–';
 
   document.getElementById('product-card').className = 'product-card';
   document.getElementById('product-card').innerHTML =
@@ -465,13 +488,13 @@ function setProduct(p) {
     + '<div class="pc-badges" style="margin-top:8px">'
       + '<span class="pc-badge" style="background:' + statusColor + '18;color:' + statusColor + '">' + statusLabel + '</span>'
       + '<span class="pc-badge" style="background:#fef2f2;color:#ef4444">' + decLabel + '</span>'
-      + (rssText ? '<span class="pc-badge" style="background:#fff7ed;color:#f97316">' + rssText + '</span>' : '')
       + (dl.surgeRate ? '<span class="pc-badge" style="background:#ecfdf5;color:#10b981">검색량 ' + (dl.surgeRate >= 0 ? '+' : '') + dl.surgeRate + '%</span>' : '')
+      + (rss.detectionCount > 0 ? '<span class="pc-badge" style="background:#fff7ed;color:#f97316">📡 RSS ' + rss.detectionCount + '건</span>' : '')
+      + (p.urlInfo ? '<span class="pc-badge" style="background:#ecfeff;color:#0891b2">🔗 URL 분석</span>' : '')
     + '</div></div>'
     + '<div class="pc-meta">'
-      + '<div class="pc-meta-item"><div class="pc-meta-val">' + (sc.total || 0) + '</div><div class="pc-meta-lbl">종합점수</div></div>'
+      + '<div class="pc-meta-item"><div class="pc-meta-val">' + (sc.total || 0) + '</div><div class="pc-meta-lbl">점수</div></div>'
       + '<div class="pc-meta-item"><div class="pc-meta-val">' + (sc.grade || '–') + '</div><div class="pc-meta-lbl">등급</div></div>'
-      + (rss.score ? '<div class="pc-meta-item"><div class="pc-meta-val" style="color:#f97316">' + rss.score + '</div><div class="pc-meta-lbl">신호강도</div></div>' : '')
     + '</div>'
     + '<button onclick="clearProduct()" style="margin-left:auto;padding:4px 10px;background:#f8fafc;border:1px solid var(--bdr);border-radius:6px;font-size:11px;cursor:pointer;color:var(--muted)">변경</button>';
 
@@ -480,12 +503,14 @@ function setProduct(p) {
 }
 
 function clearProduct() {
-  S.product = null;
+  S.product = null; S_URL_INFO = null;
+  document.getElementById('url-result').style.display = 'none';
+  document.getElementById('url-input').value = '';
   document.getElementById('product-card').className = 'product-card empty';
   document.getElementById('product-card').innerHTML =
     '<div style="text-align:center"><div style="font-size:28px;margin-bottom:8px">📡</div>'
     + '<div style="font-size:13px;font-weight:700;color:var(--faint);margin-bottom:6px">연결된 제품 없음</div>'
-    + '<div style="font-size:11px;color:#c4cad4;margin-bottom:12px">지금 뜨는 제품에서 선택하거나 직접 입력하세요</div>'
+    + '<div style="font-size:11px;color:#c4cad4;margin-bottom:12px">아래에서 제품을 연결하세요</div>'
     + '<button onclick="openProductSearch()" style="padding:8px 18px;background:var(--pri);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🔥 지금 뜨는 제품에서 선택</button></div>';
 }
 
@@ -496,103 +521,37 @@ function setManualProduct() {
   document.getElementById('manual-product').value = '';
 }
 
-function goHotPage() {
-  sessionStorage.setItem('hot-to-blog', '1');
-  location.href = '/hot.html';
-}
+function goHotPage() { sessionStorage.setItem('hot-to-blog', '1'); location.href = '/hot.html'; }
 
 // ── 제품 선택 모달 ────────────────────────────────────────────
 function openProductSearch() {
   var modal = document.getElementById('product-modal');
   modal.style.display = 'flex';
-
   try {
-    var hotResult = sessionStorage.getItem('hot-last-result');
-    if (hotResult) {
-      var d = JSON.parse(hotResult);
-      var candidates = d.candidates || [];
-      if (candidates.length) {
-        document.getElementById('modal-product-list').innerHTML =
-          candidates.map(function(p, i) {
-            var sc = p.score || {};
-            var jdg = p.judge || {};
-            var gc = sc.grade === 'A' ? '#10b981' : sc.grade === 'B' ? '#6366f1' : '#94a3b8';
-            return '<div onclick="selectFromModal(' + i + ')" style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#f8fafc;border-radius:10px;cursor:pointer;border:1.5px solid transparent;transition:all .15s" onmouseover="this.style.borderColor=\'var(--pri-bdr)\'" onmouseout="this.style.borderColor=\'transparent\'">'
-              + '<div style="font-size:22px;font-weight:900;color:' + gc + ';min-width:24px">' + (i + 1) + '</div>'
-              + '<div style="flex:1"><div style="font-size:13px;font-weight:800">' + p.name + '</div>'
-              + '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + (sc.total || 0) + '점 · ' + (sc.grade || '–') + '등급</div></div>'
-              + '<div style="font-size:11px;font-weight:700;color:#ef4444">' + ({ go:'🔥 지금 실행', conditional:'⚠️ 조건부', wait:'⏳ 관망', no:'비추천' }[jdg.decision] || '') + '</div>'
-              + '</div>';
-          }).join('');
-        return;
-      }
+    var d = JSON.parse(sessionStorage.getItem('hot-last-result'));
+    var candidates = (d && d.candidates) || [];
+    if (candidates.length) {
+      document.getElementById('modal-product-list').innerHTML = candidates.map(function(p, i) {
+        var sc = p.score || {}, jdg = p.judge || {};
+        var gc = sc.grade === 'A' ? '#10b981' : sc.grade === 'B' ? '#6366f1' : '#94a3b8';
+        return '<div onclick="selectFromModal(' + i + ')" style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#f8fafc;border-radius:10px;cursor:pointer;border:1.5px solid transparent;transition:all .15s" onmouseover="this.style.borderColor=\'var(--pri-bdr)\'" onmouseout="this.style.borderColor=\'transparent\'">'
+          + '<div style="font-size:22px;font-weight:900;color:' + gc + ';min-width:24px">' + (i+1) + '</div>'
+          + '<div style="flex:1"><div style="font-size:13px;font-weight:800">' + p.name + '</div>'
+          + '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + (sc.total||0) + '점 · ' + (sc.grade||'–') + '등급</div></div>'
+          + '</div>';
+      }).join('');
     }
   } catch(e) {}
 }
 
-var _modalCandidates = [];
 function selectFromModal(i) {
-  try {
-    var d = JSON.parse(sessionStorage.getItem('hot-last-result'));
-    var p = (d.candidates || [])[i];
-    if (p) { setProduct(p); closeModal(); }
-  } catch(e) {}
+  try { var d = JSON.parse(sessionStorage.getItem('hot-last-result')); var p = (d.candidates||[])[i]; if(p){setProduct(p);closeModal();} } catch(e){}
 }
-
-function closeModal() {
-  document.getElementById('product-modal').style.display = 'none';
-}
-
-// ── 이미지 처리 ───────────────────────────────────────────────
-var S_IMAGES = []; // { data: base64, mimeType, name, url }
-
-function handleImages(input) {
-  var files = Array.from(input.files).slice(0, 5);
-  S_IMAGES = [];
-  var preview = document.getElementById('img-preview');
-  preview.innerHTML = '';
-
-  var promises = files.map(function(file) {
-    return new Promise(function(resolve) {
-      var reader = new FileReader();
-      reader.onload = function(e) {
-        var base64 = e.target.result.split(',')[1];
-        S_IMAGES.push({ data: base64, mimeType: file.type, name: file.name });
-
-        // 미리보기
-        var img = document.createElement('div');
-        img.style.cssText = 'position:relative;width:60px;height:60px;border-radius:8px;overflow:hidden;border:1.5px solid var(--pri-bdr)';
-        img.innerHTML = '<img src="' + e.target.result + '" style="width:100%;height:100%;object-fit:cover"/>'
-          + '<div style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.5);color:#fff;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:9px;cursor:pointer" onclick="removeImage(' + (S_IMAGES.length-1) + ')">✕</div>';
-        preview.appendChild(img);
-        resolve();
-      };
-      reader.readAsDataURL(file);
-    });
-  });
-
-  Promise.all(promises).then(function() {
-    showToast('📸 이미지 ' + S_IMAGES.length + '장 첨부됨');
-  });
-}
-
-function removeImage(idx) {
-  S_IMAGES.splice(idx, 1);
-  document.getElementById('img-input').value = '';
-  // 미리보기 재렌더
-  var preview = document.getElementById('img-preview');
-  var items = preview.querySelectorAll('div');
-  if (items[idx]) items[idx].remove();
-  showToast('이미지 제거됨');
-}
+function closeModal() { document.getElementById('product-modal').style.display = 'none'; }
 
 // ── 블로그 생성 ───────────────────────────────────────────────
 async function generateBlog() {
-  if (!S.product) {
-    showToast('⚠️ 제품을 먼저 연결해주세요');
-    return;
-  }
-
+  if (!S.product) { showToast('⚠️ 제품을 먼저 연결해주세요'); return; }
   var btn = document.getElementById('gen-btn');
   btn.disabled = true;
   showLoading(true);
@@ -606,41 +565,40 @@ async function generateBlog() {
   var dl      = d.datalab  || {};
   var yt      = d.youtube  || {};
   var shop    = d.shopping || {};
+  var urlInfo = p.urlInfo  || S_URL_INFO || {};
   var postType   = document.getElementById('post-type').value;
   var postLength = document.getElementById('post-length').value;
   var tags    = [...document.querySelectorAll('.tag.on')].map(function(t){ return t.textContent; });
+  var validImages = S_IMAGES.filter(Boolean);
 
   var typeLabel = { review:'상품 리뷰', compare:'비교 추천', guide:'구매 가이드', trend:'트렌드 분석' }[postType] || '리뷰';
   var lenLabel  = { short:'800자 이상', medium:'1500자 이상', long:'2500자 이상' }[postLength] || '1500자 이상';
 
-  var systemPrompt =
-    '당신은 수익형 블로그 전문 작성자입니다. 쿠팡 파트너스 수익화에 최적화된 블로그 콘텐츠를 작성합니다.\n'
-    + 'SEO 최적화, 구매 전환 유도, 자연스러운 제품 추천이 핵심입니다.\n'
-    + '반드시 JSON만 출력하고 다른 텍스트는 절대 포함하지 마세요.';
-
   var userPrompt =
-    '아래 제품 데이터를 기반으로 수익형 블로그 콘텐츠를 생성하라.\n\n'
+    '아래 제품 데이터를 기반으로 스킬 v10.1을 완전히 적용한 수익형 블로그 글을 작성하라.\n\n'
     + '제품명: ' + p.name + '\n'
     + '글 유형: ' + typeLabel + '\n'
     + '글 길이: ' + lenLabel + '\n'
-    + '트렌드 상태: ' + (jdg.trendStatus || '–') + '\n'
-    + '검색량 변화: ' + (dl.surgeRate >= 0 ? '+' : '') + (dl.surgeRate || 0) + '%\n'
-    + 'RSS 신호 강도: ' + (rss.score || 0) + '점 / ' + (rss.detectionCount || 0) + '건 감지\n'
-    + '유튜브 영상 수: ' + (yt.videoCount || 0) + '개 / 평균 조회수: ' + (yt.avgViews || 0) + '\n'
-    + '쇼핑 상품 수: ' + (shop.itemCount || 0) + '개 / 평균가: ' + (shop.avgPrice || 0) + '원\n'
-    + '포함 요소: ' + tags.join(', ') + '\n\n'
-    + '출력 형식 (JSON만, 다른 텍스트 금지):\n'
-    + '{\n'
-    + '  "titles": ["제목1","제목2","제목3","제목4","제목5"],\n'
-    + '  "body": "본문 전체 (마크다운 사용, ' + lenLabel + ')",\n'
-    + '  "hashtags": ["태그1","태그2",...최대15개],\n'
-    + '  "thumb": { "main": "썸네일 메인 문구 (20자 이내)", "sub": "부제목 (15자 이내)", "badge": "뱃지 문구 (8자 이내)" },\n'
-    + '  "seo": { "keyword_density": true/false, "title_length": true/false, "meta_desc": true/false, "heading_structure": true/false, "cta_included": true/false, "internal_link": true/false }\n'
-    + '}';
+    + '트렌드: ' + (jdg.trendStatus||'–') + ' / 결정: ' + (jdg.decision||'–') + '\n'
+    + '검색량 변화: ' + (dl.surgeRate>=0?'+':'') + (dl.surgeRate||0) + '%\n'
+    + 'RSS 신호: ' + (rss.score||0) + '점 / ' + (rss.detectionCount||0) + '건\n'
+    + '유튜브: 영상 ' + (yt.videoCount||0) + '개 / 평균 조회수 ' + (yt.avgViews||0) + '\n'
+    + '쇼핑: 상품 ' + (shop.itemCount||0) + '개 / 평균가 ' + (shop.avgPrice||0) + '원\n'
+    + (urlInfo.features ? 'URL 분석 특징: ' + urlInfo.features.join(', ') + '\n' : '')
+    + (urlInfo.pros ? '장점: ' + urlInfo.pros.join(', ') + '\n' : '')
+    + (urlInfo.cons ? '단점: ' + urlInfo.cons.join(', ') + '\n' : '')
+    + (urlInfo.reviewSummary ? '후기 요약: ' + urlInfo.reviewSummary + '\n' : '')
+    + (urlInfo.originalUrl ? '원본 URL: ' + urlInfo.originalUrl + '\n' : '')
+    + '포함 요소: ' + tags.join(', ') + '\n'
+    + (validImages.length ? '\n첨부 이미지 ' + validImages.length + '장을 분석하여 [📸 사진] 배치 설명에 반영하라.\n' : '')
+    + '\n반드시 JSON만 출력:\n'
+    + '{"titles":["제목1","제목2","제목3","제목4","제목5"],"body":"본문(마크다운+사진위치표시)","hashtags":["태그1",...],"thumb":{"main":"20자이내","sub":"15자이내","badge":"8자이내"},"seo":{"keyword_density":true,"title_length":true,"meta_desc":true,"heading_structure":true,"cta_included":true,"internal_link":true}}';
 
-  setLoadingStep('제목 5개 생성 중...', 20);
-  await sleep(400);
-  setLoadingStep('본문 작성 중...', 50);
+  setLoadingStep('스킬 v10.1 적용 중...', 15);
+  await sleep(300);
+  setLoadingStep('가격대 분석 + 구조 설계 중...', 35);
+  await sleep(300);
+  setLoadingStep('본문 작성 중...', 55);
 
   try {
     var res = await fetch('/api/blog-generate', {
@@ -649,33 +607,34 @@ async function generateBlog() {
       body: JSON.stringify({
         user: userPrompt,
         max_tokens: 4000,
-        images: S_IMAGES.length > 0 ? S_IMAGES : undefined
+        images: validImages.length > 0 ? validImages : undefined
       })
     });
 
-    var data = await res.json();
-    if (data.error) throw new Error(data.error);
-    var raw = data.text || '';
+    var data2 = await res.json();
+    if (data2.error) throw new Error(data2.error);
+
+    setLoadingStep('SEO 분석 중...', 80);
+    await sleep(200);
+
+    var raw = data2.text || '';
     var clean = raw.replace(/```json|```/g, '').trim();
     var result = JSON.parse(clean);
 
-    setLoadingStep('SEO 분석 중...', 80);
-    await sleep(300);
-
-    S.titles        = result.titles  || [];
-    S.body          = result.body    || '';
-    S.hashtags      = result.hashtags|| [];
-    S.thumb         = result.thumb   || {};
-    S.seo           = result.seo     || {};
+    S.titles = result.titles || [];
+    S.body   = result.body  || '';
+    S.hashtags = result.hashtags || [];
+    S.thumb  = result.thumb || {};
+    S.seo    = result.seo   || {};
     S.selectedTitle = 0;
-    S.generated     = true;
+    S.generated = true;
 
     setLoadingStep('완료!', 100);
-    await sleep(300);
+    await sleep(200);
 
     renderResult();
     document.getElementById('result-area').style.display = 'block';
-    document.getElementById('result-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.getElementById('result-area').scrollIntoView({ behavior:'smooth', block:'start' });
     updateStep(3);
 
   } catch(e) {
@@ -689,213 +648,124 @@ async function generateBlog() {
 
 // ── 결과 렌더 ─────────────────────────────────────────────────
 function renderResult() {
-  // 제목 5개
   var titleList = document.getElementById('title-list');
   titleList.innerHTML = S.titles.map(function(t, i) {
-    var len = t.length;
-    var seoOk = len >= 20 && len <= 50;
-    return '<div class="title-item' + (i === S.selectedTitle ? ' selected' : '') + '" onclick="selectTitle(' + i + ')">'
-      + '<div class="title-num">' + (i + 1) + '</div>'
+    var len = t.length, ok = len >= 20 && len <= 50;
+    return '<div class="title-item' + (i===S.selectedTitle?' selected':'') + '" onclick="selectTitle(' + i + ')">'
+      + '<div class="title-num">' + (i+1) + '</div>'
       + '<div class="title-text">' + t + '</div>'
-      + '<span class="seo-score" style="background:' + (seoOk ? '#ecfdf5;color:#10b981' : '#fff7ed;color:#d97706') + '">'
-      + len + '자' + (seoOk ? ' ✓' : '') + '</span>'
+      + '<span class="seo-score" style="background:' + (ok?'#ecfdf5;color:#10b981':'#fff7ed;color:#d97706') + '">' + len + '자' + (ok?' ✓':'') + '</span>'
       + '</div>';
   }).join('');
 
-  // 본문
   document.getElementById('body-textarea').value = S.body;
   updateCharCount();
 
-  // 해시태그
-  document.getElementById('hashtag-wrap').innerHTML =
-    S.hashtags.map(function(h) {
-      return '<span class="hashtag">#' + h.replace(/^#/, '') + '</span>';
-    }).join('');
+  document.getElementById('hashtag-wrap').innerHTML = S.hashtags.map(function(h) {
+    return '<span class="hashtag">#' + h.replace(/^#/,'') + '</span>';
+  }).join('');
 
-  // 썸네일
   updateThumbPreview();
 
-  // SEO 체크리스트
   var seoItems = [
-    { key: 'keyword_density', label: '키워드 밀도 적절' },
-    { key: 'title_length',    label: '제목 길이 최적 (20~50자)' },
-    { key: 'meta_desc',       label: '메타 설명 포함' },
-    { key: 'heading_structure',label: '헤딩 구조 (H2/H3)' },
-    { key: 'cta_included',    label: '구매 유도 CTA 포함' },
-    { key: 'internal_link',   label: '내부/제휴 링크 포함' }
+    { key:'keyword_density', label:'키워드 밀도 적절' },
+    { key:'title_length',    label:'제목 길이 최적 (20~50자)' },
+    { key:'meta_desc',       label:'메타 설명 포함' },
+    { key:'heading_structure',label:'헤딩 구조 (H2/H3)' },
+    { key:'cta_included',    label:'구매 유도 CTA 포함' },
+    { key:'internal_link',   label:'내부/제휴 링크 포함' }
   ];
   var passCount = 0;
-  document.getElementById('seo-checklist').innerHTML =
-    seoItems.map(function(item) {
-      var ok = S.seo[item.key];
-      if (ok) passCount++;
-      return '<div class="seo-item">'
-        + '<div class="seo-dot" style="background:' + (ok ? '#10b981' : '#f43f5e') + '"></div>'
-        + '<span style="flex:1;color:var(--txt)">' + item.label + '</span>'
-        + '<span style="font-size:10px;font-weight:700;color:' + (ok ? '#10b981' : '#f43f5e') + '">' + (ok ? '통과' : '미흡') + '</span>'
-        + '</div>';
-    }).join('');
+  document.getElementById('seo-checklist').innerHTML = seoItems.map(function(item) {
+    var ok = S.seo[item.key]; if(ok) passCount++;
+    return '<div class="seo-item"><div class="seo-dot" style="background:' + (ok?'#10b981':'#f43f5e') + '"></div>'
+      + '<span style="flex:1">' + item.label + '</span>'
+      + '<span style="font-size:10px;font-weight:700;color:' + (ok?'#10b981':'#f43f5e') + '">' + (ok?'통과':'미흡') + '</span></div>';
+  }).join('');
   var seoScore = Math.round((passCount / seoItems.length) * 100);
   document.getElementById('seo-bar').style.width = seoScore + '%';
   document.getElementById('seo-score-text').textContent = seoScore + '점';
 }
 
-function selectTitle(i) {
-  S.selectedTitle = i;
-  renderResult();
-}
+function selectTitle(i) { S.selectedTitle = i; renderResult(); }
 
 function updateThumbPreview() {
-  var t     = S.thumb;
+  var t = S.thumb;
   var style = document.getElementById('thumb-style') ? document.getElementById('thumb-style').value : 'dark';
-  var bg    = { dark: 'linear-gradient(135deg,#1e293b,#334155)', red: 'linear-gradient(135deg,#7f1d1d,#ef4444)', green: 'linear-gradient(135deg,#064e3b,#10b981)', purple: 'linear-gradient(135deg,#3b0764,#8b5cf6)' }[style] || 'linear-gradient(135deg,#1e293b,#334155)';
+  var bg = { dark:'linear-gradient(135deg,#1e293b,#334155)', red:'linear-gradient(135deg,#7f1d1d,#ef4444)', green:'linear-gradient(135deg,#064e3b,#10b981)', purple:'linear-gradient(135deg,#3b0764,#8b5cf6)' }[style];
   var preview = document.getElementById('thumb-preview');
-  if (preview) preview.style.background = bg;
-  var main = document.getElementById('thumb-main');
-  var sub  = document.getElementById('thumb-sub');
-  var badge = document.getElementById('thumb-badge');
-  if (main)  main.textContent  = t.main  || (S.product ? S.product.name + ' 추천' : '');
-  if (sub)   sub.textContent   = t.sub   || '지금 구매하면 이득인 이유';
-  if (badge) badge.textContent = t.badge || '🔥 HOT';
+  if(preview) preview.style.background = bg;
+  var main = document.getElementById('thumb-main'), sub = document.getElementById('thumb-sub'), badge = document.getElementById('thumb-badge');
+  if(main)  main.textContent  = t.main  || (S.product ? S.product.name + ' 추천' : '');
+  if(sub)   sub.textContent   = t.sub   || '지금 구매하면 이득인 이유';
+  if(badge) badge.textContent = t.badge || '🔥 HOT';
 }
 
 function updateCharCount() {
-  var ta = document.getElementById('body-textarea');
-  var el = document.getElementById('char-count');
-  if (ta && el) el.textContent = ta.value.replace(/\s/g, '').length + '자';
+  var ta = document.getElementById('body-textarea'), el = document.getElementById('char-count');
+  if(ta && el) el.textContent = ta.value.replace(/\s/g,'').length + '자';
 }
 
-// ── 재생성 ────────────────────────────────────────────────────
 async function regenSection(section) {
-  if (!S.product || !S.generated) { showToast('⚠️ 먼저 블로그를 생성해주세요'); return; }
-  var name = S.product.name;
+  if(!S.product || !S.generated){ showToast('⚠️ 먼저 생성해주세요'); return; }
   var prompts = {
-    body: '제품명: ' + name + '\n기존 본문을 다른 스타일로 다시 작성하라. 같은 정보, 다른 문체. 본문만 출력.',
-    thumb: '제품명: ' + name + '\n썸네일 문구 3가지를 다시 생성하라.\nJSON: {"main":"20자이내","sub":"15자이내","badge":"8자이내"}'
+    body: '제품명: ' + S.product.name + '\n기존 본문을 다른 스타일로 재작성. 스킬 v10.1 전환 구조 적용. 본문만 출력.',
+    thumb: '제품명: ' + S.product.name + '\n썸네일 문구 재생성.\nJSON: {"main":"20자이내","sub":"15자이내","badge":"8자이내"}'
   };
   showToast('재생성 중...');
   try {
-    var res = await fetch('/api/blog-generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user: prompts[section], max_tokens: 2000 })
-    });
+    var res = await fetch('/api/blog-generate', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user:prompts[section], max_tokens:2000 }) });
     var data = await res.json();
-    if (data.error) throw new Error(data.error);
+    if(data.error) throw new Error(data.error);
     var raw = data.text || '';
-    if (section === 'body') {
-      document.getElementById('body-textarea').value = raw.trim();
-      updateCharCount();
-      showToast('✓ 본문 재생성 완료');
-    } else if (section === 'thumb') {
-      var clean = raw.replace(/```json|```/g, '').trim();
-      S.thumb = JSON.parse(clean);
-      updateThumbPreview();
-      showToast('✓ 썸네일 재생성 완료');
-    }
-  } catch(e) { showToast('⚠️ 재생성 오류'); }
+    if(section==='body'){ document.getElementById('body-textarea').value=raw.trim(); updateCharCount(); showToast('✓ 본문 재생성 완료'); }
+    else if(section==='thumb'){ S.thumb=JSON.parse(raw.replace(/```json|```/g,'').trim()); updateThumbPreview(); showToast('✓ 썸네일 재생성 완료'); }
+  } catch(e){ showToast('⚠️ 재생성 오류'); }
 }
 
-// ── 복사 ─────────────────────────────────────────────────────
 function copySelected(type) {
   var text = '';
-  if (type === 'title') {
-    text = S.titles[S.selectedTitle] || '';
-  } else if (type === 'body') {
-    text = document.getElementById('body-textarea').value;
-  } else if (type === 'hashtag') {
-    text = S.hashtags.map(function(h){ return '#' + h.replace(/^#/, ''); }).join(' ');
-  } else if (type === 'thumb') {
-    var t = S.thumb;
-    text = (t.badge || '') + '\n' + (t.main || '') + '\n' + (t.sub || '');
-  }
-  copyText(text);
-  showToast('✓ 복사됨');
+  if(type==='title') text = S.titles[S.selectedTitle]||'';
+  else if(type==='body') text = document.getElementById('body-textarea').value;
+  else if(type==='hashtag') text = S.hashtags.map(function(h){ return '#'+h.replace(/^#/,''); }).join(' ');
+  else if(type==='thumb') { var t=S.thumb; text=(t.badge||'')+'\n'+(t.main||'')+'\n'+(t.sub||''); }
+  copyText(text); showToast('✓ 복사됨');
 }
 
-// ── 업로드 ────────────────────────────────────────────────────
 function uploadTo(platform) {
-  if (!S.generated) { showToast('⚠️ 먼저 블로그를 생성해주세요'); return; }
+  if(!S.generated){ showToast('⚠️ 먼저 생성해주세요'); return; }
+  var title = S.titles[S.selectedTitle]||'';
+  var body  = document.getElementById('body-textarea').value;
+  var tags  = S.hashtags.map(function(h){ return h.replace(/^#/,''); }).join(',');
+  var schedMsg = document.getElementById('use-schedule').checked
+    ? ' (' + document.getElementById('schedule-date').value + ' ' + document.getElementById('schedule-time').value + ' 예약)' : ' (즉시)';
 
-  var useSchedule = document.getElementById('use-schedule').checked;
-  var schedDate   = document.getElementById('schedule-date').value;
-  var schedTime   = document.getElementById('schedule-time').value;
-  var title       = S.titles[S.selectedTitle] || '';
-  var body        = document.getElementById('body-textarea').value;
-  var tags        = S.hashtags.map(function(h){ return h.replace(/^#/, ''); }).join(',');
-
-  if (platform === 'both') {
-    // 전체 복사 (수동 업로드용)
-    var full = '【제목】\n' + title + '\n\n【본문】\n' + body + '\n\n【해시태그】\n' + tags;
-    copyText(full);
-    showToast('✓ 전체 내용 복사됨 — 블로그에 붙여넣기 하세요');
-    updateStep(4);
-    return;
-  }
-
-  // 네이버/티스토리 API 연동 (실제 구현 시 OAuth 필요)
-  var schedMsg = useSchedule ? ' (' + schedDate + ' ' + schedTime + ' 예약)' : ' (즉시 발행)';
-  var platformName = platform === 'naver' ? '네이버 블로그' : '티스토리';
-
-  // API 연동 안 된 경우 → 해당 플랫폼으로 이동 + 클립보드 복사
-  var full = '【제목】\n' + title + '\n\n' + body + '\n\n' + tags;
-  copyText(full);
-
-  var urls = {
-    naver: 'https://blog.naver.com/PostWriteForm.naver',
-    tistory: 'https://www.tistory.com/manage/post/write'
-  };
-  window.open(urls[platform], '_blank');
-  showToast('✓ ' + platformName + '열림 + 내용 복사됨' + schedMsg);
+  if(platform==='both'){ copyText('【제목】\n'+title+'\n\n【본문】\n'+body+'\n\n【해시태그】\n'+tags); showToast('✓ 전체 복사됨'); updateStep(4); return; }
+  copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags);
+  window.open({ naver:'https://blog.naver.com/PostWriteForm.naver', tistory:'https://www.tistory.com/manage/post/write' }[platform],'_blank');
+  showToast('✓ ' + (platform==='naver'?'네이버':'티스토리') + ' 열림 + 내용 복사됨' + schedMsg);
   updateStep(4);
 }
 
-// ── 스텝 업데이트 ─────────────────────────────────────────────
 function updateStep(active) {
-  for (var i = 1; i <= 4; i++) {
-    var num   = document.getElementById('step' + i + '-num');
-    var label = document.getElementById('step' + i + '-label');
-    if (!num || !label) continue;
-    if (i < active)      { num.className='step-num done'; num.textContent='✓'; label.className='step-label done'; }
-    else if (i === active){ num.className='step-num active'; num.textContent=String(i); label.className='step-label active'; }
-    else                  { num.className='step-num idle'; num.textContent=String(i); label.className='step-label idle'; }
+  for(var i=1;i<=4;i++){
+    var num=document.getElementById('step'+i+'-num'), label=document.getElementById('step'+i+'-label');
+    if(!num||!label) continue;
+    if(i<active){ num.className='step-num done'; num.textContent='✓'; label.className='step-label done'; }
+    else if(i===active){ num.className='step-num active'; num.textContent=String(i); label.className='step-label active'; }
+    else{ num.className='step-num idle'; num.textContent=String(i); label.className='step-label idle'; }
   }
-  var hints = { 1:'제품 데이터가 자동으로 연결됩니다', 2:'설정 확인 후 생성 버튼을 누르세요', 3:'제목을 선택하고 업로드하세요', 4:'업로드 완료! 수익화 시작 🎉' };
-  var hint = document.getElementById('step-hint');
-  if (hint) hint.textContent = hints[active] || '';
+  var hints={1:'제품 연결됨',2:'설정 후 생성 버튼',3:'제목 선택 후 업로드',4:'업로드 완료! 🎉'};
+  var hint=document.getElementById('step-hint'); if(hint) hint.textContent=hints[active]||'';
 }
 
-// ── 로딩 ─────────────────────────────────────────────────────
-function showLoading(on) {
-  document.getElementById('loading-overlay').style.display = on ? 'flex' : 'none';
-}
-function setLoadingStep(msg, pct) {
-  document.getElementById('loading-step').textContent = msg;
-  document.getElementById('loading-bar').style.width = pct + '%';
-}
-
-// ── 유틸 ─────────────────────────────────────────────────────
-function sleep(ms) { return new Promise(function(r){ setTimeout(r, ms); }); }
-function copyText(t) {
-  try {
-    var e = document.createElement('textarea');
-    e.value = t; e.style.cssText = 'position:fixed;top:-9999px;opacity:0;';
-    document.body.appendChild(e); e.focus(); e.select(); document.execCommand('copy'); document.body.removeChild(e);
-  } catch(e) { if (navigator.clipboard) navigator.clipboard.writeText(t); }
-}
-function toggleTag(el) { el.classList.toggle('on'); }
-function showToast(msg) {
-  var t = document.getElementById('_toast');
-  if (!t) {
-    t = document.createElement('div'); t.id = '_toast'; t.className = 'toast';
-    document.body.appendChild(t);
-  }
-  t.textContent = msg; t.style.opacity = '1';
-  clearTimeout(t._t); t._t = setTimeout(function(){ t.style.opacity = '0'; }, 2500);
-}
-function showApiSetup() {
-  showToast('💡 네이버/티스토리 API 연동은 OAuth 설정이 필요합니다');
-}
+function showLoading(on){ document.getElementById('loading-overlay').style.display=on?'flex':'none'; }
+function setLoadingStep(msg,pct){ document.getElementById('loading-step').textContent=msg; document.getElementById('loading-bar').style.width=pct+'%'; }
+function sleep(ms){ return new Promise(function(r){setTimeout(r,ms);}); }
+function toggleTag(el){ el.classList.toggle('on'); }
+function copyText(t){ try{var e=document.createElement('textarea');e.value=t;e.style.cssText='position:fixed;top:-9999px;opacity:0;';document.body.appendChild(e);e.focus();e.select();document.execCommand('copy');document.body.removeChild(e);}catch(e){if(navigator.clipboard)navigator.clipboard.writeText(t);} }
+function showToast(msg){ var t=document.getElementById('_toast'); if(!t){t=document.createElement('div');t.id='_toast';t.className='toast';document.body.appendChild(t);} t.textContent=msg;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(function(){t.style.opacity='0';},2500); }
+function showApiSetup(){ showToast('💡 네이버/티스토리 API 연동은 OAuth 설정 필요'); }
 </script>
 </body>
 </html>
