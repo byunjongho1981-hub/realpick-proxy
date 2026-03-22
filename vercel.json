@@ -14,7 +14,7 @@
     { "src": "/",          "dest": "/index.html"   },
     { "src": "/hot.html",  "dest": "/hot.html"     },
     { "src": "/trend.html","dest": "/trend.html"   },
-    { "src": "/ai.html",   "dest": "/ai.html"      },
+    { "src": "/blog.html", "dest": "/blog.html"    },
     { "src": "/data.html", "dest": "/data.html"    }
   ]
 }
