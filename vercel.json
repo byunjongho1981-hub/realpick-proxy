@@ -3,18 +3,19 @@
   "buildCommand": null,
   "outputDirectory": ".",
   "functions": {
-    "api/auto-discover.js":       { "maxDuration": 300 },
-    "api/hot-analyze.js":         { "maxDuration": 120 },
-    "api/google-hot.js":          { "maxDuration": 30  },
-    "api/sns-hot.js":             { "maxDuration": 60  },
-    "api/google-trends-rss.js":   { "maxDuration": 10  }
+    "api/auto-discover.js":     { "maxDuration": 300 },
+    "api/hot-analyze.js":       { "maxDuration": 120 },
+    "api/google-hot.js":        { "maxDuration": 30  },
+    "api/sns-hot.js":           { "maxDuration": 60  },
+    "api/google-trends-rss.js": { "maxDuration": 10  }
   },
   "routes": [
-    { "src": "/api/(.*)",  "dest": "/api/$1"       },
-    { "src": "/",          "dest": "/index.html"   },
-    { "src": "/hot.html",  "dest": "/hot.html"     },
-    { "src": "/trend.html","dest": "/trend.html"   },
-    { "src": "/blog.html", "dest": "/blog.html"    },
-    { "src": "/data.html", "dest": "/data.html"    }
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/",         "dest": "/index.html" },
+    { "src": "/hot.html",   "dest": "/hot.html"   },
+    { "src": "/trend.html", "dest": "/trend.html" },
+    { "src": "/blog.html",  "dest": "/blog.html"  },
+    { "src": "/data.html",  "dest": "/data.html"  },
+    { "src": "/(.*)",     "dest": "/$1"           }
   ]
 }
