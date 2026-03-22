@@ -240,7 +240,7 @@ async function generateBlog() {
     var res = await fetch('/api/blog-generate', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ user:userPrompt, max_tokens:8000, images:validImages.length>0?validImages:undefined })
+      body:JSON.stringify({ user:userPrompt, max_tokens:8000 })
     });
     var data2 = await res.json();
     if (data2.error) throw new Error(data2.error);
