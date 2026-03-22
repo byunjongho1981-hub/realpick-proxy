@@ -369,7 +369,7 @@ function renderSlots() {
     var img = S_IMAGES[i];
     if (img) {
       var src = img.data ? 'data:'+img.mimeType+';base64,'+img.data : (img.url||'');
-      return '<div class="img-slot filled" id="slot-'+i+'" onclick="focusSlot('+i+')">'
+      return '<div class="img-slot filled" id="slot-'+i+'" onclick="openSlot('+i+')">'
         +'<div class="img-slot-num">'+(i+1)+'</div>'
         +'<img src="'+src+'" alt="슬롯'+(i+1)+'"/>'
         +'<button class="img-slot-del" onclick="event.stopPropagation();clearSlot('+i+')">✕</button>'
