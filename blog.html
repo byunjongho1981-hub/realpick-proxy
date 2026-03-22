@@ -519,6 +519,7 @@ async function generateBlog() {
     +(urlInfo.reviewSummary?'후기 요약: '+urlInfo.reviewSummary+'\n':'')
     +(urlInfo.originalUrl?'원본 URL: '+urlInfo.originalUrl+'\n':'')
     +'포함 요소: '+tags.join(', ')+'\n'
+    +'본문 각 섹션 제목과 항목마다 이모지를 반드시 사용하라.\n'
     +(validImages.length?'\n첨부 이미지 '+validImages.length+'장을 분석하여 [📸 사진] 배치 설명에 반영하라.\n':'')
     +'\n⚠️ 절대 중간에 끊지 마라. JSON이 완전히 닫힐 때까지 출력을 멈추지 마라.\n'
     +'반드시 완성된 JSON만 출력:\n'
