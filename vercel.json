@@ -8,7 +8,8 @@
     "api/google-hot.js":        { "maxDuration": 30  },
     "api/sns-hot.js":           { "maxDuration": 60  },
     "api/google-trends-rss.js": { "maxDuration": 10  },
-    "api/blog-generate.js":     { "maxDuration": 30  }
+    "api/blog-generate.js":     { "maxDuration": 30  },
+    "api/fetch-url.js":         { "maxDuration": 15  }
   },
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1" },
