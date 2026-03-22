@@ -153,7 +153,7 @@ export default async function handler(req, res) {
     system_instruction: { parts: [{ text: '당신은 네이버 블로그 전환 글쓰기 전문가입니다. 반드시 스킬 v10.1 구조를 적용하여 글을 작성하세요.' }] },
     contents: [{ role: 'user', parts }],
     generationConfig: {
-      maxOutputTokens: max_tokens || 4000,
+      maxOutputTokens: max_tokens || 8000,
       temperature: 0.7
     }
   };
