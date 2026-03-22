@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>블로그 제작 — RealPick</title>
+<style>
+:root{
+  --bg:#f0f4ff;--surf:#fff;--bdr:#e2e8f0;
+  --txt:#1e293b;--muted:#64748b;--faint:#94a3b8;
+  --pri:#6366f1;--pri-lt:#eff0ff;--pri-bdr:#c7d2fe;
+  --green:#10b981;--green-lt:#ecfdf5;
+  --orange:#f97316;--orange-lt:#fff7ed;
+  --red:#ef4444;--red-lt:#fef2f2;
+  --yellow:#d97706;--yellow-lt:#fffbeb;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:'Noto Sans KR',sans-serif;font-size:13px}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--bdr);height:52px;display:flex;align-items:center;padding:0 24px}
+.nav-logo{font-size:16px;font-weight:900;color:var(--pri);text-decoration:none;margin-right:28px}
+.nav-logo span{color:var(--txt)}
+.nav-links{display:flex;gap:2px}
+.nav-link{padding:6px 13px;border-radius:8px;font-size:13px;font-weight:500;color:var(--faint);text-decoration:none;transition:all .15s}
+.nav-link:hover{background:#f1f5f9;color:var(--txt)}
+.nav-link.active{background:var(--pri);color:#fff;font-weight:700}
+.nav-link.hot{color:var(--red);font-weight:700}
+.nav-right{margin-left:auto}
+.badge{background:var(--pri);color:#fff;font-size:10px;padding:2px 9px;border-radius:20px;font-weight:700}
+.wrap{margin-top:52px;padding:24px;max-width:1200px;margin-left:auto;margin-right:auto}
+
+/* 스텝 헤더 */
+.step-bar{display:flex;align-items:center;gap:0;margin-bottom:24px;background:#fff;border:1px solid var(--bdr);border-radius:14px;padding:16px 24px;overflow-x:auto}
+.step{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.step-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;flex-shrink:0;transition:all .3s}
+.step-num.done{background:var(--green);color:#fff}
+.step-num.active{background:var(--pri);color:#fff}
+.step-num.idle{background:#f1f5f9;color:var(--faint)}
+.step-label{font-size:12px;font-weight:700}
+.step-label.active{color:var(--pri)}
+.step-label.done{color:var(--green)}
+.step-label.idle{color:var(--faint)}
+.step-arrow{margin:0 12px;color:var(--bdr);font-size:16px;flex-shrink:0}
+
+/* 제품 연결 패널 */
+.product-panel{background:#fff;border:1px solid var(--bdr);border-radius:14px;padding:20px 24px;margin-bottom:16px}
+.panel-title{font-size:14px;font-weight:800;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.panel-sub{font-size:11px;color:var(--muted);margin-bottom:16px}
+.product-card{background:linear-gradient(135deg,var(--pri-lt),#f5f3ff);border:1.5px solid var(--pri-bdr);border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.product-card.empty{background:#f8fafc;border:1.5px dashed var(--bdr);justify-content:center;padding:28px}
+.pc-name{font-size:18px;font-weight:900;color:var(--pri)}
+.pc-badges{display:flex;gap:6px;flex-wrap:wrap}
+.pc-badge{display:inline-flex;align-items:center;gap:3px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.pc-meta{display:flex;gap:16px;flex-wrap:wrap;margin-left:auto}
+.pc-meta-item{text-align:center}
+.pc-meta-val{font-size:16px;font-weight:900;color:var(--pri)}
+.pc-meta-lbl{font-size:10px;color:var(--faint)}
+
+/* 설정 패널 */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px}
+.setting-box{background:#fff;border:1px solid var(--bdr);border-radius:12px;padding:14px 16px}
+.setting-label{font-size:10px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.setting-select{width:100%;padding:8px 10px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;color:var(--txt);background:#f8fafc;outline:none;cursor:pointer}
+.setting-select:focus{border-color:var(--pri);background:#fff}
+.tag-row{display:flex;flex-wrap:wrap;gap:5px}
+.tag{padding:4px 10px;border-radius:20px;border:1.5px solid var(--bdr);font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;background:#fff;transition:all .15s}
+.tag.on{border-color:var(--pri);background:var(--pri);color:#fff}
+
+/* 생성 버튼 */
+.gen-btn{width:100%;padding:16px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .2s;margin-bottom:20px;box-shadow:0 4px 20px rgba(99,102,241,.3)}
+.gen-btn:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(99,102,241,.4)}
+.gen-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+/* 결과 영역 */
+.result-layout{display:grid;grid-template-columns:1fr 380px;gap:16px}
+.result-main{display:flex;flex-direction:column;gap:12px}
+.result-side{display:flex;flex-direction:column;gap:12px}
+.result-box{background:#fff;border:1px solid var(--bdr);border-radius:12px;padding:16px 18px}
+.result-box-title{font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.copy-btn{padding:3px 10px;background:var(--pri-lt);border:1px solid var(--pri-bdr);border-radius:6px;font-size:10px;font-weight:700;color:var(--pri);cursor:pointer}
+.copy-btn:hover{background:var(--pri);color:#fff}
+
+/* 제목 리스트 */
+.title-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f8fafc;border-radius:8px;margin-bottom:6px;cursor:pointer;border:1.5px solid transparent;transition:all .15s}
+.title-item:hover{border-color:var(--pri-bdr);background:var(--pri-lt)}
+.title-item.selected{border-color:var(--pri);background:var(--pri-lt)}
+.title-num{width:22px;height:22px;border-radius:6px;background:#fff;border:1.5px solid var(--bdr);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:var(--faint);flex-shrink:0}
+.title-item.selected .title-num{background:var(--pri);color:#fff;border-color:var(--pri)}
+.title-text{font-size:13px;font-weight:600;color:var(--txt);flex:1}
+.seo-score{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px}
+
+/* 본문 */
+.body-textarea{width:100%;min-height:320px;padding:14px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;line-height:1.9;color:var(--txt);resize:vertical;outline:none;font-family:inherit}
+.body-textarea:focus{border-color:var(--pri)}
+
+/* 해시태그 */
+.hashtag-wrap{display:flex;flex-wrap:wrap;gap:6px}
+.hashtag{display:inline-flex;align-items:center;padding:4px 10px;background:var(--pri-lt);border:1px solid var(--pri-bdr);border-radius:20px;font-size:12px;font-weight:600;color:var(--pri)}
+
+/* 썸네일 */
+.thumb-preview{background:linear-gradient(135deg,#1e293b,#334155);border-radius:10px;padding:24px;text-align:center;min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;margin-bottom:10px}
+.thumb-main{font-size:18px;font-weight:900;color:#fff;line-height:1.4}
+.thumb-sub{font-size:12px;color:#94a3b8}
+.thumb-badge{display:inline-flex;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;background:var(--red);color:#fff}
+
+/* SEO 체크리스트 */
+.seo-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f8fafc;font-size:12px}
+.seo-item:last-child{border-bottom:none}
+.seo-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* 업로드 패널 */
+.upload-panel{background:#fff;border:1px solid var(--bdr);border-radius:12px;padding:16px 18px}
+.upload-btn{width:100%;padding:11px;border-radius:10px;border:none;font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;transition:all .15s}
+.upload-btn:hover{opacity:.9;transform:translateY(-1px)}
+.upload-naver{background:#03c75a;color:#fff}
+.upload-tistory{background:#ff5733;color:#fff}
+.upload-schedule{background:#f8fafc;color:#475569;border:1.5px solid var(--bdr)}
+.upload-schedule:hover{border-color:var(--pri);color:var(--pri)}
+.schedule-row{display:flex;gap:8px;margin-bottom:8px}
+.schedule-input{flex:1;padding:8px 10px;border:1.5px solid var(--bdr);border-radius:8px;font-size:12px;outline:none}
+.schedule-input:focus{border-color:var(--pri)}
+
+/* 로딩 */
+.loading-overlay{position:fixed;inset:0;background:rgba(240,244,255,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;gap:16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:40px;height:40px;border:4px solid var(--bdr);border-top:4px solid var(--pri);border-radius:50%;animation:spin .8s linear infinite}
+.loading-step{font-size:13px;color:var(--pri);font-weight:700}
+.loading-progress{width:260px;height:4px;background:#e2e8f0;border-radius:2px;overflow:hidden}
+.loading-bar{height:100%;background:linear-gradient(90deg,#6366f1,#8b5cf6);border-radius:2px;transition:width .4s}
+
+/* toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 20px;border-radius:10px;font-size:12px;font-weight:600;z-index:999;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+
+@media(max-width:900px){.result-layout{grid-template-columns:1fr}.settings-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.settings-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<nav>
+  <a class="nav-logo" href="/index.html">Real<span>Pick</span></a>
+  <div class="nav-links">
+    <a class="nav-link" href="/index.html">🏠 홈</a>
+    <a class="nav-link" href="/trend.html">🔍 트렌드 탐색</a>
+    <a class="nav-link hot" href="/hot.html">🔥 지금 뜨는 제품</a>
+    <a class="nav-link active" href="/blog.html">✍️ 블로그제작</a>
+    <a class="nav-link" href="/data.html">🗂 데이터 뷰</a>
+  </div>
+  <div class="nav-right"><span class="badge">NEW</span></div>
+</nav>
+
+<div id="loading-overlay" class="loading-overlay" style="display:none">
+  <div class="spinner"></div>
+  <div class="loading-step" id="loading-step">블로그 콘텐츠 생성 중...</div>
+  <div class="loading-progress"><div class="loading-bar" id="loading-bar" style="width:0%"></div></div>
+  <div style="font-size:11px;color:var(--faint)" id="loading-sub">RSS + 네이버 + 유튜브 데이터 분석 중</div>
+</div>
+
+<div class="wrap">
+
+  <!-- 스텝 바 -->
+  <div class="step-bar">
+    <div class="step">
+      <div class="step-num done" id="step1-num">✓</div>
+      <div class="step-label done" id="step1-label">제품 연결</div>
+    </div>
+    <div class="step-arrow">→</div>
+    <div class="step">
+      <div class="step-num active" id="step2-num">2</div>
+      <div class="step-label active" id="step2-label">설정</div>
+    </div>
+    <div class="step-arrow">→</div>
+    <div class="step">
+      <div class="step-num idle" id="step3-num">3</div>
+      <div class="step-label idle" id="step3-label">생성</div>
+    </div>
+    <div class="step-arrow">→</div>
+    <div class="step">
+      <div class="step-num idle" id="step4-num">4</div>
+      <div class="step-label idle" id="step4-label">업로드</div>
+    </div>
+    <div style="margin-left:auto;font-size:11px;color:var(--faint)" id="step-hint">제품 데이터가 자동으로 연결됩니다</div>
+  </div>
+
+  <!-- STEP 1: 제품 연결 -->
+  <div class="product-panel">
+    <div class="panel-title">
+      📦 연결된 제품
+      <span style="font-size:11px;font-weight:500;color:var(--muted)">지금 뜨는 제품에서 자동 연결 · 직접 입력도 가능</span>
+    </div>
+    <div class="panel-sub">제품을 선택하면 키워드, RSS 신호, 점수가 자동으로 반영됩니다</div>
+
+    <!-- 연결된 제품 카드 -->
+    <div id="product-card" class="product-card empty">
+      <div style="text-align:center">
+        <div style="font-size:28px;margin-bottom:8px">📡</div>
+        <div style="font-size:13px;font-weight:700;color:var(--faint);margin-bottom:6px">연결된 제품 없음</div>
+        <div style="font-size:11px;color:#c4cad4;margin-bottom:12px">지금 뜨는 제품에서 선택하거나 직접 입력하세요</div>
+        <button onclick="openProductSearch()" style="padding:8px 18px;background:var(--pri);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🔥 지금 뜨는 제품에서 선택</button>
+      </div>
+    </div>
+
+    <!-- 직접 입력 -->
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+      <input id="manual-product" type="text" placeholder="직접 제품명 입력 (예: 무선 청소기)..."
+        style="flex:1;min-width:200px;padding:8px 12px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;outline:none"
+        onkeydown="if(event.key==='Enter')setManualProduct()"/>
+      <button onclick="setManualProduct()" style="padding:8px 16px;background:#f1f5f9;border:1px solid var(--bdr);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;color:#475569">직접 입력</button>
+      <button onclick="goHotPage()" style="padding:8px 16px;background:var(--red-lt);border:1.5px solid #fecaca;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;color:var(--red)">🔥 지금 뜨는 제품</button>
+    </div>
+  </div>
+
+  <!-- STEP 2: 설정 -->
+  <div class="settings-grid">
+    <div class="setting-box">
+      <div class="setting-label">블로그 플랫폼</div>
+      <select id="platform" class="setting-select">
+        <option value="naver">네이버 블로그</option>
+        <option value="tistory">티스토리</option>
+        <option value="both">둘 다 업로드</option>
+      </select>
+    </div>
+    <div class="setting-box">
+      <div class="setting-label">글 유형</div>
+      <select id="post-type" class="setting-select">
+        <option value="review">상품 리뷰형</option>
+        <option value="compare">비교 추천형</option>
+        <option value="guide">구매 가이드형</option>
+        <option value="trend">트렌드 분석형</option>
+      </select>
+    </div>
+    <div class="setting-box">
+      <div class="setting-label">글 길이</div>
+      <select id="post-length" class="setting-select">
+        <option value="short">짧게 (800자~)</option>
+        <option value="medium" selected>보통 (1500자~)</option>
+        <option value="long">길게 (2500자~)</option>
+      </select>
+    </div>
+    <div class="setting-box" style="grid-column:span 3">
+      <div class="setting-label">포함할 요소</div>
+      <div class="tag-row">
+        <span class="tag on" onclick="toggleTag(this)">쿠팡 파트너스 링크</span>
+        <span class="tag on" onclick="toggleTag(this)">네이버 쇼핑 링크</span>
+        <span class="tag on" onclick="toggleTag(this)">가격 비교</span>
+        <span class="tag on" onclick="toggleTag(this)">장단점 정리</span>
+        <span class="tag"    onclick="toggleTag(this)">유튜브 리뷰 언급</span>
+        <span class="tag on" onclick="toggleTag(this)">구매 추천 CTA</span>
+        <span class="tag"    onclick="toggleTag(this)">경쟁 제품 비교</span>
+        <span class="tag on" onclick="toggleTag(this)">SEO 최적화</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 생성 버튼 -->
+  <button class="gen-btn" id="gen-btn" onclick="generateBlog()">
+    ⚡ 블로그 생성하기 — 제목 5개 + 본문 + 해시태그 + SEO
+  </button>
+
+  <!-- STEP 3: 결과 -->
+  <div id="result-area" style="display:none">
+    <div class="result-layout">
+
+      <!-- 메인: 제목 + 본문 + 해시태그 -->
+      <div class="result-main">
+
+        <!-- 제목 5개 -->
+        <div class="result-box">
+          <div class="result-box-title">
+            📝 제목 선택 (5개 중 1개)
+            <button class="copy-btn" onclick="copySelected('title')">선택 복사</button>
+          </div>
+          <div id="title-list"></div>
+        </div>
+
+        <!-- 본문 -->
+        <div class="result-box">
+          <div class="result-box-title">
+            📄 본문
+            <div style="display:flex;gap:6px">
+              <span id="char-count" style="font-size:10px;color:var(--faint);align-self:center"></span>
+              <button class="copy-btn" onclick="copySelected('body')">복사</button>
+              <button class="copy-btn" onclick="regenSection('body')" style="background:var(--green-lt);border-color:#a7f3d0;color:var(--green)">재생성</button>
+            </div>
+          </div>
+          <textarea id="body-textarea" class="body-textarea" oninput="updateCharCount()"></textarea>
+        </div>
+
+        <!-- 해시태그 -->
+        <div class="result-box">
+          <div class="result-box-title">
+            # 해시태그
+            <button class="copy-btn" onclick="copySelected('hashtag')">복사</button>
+          </div>
+          <div id="hashtag-wrap" class="hashtag-wrap"></div>
+        </div>
+
+      </div>
+
+      <!-- 사이드: 썸네일 + SEO + 업로드 -->
+      <div class="result-side">
+
+        <!-- 썸네일 -->
+        <div class="result-box">
+          <div class="result-box-title">
+            🖼 썸네일 문구
+            <button class="copy-btn" onclick="regenSection('thumb')">재생성</button>
+          </div>
+          <div class="thumb-preview" id="thumb-preview">
+            <div class="thumb-badge" id="thumb-badge">🔥 지금 뜨는 제품</div>
+            <div class="thumb-main" id="thumb-main">썸네일 문구가 여기에 표시됩니다</div>
+            <div class="thumb-sub" id="thumb-sub">부제목 문구</div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <select id="thumb-style" class="setting-select" style="flex:1" onchange="updateThumbPreview()">
+              <option value="dark">다크 (기본)</option>
+              <option value="red">레드 임팩트</option>
+              <option value="green">그린 신뢰</option>
+              <option value="purple">퍼플 프리미엄</option>
+            </select>
+            <button class="copy-btn" onclick="copySelected('thumb')" style="padding:6px 12px">텍스트 복사</button>
+          </div>
+        </div>
+
+        <!-- SEO 체크리스트 -->
+        <div class="result-box">
+          <div class="result-box-title">✅ SEO 분석</div>
+          <div id="seo-checklist"></div>
+          <div style="margin-top:10px;padding:10px;background:var(--pri-lt);border-radius:8px">
+            <div style="font-size:10px;font-weight:700;color:var(--pri);margin-bottom:4px">SEO 점수</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="flex:1;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden">
+                <div id="seo-bar" style="height:100%;border-radius:3px;background:linear-gradient(90deg,#6366f1,#8b5cf6);transition:width .5s;width:0%"></div>
+              </div>
+              <span id="seo-score-text" style="font-size:13px;font-weight:900;color:var(--pri)">–</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 업로드 -->
+        <div class="upload-panel">
+          <div style="font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">📤 업로드</div>
+
+          <!-- 예약 발행 설정 -->
+          <div style="margin-bottom:12px;padding:10px;background:#f8fafc;border-radius:8px;border:1px solid var(--bdr)">
+            <div style="font-size:10px;font-weight:700;color:var(--faint);margin-bottom:6px">⏰ 예약 발행</div>
+            <div class="schedule-row">
+              <input type="date" id="schedule-date" class="schedule-input"/>
+              <input type="time" id="schedule-time" class="schedule-input" value="09:00"/>
+            </div>
+            <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);cursor:pointer">
+              <input type="checkbox" id="use-schedule"/> 예약 발행 사용
+            </label>
+          </div>
+
+          <button class="upload-btn upload-naver" onclick="uploadTo('naver')">
+            <span style="font-size:16px">N</span> 네이버 블로그에 업로드
+          </button>
+          <button class="upload-btn upload-tistory" onclick="uploadTo('tistory')">
+            <span style="font-size:16px">T</span> 티스토리에 업로드
+          </button>
+          <button class="upload-btn upload-schedule" onclick="uploadTo('both')">
+            📋 전체 복사 (수동 업로드)
+          </button>
+
+          <div style="margin-top:10px;padding:10px;background:#f8fafc;border-radius:8px;font-size:11px;color:var(--muted);line-height:1.7">
+            💡 자동 업로드는 각 플랫폼 API 연동 필요<br>
+            <a href="#" onclick="showApiSetup()" style="color:var(--pri);font-weight:700;text-decoration:none">API 연동 설정하기 →</a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 제품 선택 모달 -->
+<div id="product-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:flex;align-items:center;justify-content:center" onclick="if(event.target===this)closeModal()">
+  <div style="background:#fff;border-radius:16px;padding:24px;width:500px;max-width:90vw;max-height:80vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-size:15px;font-weight:900">🔥 지금 뜨는 제품에서 선택</div>
+      <button onclick="closeModal()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--faint)">✕</button>
+    </div>
+    <div id="modal-product-list" style="display:flex;flex-direction:column;gap:8px">
+      <div style="text-align:center;padding:24px;color:var(--faint);font-size:13px">
+        <div style="font-size:28px;margin-bottom:8px">📡</div>
+        분석된 제품이 없습니다<br>
+        <a href="/hot.html" style="color:var(--pri);font-weight:700;text-decoration:none">지금 뜨는 제품으로 이동 →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── 상태 ─────────────────────────────────────────────────────
+var S = {
+  product: null,   // 연결된 제품 데이터
+  titles: [],      // 생성된 제목 5개
+  selectedTitle: 0,
+  body: '',
+  hashtags: [],
+  thumb: { main: '', sub: '', badge: '' },
+  seo: {},
+  generated: false
+};
+
+// ── 초기화: sessionStorage에서 제품 데이터 복원 ──────────────
+window.addEventListener('DOMContentLoaded', function() {
+  // hot.html에서 넘어온 제품 데이터
+  try {
+    var hotProduct = sessionStorage.getItem('blog-product');
+    if (hotProduct) {
+      var p = JSON.parse(hotProduct);
+      sessionStorage.removeItem('blog-product');
+      setProduct(p);
+      return;
+    }
+  } catch(e) {}
+
+  // hot.html 마지막 결과에서 1순위 제품 자동 연결
+  try {
+    var hotResult = sessionStorage.getItem('hot-last-result');
+    if (hotResult) {
+      var d = JSON.parse(hotResult);
+      if (d && d.candidates && d.candidates.length) {
+        setProduct(d.candidates[0]);
+        showToast('📦 지금 뜨는 제품 1순위 자동 연결됨');
+      }
+    }
+  } catch(e) {}
+
+  // 예약 날짜 기본값: 내일
+  var tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+  document.getElementById('schedule-date').value = tomorrow.toISOString().slice(0, 10);
+});
+
+// ── 제품 설정 ─────────────────────────────────────────────────
+function setProduct(p) {
+  S.product = p;
+  var jdg = p.judge || {};
+  var sc  = p.score || {};
+  var rss = p.rss   || {};
+  var d   = p.data  || {};
+  var dl  = d.datalab || {};
+
+  var statusColor = jdg.trendStatus === 'rising' ? '#10b981' : jdg.trendStatus === 'spreading' ? '#6366f1' : '#94a3b8';
+  var statusLabel = { rising:'🔥 급상승', spreading:'🚀 확산중', plateau:'⏳ 정체', falling:'❌ 하락' }[jdg.trendStatus] || '–';
+  var decLabel    = { go:'🔥 지금 실행', conditional:'⚠️ 조건부', wait:'⏳ 관망', no:'❌ 비추천' }[jdg.decision] || '–';
+  var rssText     = rss.detectionCount > 0 ? '📡 RSS ' + rss.detectionCount + '건' : '';
+
+  document.getElementById('product-card').className = 'product-card';
+  document.getElementById('product-card').innerHTML =
+    '<div><div class="pc-name">' + (p.name || '–') + '</div>'
+    + '<div class="pc-badges" style="margin-top:8px">'
+      + '<span class="pc-badge" style="background:' + statusColor + '18;color:' + statusColor + '">' + statusLabel + '</span>'
+      + '<span class="pc-badge" style="background:#fef2f2;color:#ef4444">' + decLabel + '</span>'
+      + (rssText ? '<span class="pc-badge" style="background:#fff7ed;color:#f97316">' + rssText + '</span>' : '')
+      + (dl.surgeRate ? '<span class="pc-badge" style="background:#ecfdf5;color:#10b981">검색량 ' + (dl.surgeRate >= 0 ? '+' : '') + dl.surgeRate + '%</span>' : '')
+    + '</div></div>'
+    + '<div class="pc-meta">'
+      + '<div class="pc-meta-item"><div class="pc-meta-val">' + (sc.total || 0) + '</div><div class="pc-meta-lbl">종합점수</div></div>'
+      + '<div class="pc-meta-item"><div class="pc-meta-val">' + (sc.grade || '–') + '</div><div class="pc-meta-lbl">등급</div></div>'
+      + (rss.score ? '<div class="pc-meta-item"><div class="pc-meta-val" style="color:#f97316">' + rss.score + '</div><div class="pc-meta-lbl">신호강도</div></div>' : '')
+    + '</div>'
+    + '<button onclick="clearProduct()" style="margin-left:auto;padding:4px 10px;background:#f8fafc;border:1px solid var(--bdr);border-radius:6px;font-size:11px;cursor:pointer;color:var(--muted)">변경</button>';
+
+  updateStep(1);
+  showToast('"' + p.name + '" 연결됨');
+}
+
+function clearProduct() {
+  S.product = null;
+  document.getElementById('product-card').className = 'product-card empty';
+  document.getElementById('product-card').innerHTML =
+    '<div style="text-align:center"><div style="font-size:28px;margin-bottom:8px">📡</div>'
+    + '<div style="font-size:13px;font-weight:700;color:var(--faint);margin-bottom:6px">연결된 제품 없음</div>'
+    + '<div style="font-size:11px;color:#c4cad4;margin-bottom:12px">지금 뜨는 제품에서 선택하거나 직접 입력하세요</div>'
+    + '<button onclick="openProductSearch()" style="padding:8px 18px;background:var(--pri);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🔥 지금 뜨는 제품에서 선택</button></div>';
+}
+
+function setManualProduct() {
+  var kw = document.getElementById('manual-product').value.trim();
+  if (!kw) return;
+  setProduct({ name: kw, judge: {}, score: { total: 0, grade: '–' }, rss: {}, data: {} });
+  document.getElementById('manual-product').value = '';
+}
+
+function goHotPage() {
+  sessionStorage.setItem('hot-to-blog', '1');
+  location.href = '/hot.html';
+}
+
+// ── 제품 선택 모달 ────────────────────────────────────────────
+function openProductSearch() {
+  var modal = document.getElementById('product-modal');
+  modal.style.display = 'flex';
+
+  try {
+    var hotResult = sessionStorage.getItem('hot-last-result');
+    if (hotResult) {
+      var d = JSON.parse(hotResult);
+      var candidates = d.candidates || [];
+      if (candidates.length) {
+        document.getElementById('modal-product-list').innerHTML =
+          candidates.map(function(p, i) {
+            var sc = p.score || {};
+            var jdg = p.judge || {};
+            var gc = sc.grade === 'A' ? '#10b981' : sc.grade === 'B' ? '#6366f1' : '#94a3b8';
+            return '<div onclick="selectFromModal(' + i + ')" style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#f8fafc;border-radius:10px;cursor:pointer;border:1.5px solid transparent;transition:all .15s" onmouseover="this.style.borderColor=\'var(--pri-bdr)\'" onmouseout="this.style.borderColor=\'transparent\'">'
+              + '<div style="font-size:22px;font-weight:900;color:' + gc + ';min-width:24px">' + (i + 1) + '</div>'
+              + '<div style="flex:1"><div style="font-size:13px;font-weight:800">' + p.name + '</div>'
+              + '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + (sc.total || 0) + '점 · ' + (sc.grade || '–') + '등급</div></div>'
+              + '<div style="font-size:11px;font-weight:700;color:#ef4444">' + ({ go:'🔥 지금 실행', conditional:'⚠️ 조건부', wait:'⏳ 관망', no:'비추천' }[jdg.decision] || '') + '</div>'
+              + '</div>';
+          }).join('');
+        return;
+      }
+    }
+  } catch(e) {}
+}
+
+var _modalCandidates = [];
+function selectFromModal(i) {
+  try {
+    var d = JSON.parse(sessionStorage.getItem('hot-last-result'));
+    var p = (d.candidates || [])[i];
+    if (p) { setProduct(p); closeModal(); }
+  } catch(e) {}
+}
+
+function closeModal() {
+  document.getElementById('product-modal').style.display = 'none';
+}
+
+// ── 블로그 생성 ───────────────────────────────────────────────
+async function generateBlog() {
+  if (!S.product) {
+    showToast('⚠️ 제품을 먼저 연결해주세요');
+    return;
+  }
+
+  var btn = document.getElementById('gen-btn');
+  btn.disabled = true;
+  showLoading(true);
+  updateStep(2);
+
+  var p       = S.product;
+  var jdg     = p.judge    || {};
+  var sc      = p.score    || {};
+  var rss     = p.rss      || {};
+  var d       = p.data     || {};
+  var dl      = d.datalab  || {};
+  var yt      = d.youtube  || {};
+  var shop    = d.shopping || {};
+  var postType   = document.getElementById('post-type').value;
+  var postLength = document.getElementById('post-length').value;
+  var tags    = [...document.querySelectorAll('.tag.on')].map(function(t){ return t.textContent; });
+
+  var typeLabel = { review:'상품 리뷰', compare:'비교 추천', guide:'구매 가이드', trend:'트렌드 분석' }[postType] || '리뷰';
+  var lenLabel  = { short:'800자 이상', medium:'1500자 이상', long:'2500자 이상' }[postLength] || '1500자 이상';
+
+  var systemPrompt =
+    '당신은 수익형 블로그 전문 작성자입니다. 쿠팡 파트너스 수익화에 최적화된 블로그 콘텐츠를 작성합니다.\n'
+    + 'SEO 최적화, 구매 전환 유도, 자연스러운 제품 추천이 핵심입니다.\n'
+    + '반드시 JSON만 출력하고 다른 텍스트는 절대 포함하지 마세요.';
+
+  var userPrompt =
+    '아래 제품 데이터를 기반으로 수익형 블로그 콘텐츠를 생성하라.\n\n'
+    + '제품명: ' + p.name + '\n'
+    + '글 유형: ' + typeLabel + '\n'
+    + '글 길이: ' + lenLabel + '\n'
+    + '트렌드 상태: ' + (jdg.trendStatus || '–') + '\n'
+    + '검색량 변화: ' + (dl.surgeRate >= 0 ? '+' : '') + (dl.surgeRate || 0) + '%\n'
+    + 'RSS 신호 강도: ' + (rss.score || 0) + '점 / ' + (rss.detectionCount || 0) + '건 감지\n'
+    + '유튜브 영상 수: ' + (yt.videoCount || 0) + '개 / 평균 조회수: ' + (yt.avgViews || 0) + '\n'
+    + '쇼핑 상품 수: ' + (shop.itemCount || 0) + '개 / 평균가: ' + (shop.avgPrice || 0) + '원\n'
+    + '포함 요소: ' + tags.join(', ') + '\n\n'
+    + '출력 형식 (JSON만, 다른 텍스트 금지):\n'
+    + '{\n'
+    + '  "titles": ["제목1","제목2","제목3","제목4","제목5"],\n'
+    + '  "body": "본문 전체 (마크다운 사용, ' + lenLabel + ')",\n'
+    + '  "hashtags": ["태그1","태그2",...최대15개],\n'
+    + '  "thumb": { "main": "썸네일 메인 문구 (20자 이내)", "sub": "부제목 (15자 이내)", "badge": "뱃지 문구 (8자 이내)" },\n'
+    + '  "seo": { "keyword_density": true/false, "title_length": true/false, "meta_desc": true/false, "heading_structure": true/false, "cta_included": true/false, "internal_link": true/false }\n'
+    + '}';
+
+  setLoadingStep('제목 5개 생성 중...', 20);
+  await sleep(400);
+  setLoadingStep('본문 작성 중...', 50);
+
+  try {
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
+      })
+    });
+
+    var data = await res.json();
+    var raw  = data.content ? data.content.map(function(c){ return c.text || ''; }).join('') : '';
+    var clean = raw.replace(/```json|```/g, '').trim();
+    var result = JSON.parse(clean);
+
+    setLoadingStep('SEO 분석 중...', 80);
+    await sleep(300);
+
+    S.titles        = result.titles  || [];
+    S.body          = result.body    || '';
+    S.hashtags      = result.hashtags|| [];
+    S.thumb         = result.thumb   || {};
+    S.seo           = result.seo     || {};
+    S.selectedTitle = 0;
+    S.generated     = true;
+
+    setLoadingStep('완료!', 100);
+    await sleep(300);
+
+    renderResult();
+    document.getElementById('result-area').style.display = 'block';
+    document.getElementById('result-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    updateStep(3);
+
+  } catch(e) {
+    showToast('⚠️ 생성 오류: ' + e.message);
+    console.error(e);
+  } finally {
+    showLoading(false);
+    btn.disabled = false;
+  }
+}
+
+// ── 결과 렌더 ─────────────────────────────────────────────────
+function renderResult() {
+  // 제목 5개
+  var titleList = document.getElementById('title-list');
+  titleList.innerHTML = S.titles.map(function(t, i) {
+    var len = t.length;
+    var seoOk = len >= 20 && len <= 50;
+    return '<div class="title-item' + (i === S.selectedTitle ? ' selected' : '') + '" onclick="selectTitle(' + i + ')">'
+      + '<div class="title-num">' + (i + 1) + '</div>'
+      + '<div class="title-text">' + t + '</div>'
+      + '<span class="seo-score" style="background:' + (seoOk ? '#ecfdf5;color:#10b981' : '#fff7ed;color:#d97706') + '">'
+      + len + '자' + (seoOk ? ' ✓' : '') + '</span>'
+      + '</div>';
+  }).join('');
+
+  // 본문
+  document.getElementById('body-textarea').value = S.body;
+  updateCharCount();
+
+  // 해시태그
+  document.getElementById('hashtag-wrap').innerHTML =
+    S.hashtags.map(function(h) {
+      return '<span class="hashtag">#' + h.replace(/^#/, '') + '</span>';
+    }).join('');
+
+  // 썸네일
+  updateThumbPreview();
+
+  // SEO 체크리스트
+  var seoItems = [
+    { key: 'keyword_density', label: '키워드 밀도 적절' },
+    { key: 'title_length',    label: '제목 길이 최적 (20~50자)' },
+    { key: 'meta_desc',       label: '메타 설명 포함' },
+    { key: 'heading_structure',label: '헤딩 구조 (H2/H3)' },
+    { key: 'cta_included',    label: '구매 유도 CTA 포함' },
+    { key: 'internal_link',   label: '내부/제휴 링크 포함' }
+  ];
+  var passCount = 0;
+  document.getElementById('seo-checklist').innerHTML =
+    seoItems.map(function(item) {
+      var ok = S.seo[item.key];
+      if (ok) passCount++;
+      return '<div class="seo-item">'
+        + '<div class="seo-dot" style="background:' + (ok ? '#10b981' : '#f43f5e') + '"></div>'
+        + '<span style="flex:1;color:var(--txt)">' + item.label + '</span>'
+        + '<span style="font-size:10px;font-weight:700;color:' + (ok ? '#10b981' : '#f43f5e') + '">' + (ok ? '통과' : '미흡') + '</span>'
+        + '</div>';
+    }).join('');
+  var seoScore = Math.round((passCount / seoItems.length) * 100);
+  document.getElementById('seo-bar').style.width = seoScore + '%';
+  document.getElementById('seo-score-text').textContent = seoScore + '점';
+}
+
+function selectTitle(i) {
+  S.selectedTitle = i;
+  renderResult();
+}
+
+function updateThumbPreview() {
+  var t     = S.thumb;
+  var style = document.getElementById('thumb-style') ? document.getElementById('thumb-style').value : 'dark';
+  var bg    = { dark: 'linear-gradient(135deg,#1e293b,#334155)', red: 'linear-gradient(135deg,#7f1d1d,#ef4444)', green: 'linear-gradient(135deg,#064e3b,#10b981)', purple: 'linear-gradient(135deg,#3b0764,#8b5cf6)' }[style] || 'linear-gradient(135deg,#1e293b,#334155)';
+  var preview = document.getElementById('thumb-preview');
+  if (preview) preview.style.background = bg;
+  var main = document.getElementById('thumb-main');
+  var sub  = document.getElementById('thumb-sub');
+  var badge = document.getElementById('thumb-badge');
+  if (main)  main.textContent  = t.main  || (S.product ? S.product.name + ' 추천' : '');
+  if (sub)   sub.textContent   = t.sub   || '지금 구매하면 이득인 이유';
+  if (badge) badge.textContent = t.badge || '🔥 HOT';
+}
+
+function updateCharCount() {
+  var ta = document.getElementById('body-textarea');
+  var el = document.getElementById('char-count');
+  if (ta && el) el.textContent = ta.value.replace(/\s/g, '').length + '자';
+}
+
+// ── 재생성 ────────────────────────────────────────────────────
+async function regenSection(section) {
+  if (!S.product || !S.generated) { showToast('⚠️ 먼저 블로그를 생성해주세요'); return; }
+  var name = S.product.name;
+  var prompts = {
+    body: '제품명: ' + name + '\n기존 본문을 다른 스타일로 다시 작성하라. 같은 정보, 다른 문체. 본문만 출력.',
+    thumb: '제품명: ' + name + '\n썸네일 문구 3가지를 다시 생성하라.\nJSON: {"main":"20자이내","sub":"15자이내","badge":"8자이내"}'
+  };
+  showToast('재생성 중...');
+  try {
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: prompts[section] }]
+      })
+    });
+    var data = await res.json();
+    var raw = data.content ? data.content.map(function(c){ return c.text || ''; }).join('') : '';
+    if (section === 'body') {
+      document.getElementById('body-textarea').value = raw.trim();
+      updateCharCount();
+      showToast('✓ 본문 재생성 완료');
+    } else if (section === 'thumb') {
+      var clean = raw.replace(/```json|```/g, '').trim();
+      S.thumb = JSON.parse(clean);
+      updateThumbPreview();
+      showToast('✓ 썸네일 재생성 완료');
+    }
+  } catch(e) { showToast('⚠️ 재생성 오류'); }
+}
+
+// ── 복사 ─────────────────────────────────────────────────────
+function copySelected(type) {
+  var text = '';
+  if (type === 'title') {
+    text = S.titles[S.selectedTitle] || '';
+  } else if (type === 'body') {
+    text = document.getElementById('body-textarea').value;
+  } else if (type === 'hashtag') {
+    text = S.hashtags.map(function(h){ return '#' + h.replace(/^#/, ''); }).join(' ');
+  } else if (type === 'thumb') {
+    var t = S.thumb;
+    text = (t.badge || '') + '\n' + (t.main || '') + '\n' + (t.sub || '');
+  }
+  copyText(text);
+  showToast('✓ 복사됨');
+}
+
+// ── 업로드 ────────────────────────────────────────────────────
+function uploadTo(platform) {
+  if (!S.generated) { showToast('⚠️ 먼저 블로그를 생성해주세요'); return; }
+
+  var useSchedule = document.getElementById('use-schedule').checked;
+  var schedDate   = document.getElementById('schedule-date').value;
+  var schedTime   = document.getElementById('schedule-time').value;
+  var title       = S.titles[S.selectedTitle] || '';
+  var body        = document.getElementById('body-textarea').value;
+  var tags        = S.hashtags.map(function(h){ return h.replace(/^#/, ''); }).join(',');
+
+  if (platform === 'both') {
+    // 전체 복사 (수동 업로드용)
+    var full = '【제목】\n' + title + '\n\n【본문】\n' + body + '\n\n【해시태그】\n' + tags;
+    copyText(full);
+    showToast('✓ 전체 내용 복사됨 — 블로그에 붙여넣기 하세요');
+    updateStep(4);
+    return;
+  }
+
+  // 네이버/티스토리 API 연동 (실제 구현 시 OAuth 필요)
+  var schedMsg = useSchedule ? ' (' + schedDate + ' ' + schedTime + ' 예약)' : ' (즉시 발행)';
+  var platformName = platform === 'naver' ? '네이버 블로그' : '티스토리';
+
+  // API 연동 안 된 경우 → 해당 플랫폼으로 이동 + 클립보드 복사
+  var full = '【제목】\n' + title + '\n\n' + body + '\n\n' + tags;
+  copyText(full);
+
+  var urls = {
+    naver: 'https://blog.naver.com/PostWriteForm.naver',
+    tistory: 'https://www.tistory.com/manage/post/write'
+  };
+  window.open(urls[platform], '_blank');
+  showToast('✓ ' + platformName + '열림 + 내용 복사됨' + schedMsg);
+  updateStep(4);
+}
+
+// ── 스텝 업데이트 ─────────────────────────────────────────────
+function updateStep(active) {
+  for (var i = 1; i <= 4; i++) {
+    var num   = document.getElementById('step' + i + '-num');
+    var label = document.getElementById('step' + i + '-label');
+    if (!num || !label) continue;
+    if (i < active)      { num.className='step-num done'; num.textContent='✓'; label.className='step-label done'; }
+    else if (i === active){ num.className='step-num active'; num.textContent=String(i); label.className='step-label active'; }
+    else                  { num.className='step-num idle'; num.textContent=String(i); label.className='step-label idle'; }
+  }
+  var hints = { 1:'제품 데이터가 자동으로 연결됩니다', 2:'설정 확인 후 생성 버튼을 누르세요', 3:'제목을 선택하고 업로드하세요', 4:'업로드 완료! 수익화 시작 🎉' };
+  var hint = document.getElementById('step-hint');
+  if (hint) hint.textContent = hints[active] || '';
+}
+
+// ── 로딩 ─────────────────────────────────────────────────────
+function showLoading(on) {
+  document.getElementById('loading-overlay').style.display = on ? 'flex' : 'none';
+}
+function setLoadingStep(msg, pct) {
+  document.getElementById('loading-step').textContent = msg;
+  document.getElementById('loading-bar').style.width = pct + '%';
+}
+
+// ── 유틸 ─────────────────────────────────────────────────────
+function sleep(ms) { return new Promise(function(r){ setTimeout(r, ms); }); }
+function copyText(t) {
+  try {
+    var e = document.createElement('textarea');
+    e.value = t; e.style.cssText = 'position:fixed;top:-9999px;opacity:0;';
+    document.body.appendChild(e); e.focus(); e.select(); document.execCommand('copy'); document.body.removeChild(e);
+  } catch(e) { if (navigator.clipboard) navigator.clipboard.writeText(t); }
+}
+function toggleTag(el) { el.classList.toggle('on'); }
+function showToast(msg) {
+  var t = document.getElementById('_toast');
+  if (!t) {
+    t = document.createElement('div'); t.id = '_toast'; t.className = 'toast';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg; t.style.opacity = '1';
+  clearTimeout(t._t); t._t = setTimeout(function(){ t.style.opacity = '0'; }, 2500);
+}
+function showApiSetup() {
+  showToast('💡 네이버/티스토리 API 연동은 OAuth 설정이 필요합니다');
+}
+</script>
+</body>
+</html>
