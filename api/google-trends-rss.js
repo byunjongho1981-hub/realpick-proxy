@@ -23,14 +23,14 @@ export default async function handler(req, res) {
       type : 'deal'
     },
     {
-      name : '네이버_경제',
-      url  : 'https://news.naver.com/main/rss/section.naver?sid1=101',
-      type : 'news'
+      name : '뽐뿌_중고',
+      url  : 'https://www.ppomppu.co.kr/rss.php?id=freemarketpc',
+      type : 'deal'
     },
     {
-      name : '클리앙',
-      url  : 'https://www.clien.net/service/rss',
-      type : 'community'
+      name : '알리익스프레스_핫딜',
+      url  : 'https://www.ppomppu.co.kr/rss.php?id=aliexpress',
+      type : 'deal'
     }
   ];
 
