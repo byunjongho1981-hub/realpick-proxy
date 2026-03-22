@@ -31,13 +31,22 @@ export default async function handler(req, res) {
 
     if (!productInfo) throw new Error('제품 정보를 가져올 수 없습니다');
 
-    // ★ 이미지 URL → 서버에서 base64 변환
-    if (productInfo.imageUrl) {
-      const imgData = await fetchImageAsBase64(productInfo.imageUrl);
+    // ★ imageUrl 서버에서 직접 base64 변환 (enrichWithGemini 바깥에서 처리)
+    const imageUrl = productInfo.imageUrl || '';
+    if (imageUrl) {
+      console.log('[fetch-url] imageUrl found:', imageUrl.slice(0, 80));
+      const imgData = await fetchImageAsBase64(imageUrl);
       if (imgData) {
-        productInfo.imageBase64  = imgData.base64;
+        productInfo.imageBase64   = imgData.base64;
         productInfo.imageMimeType = imgData.mimeType;
+        console.log('[fetch-url] image base64 ok, size:', imgData.base64.length);
+      } else {
+        console.warn('[fetch-url] image base64 failed for:', imageUrl.slice(0, 80));
+        // base64 실패 시 URL만이라도 반환
+        productInfo.imageUrl = imageUrl;
       }
+    } else {
+      console.warn('[fetch-url] no imageUrl extracted');
     }
 
     return res.status(200).json({ success: true, product: productInfo });
@@ -247,6 +256,7 @@ async function fetchGeneral(url, platformName) {
 
 // ── Gemini 보강 ───────────────────────────────────────────────
 async function enrichWithGemini(raw) {
+  const savedImageUrl = raw.imageUrl || ''; // ★ 미리 백업
   const apiKey   = process.env.GEMINI_API_KEY;
   const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=' + apiKey;
 
@@ -286,8 +296,7 @@ ${JSON.stringify(raw, null, 2)}
     if (d.error) throw new Error(d.error.message);
     const text = d.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
     const result = JSON.parse(text.replace(/```json|```/g, '').trim());
-    // ★ Gemini가 imageUrl 덮어쓰는 것 방지 — raw 값 강제 보존
-    result.imageUrl = raw.imageUrl || result.imageUrl || '';
+    result.imageUrl = savedImageUrl; // ★ 강제 복원
     return result;
   } catch(e) {
     console.error('[enrichWithGemini]', e.message);
