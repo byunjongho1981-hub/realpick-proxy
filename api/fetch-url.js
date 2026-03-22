@@ -285,7 +285,10 @@ ${JSON.stringify(raw, null, 2)}
     const d = await r.json();
     if (d.error) throw new Error(d.error.message);
     const text = d.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-    return JSON.parse(text.replace(/```json|```/g, '').trim());
+    const result = JSON.parse(text.replace(/```json|```/g, '').trim());
+    // ★ Gemini가 imageUrl 덮어쓰는 것 방지 — raw 값 강제 보존
+    result.imageUrl = raw.imageUrl || result.imageUrl || '';
+    return result;
   } catch(e) {
     console.error('[enrichWithGemini]', e.message);
     return { ...raw, priceGrade: calcGrade(raw.price), features: [], pros: [], cons: [] };
