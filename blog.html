@@ -396,33 +396,27 @@ function focusSlot(idx) {
   openSlot(idx);
 }
 
+// ── 이미지 처리 ──────────────────────────────────────────────
 function handleSlotFile(e, idx) {
   var file = e.target.files[0]; if (!file) return;
-  var reader = new FileReader();
-  reader.onload = function(ev) {
-    var b64 = ev.target.result.split(',')[1];
-    S_IMAGES[idx] = { data: b64, mimeType: file.type };
+  resizeImage(file, 800, 0.7).then(function(imgData) {
+    S_IMAGES[idx] = imgData;
     renderSlots();
     showToast('📸 슬롯 '+(idx+1)+' 이미지 등록됨');
-  };
-  reader.readAsDataURL(file);
+  });
   e.target.value = '';
 }
 
 function pasteSlot(e, idx) {
-  var items = (e.clipboardData||e.originalEvent&&e.originalEvent.clipboardData||{}).items||[];
+  var items = (e.clipboardData||{}).items||[];
   for (var i=0; i<items.length; i++) {
     if (items[i].type.indexOf('image') === -1) continue;
     var file = items[i].getAsFile(); if (!file) continue;
-    var reader = new FileReader();
-    (function(f, slotIdx){
-      reader.onload = function(ev) {
-        S_IMAGES[slotIdx] = { data: ev.target.result.split(',')[1], mimeType: f.type };
-        renderSlots();
-        showToast('📸 슬롯 '+(slotIdx+1)+' 붙여넣기 완료');
-      };
-      reader.readAsDataURL(f);
-    })(file, idx);
+    resizeImage(file, 800, 0.7).then(function(imgData) {
+      S_IMAGES[idx] = imgData;
+      renderSlots();
+      showToast('📸 슬롯 '+(idx+1)+' 붙여넣기 완료');
+    });
     e.preventDefault(); break;
   }
 }
@@ -433,15 +427,19 @@ function clearSlot(idx) {
   showToast('슬롯 '+(idx+1)+' 초기화됨');
 }
 
-// 전역 붙여넣기 (포커스된 슬롯 없으면 첫 빈 슬롯에)
 document.addEventListener('paste', function(e) {
   var items = (e.clipboardData||{}).items||[];
-  var hasImg = false;
-  for (var i=0;i<items.length;i++) if(items[i].type.indexOf('image')!==-1){hasImg=true;break;}
-  if (!hasImg) return;
+  var file = null;
+  for (var i=0;i<items.length;i++) if(items[i].type.indexOf('image')!==-1){file=items[i].getAsFile();break;}
+  if (!file) return;
   var targetIdx = S_ACTIVE_SLOT >= 0 ? S_ACTIVE_SLOT : S_IMAGES.indexOf(null);
   if (targetIdx < 0) { showToast('⚠️ 슬롯이 모두 찼습니다'); return; }
-  pasteSlot(e, targetIdx);
+  resizeImage(file, 800, 0.7).then(function(imgData) {
+    S_IMAGES[targetIdx] = imgData;
+    renderSlots();
+    showToast('📸 슬롯 '+(targetIdx+1)+' 붙여넣기 완료');
+  });
+  e.preventDefault();
 });
 
 window.addEventListener('DOMContentLoaded', function() {
