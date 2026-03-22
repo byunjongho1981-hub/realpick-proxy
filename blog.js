@@ -394,7 +394,19 @@ function uploadTo(platform){
   var tags=S.hashtags.map(function(h){return h.replace(/^#/,'');}).join(',');
   var sched=document.getElementById('use-schedule').checked
     ?' ('+document.getElementById('schedule-date').value+' '+document.getElementById('schedule-time').value+' 예약)':' (즉시)';
-  if(platform==='both'){copyText('【제목】\n'+title+'\n\n【본문】\n'+body+'\n\n【해시태그】\n'+tags);showToast('✓ 전체 복사됨');updateStep(4);return;}
+  if(platform==='both'){
+    var bodyHtml = renderBodyWithImages(body);
+    var fullHtml = '<h2>'+title+'</h2>\n'+bodyHtml+'\n<p>'+tags+'</p>';
+    if(navigator.clipboard && window.ClipboardItem){
+      var blob = new Blob([fullHtml], {type:'text/html'});
+      navigator.clipboard.write([new ClipboardItem({'text/html': blob})])
+        .then(function(){ showToast('✓ 이미지 포함 전체 복사됨 — 에디터에 붙여넣기 하세요'); })
+        .catch(function(){ copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags); showToast('✓ 텍스트만 복사됨'); });
+    } else {
+      copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags); showToast('✓ 복사됨');
+    }
+    updateStep(4); return;
+  }
   copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags);
   window.open({naver:'https://blog.naver.com/PostWriteForm.naver',tistory:'https://www.tistory.com/manage/post/write'}[platform],'_blank');
   showToast('✓ '+(platform==='naver'?'네이버':'티스토리')+' 열림 + 내용 복사됨'+sched);
