@@ -256,8 +256,11 @@ ${JSON.stringify(raw, null, 2)}
     const d = await r.json();
     if (d.error) throw new Error(d.error.message);
     const text = d.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-    const result = JSON.parse(text.replace(/```json|```/g, '').trim());
-    result.imageUrl = savedImageUrl; // ★ 강제 복원
+    // JSON 추출 강화 — 중괄호 블록만 추출
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('JSON 블록 없음');
+    const result = JSON.parse(jsonMatch[0]);
+    result.imageUrl = savedImageUrl;
     return result;
   } catch(e) {
     console.error('[enrichWithGemini]', e.message);
