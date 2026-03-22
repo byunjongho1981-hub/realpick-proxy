@@ -30,50 +30,11 @@ export default async function handler(req, res) {
     }
 
     if (!productInfo) throw new Error('제품 정보를 가져올 수 없습니다');
-
-    // ★ imageUrl 서버에서 직접 base64 변환 (enrichWithGemini 바깥에서 처리)
-    const imageUrl = productInfo.imageUrl || '';
-    if (imageUrl) {
-      console.log('[fetch-url] imageUrl found:', imageUrl.slice(0, 80));
-      const imgData = await fetchImageAsBase64(imageUrl);
-      if (imgData) {
-        productInfo.imageBase64   = imgData.base64;
-        productInfo.imageMimeType = imgData.mimeType;
-        console.log('[fetch-url] image base64 ok, size:', imgData.base64.length);
-      } else {
-        console.warn('[fetch-url] image base64 failed for:', imageUrl.slice(0, 80));
-        // base64 실패 시 URL만이라도 반환
-        productInfo.imageUrl = imageUrl;
-      }
-    } else {
-      console.warn('[fetch-url] no imageUrl extracted');
-    }
-
     return res.status(200).json({ success: true, product: productInfo });
 
   } catch (err) {
     console.error('[fetch-url] error:', err.message);
     return res.status(500).json({ error: err.message });
-  }
-}
-
-// ── 이미지 URL → base64 ──────────────────────────────────────
-async function fetchImageAsBase64(imageUrl) {
-  try {
-    const r = await fetch(imageUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0' },
-      signal: AbortSignal.timeout(6000)
-    });
-    if (!r.ok) return null;
-    const contentType = r.headers.get('content-type') || 'image/jpeg';
-    const mimeType = contentType.split(';')[0].trim();
-    if (!mimeType.startsWith('image/')) return null;
-    const buf = await r.arrayBuffer();
-    const base64 = Buffer.from(buf).toString('base64');
-    return { base64, mimeType };
-  } catch(e) {
-    console.warn('[fetchImageAsBase64] failed:', e.message);
-    return null;
   }
 }
 
