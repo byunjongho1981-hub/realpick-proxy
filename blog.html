@@ -202,6 +202,15 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
     </div>
   </div>
 
+  <!-- ★ 블로그 제목 직접 입력 -->
+  <div class="panel">
+    <div class="panel-title">✏️ 블로그 제목 <span style="font-size:11px;font-weight:500;color:var(--muted)">직접 입력하거나 비워두면 AI가 5개 자동 생성</span></div>
+    <input id="blog-title-input" type="text" placeholder="예: 블라우포트 BLP-OE383 솔직 후기 — 오픈형 노이즈캔슬링 진짜 되나?"
+      style="width:100%;padding:10px 14px;border:1.5px solid var(--bdr);border-radius:10px;font-size:14px;outline:none;background:#f8fafc;transition:border-color .15s"
+      onfocus="this.style.borderColor='var(--pri)'" onblur="this.style.borderColor='var(--bdr)'"/>
+    <div style="margin-top:6px;font-size:11px;color:var(--faint)">💡 제목을 직접 입력하면 해당 제목 기반으로 본문이 작성됩니다</div>
+  </div>
+
   <!-- ★ 이미지 첨부 -->
   <div class="panel">
     <div class="panel-title">🖼 제품 이미지 첨부 <span style="font-size:11px;font-weight:500;color:var(--muted)">(최대 5장 · Gemini가 직접 분석하여 블로그에 반영)</span></div>
@@ -426,6 +435,14 @@ async function analyzeUrl() {
 
     showToast('✅ URL 분석 완료 — 제품 정보 연결됨');
 
+    // ★ 제목 입력창에 제품명 자동 세팅
+    var titleInput = document.getElementById('blog-title-input');
+    if (titleInput && p.productName) {
+      titleInput.value = p.productName;
+      titleInput.style.borderColor = 'var(--pri)';
+      setTimeout(function(){ titleInput.style.borderColor = 'var(--bdr)'; }, 2000);
+    }
+
   } catch(e) {
     showToast('⚠️ URL 분석 실패: ' + e.message);
   } finally {
@@ -574,8 +591,11 @@ async function generateBlog() {
   var typeLabel = { review:'상품 리뷰', compare:'비교 추천', guide:'구매 가이드', trend:'트렌드 분석' }[postType] || '리뷰';
   var lenLabel  = { short:'800자 이상', medium:'1500자 이상', long:'2500자 이상' }[postLength] || '1500자 이상';
 
+  var customTitle = document.getElementById('blog-title-input').value.trim();
+
   var userPrompt =
-    '아래 제품 데이터를 기반으로 스킬 v10.1을 완전히 적용한 수익형 블로그 글을 작성하라.\n\n'
+    (customTitle ? '블로그 제목 (반드시 이 제목 기반으로 작성): ' + customTitle + '\n\n' : '')
+    + '아래 제품 데이터를 기반으로 블로그 글을 작성하라.\n\n'
     + '제품명: ' + p.name + '\n'
     + '글 유형: ' + typeLabel + '\n'
     + '글 길이: ' + lenLabel + '\n'
@@ -584,15 +604,21 @@ async function generateBlog() {
     + 'RSS 신호: ' + (rss.score||0) + '점 / ' + (rss.detectionCount||0) + '건\n'
     + '유튜브: 영상 ' + (yt.videoCount||0) + '개 / 평균 조회수 ' + (yt.avgViews||0) + '\n'
     + '쇼핑: 상품 ' + (shop.itemCount||0) + '개 / 평균가 ' + (shop.avgPrice||0) + '원\n'
-    + (urlInfo.features ? 'URL 분석 특징: ' + urlInfo.features.join(', ') + '\n' : '')
-    + (urlInfo.pros ? '장점: ' + urlInfo.pros.join(', ') + '\n' : '')
-    + (urlInfo.cons ? '단점: ' + urlInfo.cons.join(', ') + '\n' : '')
-    + (urlInfo.reviewSummary ? '후기 요약: ' + urlInfo.reviewSummary + '\n' : '')
-    + (urlInfo.originalUrl ? '원본 URL: ' + urlInfo.originalUrl + '\n' : '')
+    + (urlInfo.productName ? '\n🔗 URL 분석 제품명: ' + urlInfo.productName + '\n' : '')
+    + (urlInfo.price       ? '💰 실제 가격: ' + Number(urlInfo.price).toLocaleString() + '원\n' : '')
+    + (urlInfo.category    ? '📦 카테고리: ' + urlInfo.category + '\n' : '')
+    + (urlInfo.priceGrade  ? '등급: ' + urlInfo.priceGrade + '\n' : '')
+    + (urlInfo.features && urlInfo.features.length ? '✅ 핵심 특징: ' + urlInfo.features.join(' / ') + '\n' : '')
+    + (urlInfo.pros && urlInfo.pros.length ? '👍 장점: ' + urlInfo.pros.join(' / ') + '\n' : '')
+    + (urlInfo.cons && urlInfo.cons.length ? '⚠️ 단점/주의: ' + urlInfo.cons.join(' / ') + '\n' : '')
+    + (urlInfo.targetUser  ? '👤 타겟: ' + urlInfo.targetUser + '\n' : '')
+    + (urlInfo.hookScene   ? '🎯 HOOK 장면: ' + urlInfo.hookScene + '\n' : '')
+    + (urlInfo.reviewSummary ? '💬 후기 요약: ' + urlInfo.reviewSummary + '\n' : '')
+    + (urlInfo.originalUrl ? '🔗 원본 URL: ' + urlInfo.originalUrl + '\n' : '')
     + '포함 요소: ' + tags.join(', ') + '\n'
-    + (validImages.length ? '\n첨부 이미지 ' + validImages.length + '장을 분석하여 [📸 사진] 배치 설명에 반영하라.\n' : '')
+    + (validImages.length ? '\n첨부 이미지 ' + validImages.length + '장 — 본문 [📸] 위치에 삽입됨\n' : '')
     + '\n반드시 JSON만 출력:\n'
-    + '{"titles":["제목1","제목2","제목3","제목4","제목5"],"body":"본문(마크다운+사진위치표시)","hashtags":["태그1",...],"thumb":{"main":"20자이내","sub":"15자이내","badge":"8자이내"},"seo":{"keyword_density":true,"title_length":true,"meta_desc":true,"heading_structure":true,"cta_included":true,"internal_link":true}}';
+    + '{"titles":["제목1","제목2","제목3","제목4","제목5"],"body":"본문(이모지 활용, ## ** 금지, [📸N] 위치 표시)","hashtags":["태그1",...],"thumb":{"main":"20자이내","sub":"15자이내","badge":"8자이내"},"seo":{"keyword_density":true,"title_length":true,"meta_desc":true,"heading_structure":true,"cta_included":true,"internal_link":true}}';
 
   setLoadingStep('스킬 v10.1 적용 중...', 15);
   await sleep(300);
