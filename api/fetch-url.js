@@ -1,9 +1,9 @@
 // api/fetch-url.js
 // POST /api/fetch-url  { url }
 
-const crypto = require('crypto');
+import { createHmac } from 'crypto';
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -165,7 +165,7 @@ function generateCoupangSignature(method, path, query, secretKey) {
 
   // 공식 문서: message = datetime + method + path + query (? 없이)
   const message = datetime + method + path + (query || '');
-  const signature = crypto.createHmac('sha256', secretKey).update(message).digest('hex');
+  const signature = createHmac('sha256', secretKey).update(message).digest('hex');
 
   console.log('[coupang-sig] datetime:', datetime, '| msg prefix:', message.slice(0, 60));
   return { datetime, signature };
