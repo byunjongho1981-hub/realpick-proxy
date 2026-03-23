@@ -41,8 +41,9 @@ function handleSlotFile(e, idx) {
   var reader = new FileReader();
   reader.onload = function(ev) {
     S_IMAGES[idx] = { data: ev.target.result.split(',')[1], mimeType: file.type };
-    // 이미지 슬롯 변경 시 URL 캐시 초기화
-  S_IMG_URLS = null;
+      S_IMG_URLS = null;
+    renderSlots();
+    showToast('📸 슬롯 '+(idx+1)+' 이미지 등록됨');
   };
   reader.readAsDataURL(file);
   e.target.value = '';
