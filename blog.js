@@ -310,6 +310,7 @@ async function generateBlog() {
     setLoadingStep('완료!', 100); await sleep(200);
 
     renderResult();
+    showImgUploadBtn(); // ★ 이미지 있으면 업로드 버튼 표시
     document.getElementById('result-area').style.display='block';
     document.getElementById('result-area').scrollIntoView({behavior:'smooth',block:'start'});
     updateStep(3);
@@ -497,32 +498,17 @@ async function uploadTo(platform){
     ?' ('+document.getElementById('schedule-date').value+' '+document.getElementById('schedule-time').value+' 예약)':' (즉시)';
   if(platform==='both'){
     var hasImgs = S_IMAGES.filter(Boolean).length > 0;
-
-    // 이미지 없음 → 즉시 동기 복사
-    if(!hasImgs){
+    if(hasImgs && !S_IMG_URLS){
+      // 업로드 안 됨 → 텍스트만 복사 + 안내
       copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags);
-      showToast('✓ 전체 복사됨');
+      showToast('⚠️ 이미지 업로드 먼저 누른 후 복사하세요');
       updateStep(4); return;
     }
-
-    // URL 캐시 있음 → 즉시 동기 복사 (2번째 클릭)
-    if(S_IMG_URLS){
-      var bodyWithImgs = insertUrlsIntoBody(body, S_IMG_URLS);
-      var fullHtml = '<h2>'+title+'</h2>\n'+bodyWithImgs+'\n<p>'+tags+'</p>';
-      copyHtml(fullHtml);
-      showToast('✓ 이미지 포함 전체 복사됨 — 에디터에 붙여넣기 하세요');
-      updateStep(4); return;
-    }
-
-    // URL 캐시 없음 → 먼저 업로드 후 안내 (1번째 클릭)
-    showToast('🔄 이미지 업로드 중... 완료 후 다시 눌러주세요');
-    uploadImagesToImgBB().then(function(urlMap){
-      S_IMG_URLS = urlMap;
-      showToast('✅ 이미지 업로드 완료 — 전체 복사 버튼을 다시 눌러주세요');
-    }).catch(function(){
-      showToast('⚠️ 이미지 업로드 실패 — 텍스트만 복사됩니다');
-      S_IMG_URLS = {};
-    });
+    // 이미지 URL 있음 또는 이미지 없음 → 즉시 동기 복사
+    var bodyFinal = hasImgs ? insertUrlsIntoBody(body, S_IMG_URLS) : body;
+    var fullHtml = '<h2>'+title+'</h2>\n'+bodyFinal+'\n<p>'+tags+'</p>';
+    copyHtml(fullHtml);
+    showToast('✓ 전체 복사됨 — 에디터에 붙여넣기 하세요');
     updateStep(4); return;
   }
   copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags);
