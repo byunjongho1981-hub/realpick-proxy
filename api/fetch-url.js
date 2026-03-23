@@ -200,10 +200,34 @@ async function fetchCoupang(originalUrl, finalUrl) {
     if (m) keyword = decodeURIComponent(m[1]).trim();
   }
 
+  // 2. og:title 크롤링 — 다양한 User-Agent로 시도
+  if (!keyword) {
+    const agents = [
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15',
+      'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+      'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+      'Twitterbot/1.0'
+    ];
+    for (const ua of agents) {
+      try {
+        const r = await fetch(finalUrl, {
+          headers: { 'User-Agent': ua, 'Accept': 'text/html' },
+          signal: AbortSignal.timeout(5000)
+        });
+        if (r.ok) {
+          const html = await r.text();
+          const og = (html.match(/<meta[^>]+property="og:title"[^>]+content="([^"]+)"/i)||[])[1];
+          const t  = (html.match(/<title>([^<]+)<\/title>/i)||[])[1];
+          const raw = (og || t || '').replace(/\s*[\|\-].*쿠팡.*/i, '').trim();
+          if (raw && raw.length > 2) { keyword = raw; break; }
+        }
+      } catch(e) { continue; }
+    }
+  }
+
   console.log('[fetchCoupang] keyword:', keyword || '(없음)', '| url length:', finalUrl.length);
 
-  // 3. 쿠팡 검색 API로 제품 정보 조회
-  if (keyword && accessKey && secretKey) {
+  if (!keyword) throw new Error('쿠팡 제품명을 추출할 수 없습니다. 제품명을 직접 입력해주세요.');
     try {
       const method = 'GET';
       const path   = '/v2/providers/affiliate_open_api/apis/openapi/v1/products/search';
