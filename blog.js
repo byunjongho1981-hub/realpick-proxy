@@ -399,9 +399,9 @@ function insertUrlsIntoBody(body, urlMap) {
   var processed = body.replace(/\[📸\s*(\d*)[^\]]*\]/g, function(m, num) {
     var idx = num ? parseInt(num) - 1 : seqIdx++;
     var url = urlMap[idx];
-    if (!url) return '\x01'; // 이미지 없으면 빈 구분자
+    if (!url) return '\x01';
     return '\x00<img src="' + url
-      + '" style="max-width:100%;border-radius:10px;margin:20px 0 20px 0;display:block" alt="제품이미지"/>\x00';
+      + '" style="max-width:100%;border-radius:10px;margin:30px 0;display:block" alt="제품이미지"/>\x00';
   });
 
   // 2단계: \x00 기준 분리 → 텍스트는 단락 변환, img는 그대로
@@ -416,15 +416,14 @@ function insertUrlsIntoBody(body, urlMap) {
         return acc;
       }
       if (EMOJI_HEADING.test(t)) {
-        // 이모지 소제목 → 앞뒤 여백 포함
-        acc.push('<p style="margin:20px 0 10px 0;line-height:1.8;font-size:16px;font-weight:bold">' + t + '</p>');
+        // 이모지 소제목 → 위 30px 아래 16px 여백
+        acc.push('<p style="margin:30px 0 16px 0;line-height:1.8;font-size:24px;font-weight:bold">' + t + '</p>');
       } else {
-        // 일반 문장 → 단락
+        // 일반 문장
         if (acc.length && acc[acc.length-1].startsWith('<p style="margin:0')) {
-          // 이전이 일반 단락이면 같은 단락에 붙임
           acc[acc.length-1] = acc[acc.length-1].replace(/<\/p>$/, '<br>' + t + '</p>');
         } else {
-          acc.push('<p style="margin:0 0 14px 0;line-height:1.9">' + t + '</p>');
+          acc.push('<p style="margin:0 0 16px 0;line-height:1.9;font-size:19px">' + t + '</p>');
         }
       }
       return acc;
