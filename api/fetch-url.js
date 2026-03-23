@@ -173,8 +173,10 @@ async function fetchCoupang(url) {
   try {
     const r = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'text/html'
+        'User-Agent'      : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept'          : 'text/html,application/xhtml+xml,application/xml',
+        'Accept-Language' : 'ko-KR,ko;q=0.9',
+        'Connection'      : 'keep-alive'
       },
       signal: AbortSignal.timeout(8000)
     });
@@ -195,34 +197,43 @@ async function fetchCoupang(url) {
   let price       = parseInt(priceStr, 10) || 0;
   let imageUrl    = ogImage;
 
-  // HTML 크롤링 실패 시 네이버 쇼핑으로 productId 검색 fallback
+  // HTML 크롤링 실패 시 URL의 contentkeyword → 네이버 쇼핑 fallback
   if (!productName) {
-    console.log('[fetchCoupang] HTML 추출 실패 → 네이버 쇼핑 fallback, productId:', productId);
+    // finalUrl에서 contentkeyword 추출
+    let keyword = '';
     try {
-      const naverUrl = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(productId)}&display=3&sort=sim`;
-      const nr = await fetch(naverUrl, {
-        headers: {
-          'X-Naver-Client-Id':     process.env.NAVER_CLIENT_ID,
-          'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET
-        },
-        signal: AbortSignal.timeout(8000)
-      });
-      if (nr.ok) {
-        const nd = await nr.json();
-        const ni = (nd.items || [])[0];
-        if (ni) {
-          productName = ni.title.replace(/<[^>]+>/g, '');
-          price       = parseInt(ni.lprice) || 0;
-          imageUrl    = ni.image || '';
-          console.log('[fetchCoupang] 네이버 fallback 성공:', productName);
+      const m = url.match(/[?&]contentkeyword=([^&]+)/);
+      if (m) keyword = decodeURIComponent(m[1]).trim();
+    } catch(e) {}
+
+    console.log('[fetchCoupang] HTML 추출 실패 → keyword:', keyword || '(없음)');
+
+    if (keyword) {
+      try {
+        const naverUrl = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(keyword.slice(0,50))}&display=3&sort=sim`;
+        const nr = await fetch(naverUrl, {
+          headers: {
+            'X-Naver-Client-Id':     process.env.NAVER_CLIENT_ID,
+            'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET
+          },
+          signal: AbortSignal.timeout(8000)
+        });
+        if (nr.ok) {
+          const nd = await nr.json();
+          const ni = (nd.items || [])[0];
+          if (ni) {
+            productName = ni.title.replace(/<[^>]+>/g, '');
+            price       = parseInt(ni.lprice) || 0;
+            imageUrl    = ni.image || '';
+            console.log('[fetchCoupang] 네이버 fallback 성공:', productName);
+          }
         }
+      } catch(e) {
+        console.warn('[fetchCoupang] 네이버 fallback 실패:', e.message);
       }
-    } catch(e) {
-      console.warn('[fetchCoupang] 네이버 fallback 실패:', e.message);
     }
   }
 
-  // 그래도 없으면 productId를 임시 이름으로
   if (!productName) productName = '쿠팡 상품 ' + productId;
 
   const raw = {
