@@ -10,7 +10,8 @@
     "api/google-trends-rss.js": { "maxDuration": 10  },
     "api/blog-generate.js":     { "maxDuration": 60  },
     "api/fetch-url.js":         { "maxDuration": 30  },
-    "api/proxy-image.js":       { "maxDuration": 30  }
+    "api/proxy-image.js":       { "maxDuration": 30  },
+    "api/coupang-search.js":    { "maxDuration": 15  }
   },
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1" },
