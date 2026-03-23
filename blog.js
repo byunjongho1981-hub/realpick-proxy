@@ -41,7 +41,6 @@ function handleSlotFile(e, idx) {
   var reader = new FileReader();
   reader.onload = function(ev) {
     S_IMAGES[idx] = { data: ev.target.result.split(',')[1], mimeType: file.type };
-      S_IMG_URLS = null;
     renderSlots();
     showToast('📸 슬롯 '+(idx+1)+' 이미지 등록됨');
   };
@@ -417,13 +416,51 @@ async function regenSection(section) {
   } catch(e){showToast('⚠️ 재생성 오류');}
 }
 
-// 권한 팝업 없이 HTML 복사
-function copyHtml(html){
+// ── [수정] 텍스트+이미지 → 붙여넣기용 HTML 빌드 ─────────────
+// [📸N] → ImgBB URL <img> 태그, 일반 텍스트 → <p>/<br> 변환
+function buildCopyHtml(text, urlMap) {
+  var seqIdx = 0;
+  var processed = text.replace(/\[📸\s*(\d*)[^\]]*\]/g, function(m, num) {
+    var idx = num ? parseInt(num) - 1 : seqIdx++;
+    var url = urlMap[idx];
+    if (!url) return '';
+    return '\x00<img src="' + url
+      + '" style="max-width:100%;border-radius:10px;margin:16px 0;display:block" alt="제품이미지"/>\x00';
+  });
+  // \x00 구분자 기준으로 분리 → 텍스트 청크는 <p>/<br> 변환, img는 그대로
+  return processed.split('\x00').map(function(chunk) {
+    if (chunk.startsWith('<img')) return chunk;
+    return chunk.trim().split(/\n{2,}/).map(function(para) {
+      var t = para.trim();
+      return t ? '<p>' + t.replace(/\n/g, '<br>') + '</p>' : '';
+    }).join('');
+  }).join('');
+}
+
+// ── [수정] async copyHtml — 이미지 로드 완료 후 복사 ─────────
+async function copyHtml(html) {
   var div = document.createElement('div');
   div.contentEditable = 'true';
-  div.style.cssText = 'position:fixed;top:-9999px;opacity:0;';
+  // opacity:0 이면 브라우저가 이미지 렌더링을 생략할 수 있어 0.01 사용
+  div.style.cssText = 'position:fixed;top:0;left:0;width:800px;opacity:0.01;pointer-events:none;z-index:-9999;';
   div.innerHTML = html;
   document.body.appendChild(div);
+
+  // 모든 이미지 로드 대기 (최대 10초 타임아웃)
+  var imgs = Array.from(div.querySelectorAll('img'));
+  if (imgs.length) {
+    await Promise.all(imgs.map(function(img) {
+      return new Promise(function(resolve) {
+        if (img.complete && img.naturalWidth > 0) { resolve(); return; }
+        img.onload  = resolve;
+        img.onerror = resolve;
+        setTimeout(resolve, 10000);
+      });
+    }));
+  }
+  // 렌더링 반영 여유
+  await new Promise(function(r) { setTimeout(r, 100); });
+
   var range = document.createRange();
   range.selectNodeContents(div);
   var sel = window.getSelection();
@@ -433,8 +470,9 @@ function copyHtml(html){
   sel.removeAllRanges();
   document.body.removeChild(div);
 }
+
 async function uploadImagesToImgBB() {
-  var urlMap = {}; // { 0: 'https://i.ibb.co/...', 1: ... }
+  var urlMap = {};
   for (var i = 0; i < 6; i++) {
     var img = S_IMAGES[i];
     if (!img || !img.data) continue;
@@ -451,41 +489,31 @@ async function uploadImagesToImgBB() {
   return urlMap;
 }
 
-// [📸N] → ImgBB URL img 태그로 교체
-function insertUrlsIntoBody(body, urlMap) {
-  var seqIdx = 0;
-  return body
-    .replace(/\[📸\s*(\d*)[^\]]*\]/g, function(m, num) {
-      var idx = num ? parseInt(num) - 1 : seqIdx++;
-      var url = urlMap[idx];
-      if (!url) return '';
-      return '\n\n<img src="' + url + '" style="max-width:100%;border-radius:10px;margin:16px 0;display:block" alt="제품이미지"/>\n\n';
-    })
-    .replace(/\n{3,}/g, '\n\n') // 3줄 이상 빈줄 → 2줄로 정리
-    .trim();
-}
-
-// ── 복사/업로드 ──────────────────────────────────────────────
-async function copySelected(type){
-  if(type==='body'){
+// ── [수정] copySelected ───────────────────────────────────────
+async function copySelected(type) {
+  if (type === 'body') {
     var raw = document.getElementById('body-textarea').value;
     var hasImgs = S_IMAGES.filter(Boolean).length > 0;
-    if(hasImgs){
+    if (hasImgs) {
       showToast('🔄 이미지 업로드 중...');
       var urlMap = await uploadImagesToImgBB();
-      var html = insertUrlsIntoBody(raw, urlMap);
-      copyHtml(html);
+      var html = buildCopyHtml(raw, urlMap);
+      await copyHtml(html);
       showToast('✓ 이미지 포함 복사됨');
     } else {
-      copyText(raw); showToast('✓ 복사됨');
+      // 이미지 없어도 단락 구조 유지하며 복사
+      var html = buildCopyHtml(raw, {});
+      await copyHtml(html);
+      showToast('✓ 복사됨');
     }
     return;
   }
-  var text='';
-  if(type==='title') text=S.titles[S.selectedTitle]||'';
-  else if(type==='hashtag') text=S.hashtags.map(function(h){return '#'+h.replace(/^#/,'');}).join(' ');
-  else if(type==='thumb'){var t=S.thumb;text=(t.badge||'')+'\n'+(t.main||'')+'\n'+(t.sub||'');}
-  copyText(text); showToast('✓ 복사됨');
+  var text = '';
+  if (type === 'title')        text = S.titles[S.selectedTitle] || '';
+  else if (type === 'hashtag') text = S.hashtags.map(function(h){ return '#'+h.replace(/^#/,''); }).join(' ');
+  else if (type === 'thumb')   { var t=S.thumb; text=(t.badge||'')+'\n'+(t.main||'')+'\n'+(t.sub||''); }
+  copyText(text);
+  showToast('✓ 복사됨');
 }
 
 async function uploadTo(platform){
