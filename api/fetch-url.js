@@ -17,7 +17,12 @@ export default async function handler(req, res) {
 
     let productInfo = null;
 
-    if (finalUrl.includes('search.shopping.naver.com') || finalUrl.includes('smartstore.naver.com') || finalUrl.includes('naver.me')) {
+    if (
+      finalUrl.includes('search.shopping.naver.com') ||
+      finalUrl.includes('smartstore.naver.com') ||
+      finalUrl.includes('naver.me') ||
+      finalUrl.includes('brandconnect.naver.com') // ★ 추가
+    ) {
       productInfo = await fetchNaver(finalUrl);
     } else if (finalUrl.includes('coupang.com')) {
       productInfo = await fetchCoupang(finalUrl);
@@ -60,7 +65,27 @@ async function fetchNaver(url) {
 
   try {
     const urlObj = new URL(url);
-    keyword = urlObj.searchParams.get('query') || urlObj.searchParams.get('q') || '';
+
+    // ★ brandconnect: channelProductNo 파라미터에서 키워드 추출 시도
+    if (url.includes('brandconnect.naver.com')) {
+      // og:title로 키워드 추출
+      try {
+        const r = await fetch(url, {
+          headers: { 'User-Agent': 'facebookexternalhit/1.1' },
+          signal: AbortSignal.timeout(6000)
+        });
+        if (r.ok) {
+          const html = await r.text();
+          const og = (html.match(/<meta[^>]+property="og:title"[^>]+content="([^"]+)"/i)||[])[1];
+          const title = (html.match(/<title>([^<]+)<\/title>/i)||[])[1];
+          keyword = (og || title || '').replace(/\s*[|-].*$/,'').trim();
+        }
+      } catch(e) {}
+    }
+
+    if (!keyword) {
+      keyword = urlObj.searchParams.get('query') || urlObj.searchParams.get('q') || '';
+    }
 
     if (!keyword && url.includes('smartstore')) {
       const parts = urlObj.pathname.split('/').filter(Boolean);
@@ -120,7 +145,7 @@ async function fetchNaver(url) {
     platform    : '네이버쇼핑',
     originalUrl : url,
     keyword,
-    imageUrl    : item.image || ''  // ★ 네이버 쇼핑 이미지
+    imageUrl    : item.image || ''
   });
 }
 
@@ -139,7 +164,6 @@ async function fetchCoupang(url) {
       const og   = (html.match(/<meta[^>]+property="og:title"[^>]+content="([^"]+)"/i)||[])[1];
       const t    = (html.match(/<title>([^<]+)<\/title>/i)||[])[1];
       keyword  = (og || t || '').replace(/\s*[|-].*쿠팡.*/i,'').trim();
-      // ★ og:image 추출
       imageUrl = (html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i)||[])[1] || '';
     }
   } catch(e) {}
@@ -164,7 +188,6 @@ async function fetchCoupang(url) {
   const dd = rr.ok ? await rr.json() : {};
   const items = dd.items || [];
   const price = items.length ? parseInt(items[0].lprice) : 0;
-  // 쿠팡 og:image 없으면 네이버 이미지 fallback
   if (!imageUrl && items.length) imageUrl = items[0].image || '';
 
   return enrichWithGemini({
@@ -174,7 +197,7 @@ async function fetchCoupang(url) {
     platform    : '쿠팡',
     originalUrl : url,
     keyword,
-    imageUrl     // ★
+    imageUrl
   });
 }
 
@@ -203,7 +226,7 @@ async function fetchGeneral(url, platformName) {
   const ogDesc   = (html.match(/<meta[^>]+property="og:description"[^>]+content="([^"]+)"/i)||[])[1] || '';
   const titleTag = (html.match(/<title>([^<]+)<\/title>/i)||[])[1] || '';
   const priceStr = (html.match(/["']price["']\s*:\s*["']?([\d,]+)/i)||[])[1] || '0';
-  const imageUrl = (html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i)||[])[1] || ''; // ★
+  const imageUrl = (html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i)||[])[1] || '';
 
   return enrichWithGemini({
     productName : (ogTitle || titleTag.split('|')[0]).trim(),
@@ -211,38 +234,30 @@ async function fetchGeneral(url, platformName) {
     description : ogDesc,
     platform    : platformName,
     originalUrl : url,
-    imageUrl     // ★
+    imageUrl
   });
 }
 
 // ── Gemini 보강 ───────────────────────────────────────────────
 async function enrichWithGemini(raw) {
-  const savedImageUrl = raw.imageUrl || ''; // ★ 미리 백업
+  const savedImageUrl = raw.imageUrl || '';
   const apiKey   = process.env.GEMINI_API_KEY;
   const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=' + apiKey;
 
+  // ★ 제품명 없으면 Gemini 호출 없이 바로 fallback
+  if (!raw.productName) {
+    console.warn('[enrichWithGemini] 제품명 없음 — fallback 처리');
+    return { ...raw, priceGrade: calcGrade(raw.price), features: [], pros: [], cons: [] };
+  }
+
   const prompt = `아래 제품 원본 정보를 분석하여 블로그 작성용 구조화 데이터를 추출하라.
-JSON만 출력. 다른 텍스트 절대 금지.
+JSON만 출력. 다른 텍스트 절대 금지. 마크다운 코드블록 금지.
 
 입력:
 ${JSON.stringify(raw, null, 2)}
 
-출력:
-{
-  "productName": "정확한 제품명 (브랜드+모델명 포함)",
-  "price": 숫자,
-  "category": "카테고리",
-  "priceGrade": "A(3만↓) or B(3~30만) or C(30~100만) or D(100만↑)",
-  "features": ["핵심 특징 1","특징 2","특징 3"],
-  "pros": ["장점 1","장점 2","장점 3"],
-  "cons": ["단점/주의 1","단점 2"],
-  "targetUser": "타겟 사용자 1문장",
-  "hookScene": "구매 검색하게 된 불편 장면 1~2문장",
-  "reviewSummary": "후기 요약",
-  "platform": "${raw.platform || '기타'}",
-  "originalUrl": "${raw.originalUrl || ''}",
-  "imageUrl": "${raw.imageUrl || ''}"
-}`;
+출력 형식:
+{"productName":"정확한 제품명","price":숫자,"category":"카테고리","priceGrade":"A or B or C or D","features":["특징1","특징2","특징3"],"pros":["장점1","장점2","장점3"],"cons":["단점1","단점2"],"targetUser":"타겟 사용자 1문장","hookScene":"구매 검색하게 된 불편 장면 1~2문장","reviewSummary":"후기 요약","platform":"${raw.platform || '기타'}","originalUrl":"${raw.originalUrl || ''}","imageUrl":"${raw.imageUrl || ''}"}`;
 
   try {
     const r = await fetch(endpoint, {
@@ -251,20 +266,37 @@ ${JSON.stringify(raw, null, 2)}
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig: { maxOutputTokens: 1000, temperature: 0.3 }
-      })
+      }),
+      signal: AbortSignal.timeout(15000) // ★ 타임아웃 추가
     });
     const d = await r.json();
     if (d.error) throw new Error(d.error.message);
-    const text = d.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-    // JSON 추출 강화 — 중괄호 블록만 추출
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('JSON 블록 없음');
+
+    const text = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (!text) throw new Error('Gemini 응답 비어있음');
+
+    // ★ JSON 추출 강화 — 코드블록 제거 후 중괄호 블록 추출
+    const clean = text.replace(/```json|```/g, '').trim();
+    const jsonMatch = clean.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('JSON 블록 없음: ' + text.slice(0, 100));
+
     const result = JSON.parse(jsonMatch[0]);
-    result.imageUrl = savedImageUrl;
+    result.imageUrl = savedImageUrl; // 원본 imageUrl 항상 유지
     return result;
+
   } catch(e) {
     console.error('[enrichWithGemini]', e.message);
-    return { ...raw, priceGrade: calcGrade(raw.price), features: [], pros: [], cons: [] };
+    // ★ fallback: Gemini 실패해도 기본 데이터로 진행
+    return {
+      ...raw,
+      priceGrade    : calcGrade(raw.price),
+      features      : [],
+      pros          : [],
+      cons          : [],
+      targetUser    : '',
+      hookScene     : '',
+      reviewSummary : ''
+    };
   }
 }
 
