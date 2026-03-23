@@ -191,16 +191,50 @@ async function fetchCoupang(url) {
     (html.match(/"price"\s*:\s*([0-9]+)/i)||[])[1] ||
     '0';
 
+  let productName = (ogTitle || titleTag).trim();
+  let price       = parseInt(priceStr, 10) || 0;
+  let imageUrl    = ogImage;
+
+  // HTML 크롤링 실패 시 네이버 쇼핑으로 productId 검색 fallback
+  if (!productName) {
+    console.log('[fetchCoupang] HTML 추출 실패 → 네이버 쇼핑 fallback, productId:', productId);
+    try {
+      const naverUrl = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(productId)}&display=3&sort=sim`;
+      const nr = await fetch(naverUrl, {
+        headers: {
+          'X-Naver-Client-Id':     process.env.NAVER_CLIENT_ID,
+          'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET
+        },
+        signal: AbortSignal.timeout(8000)
+      });
+      if (nr.ok) {
+        const nd = await nr.json();
+        const ni = (nd.items || [])[0];
+        if (ni) {
+          productName = ni.title.replace(/<[^>]+>/g, '');
+          price       = parseInt(ni.lprice) || 0;
+          imageUrl    = ni.image || '';
+          console.log('[fetchCoupang] 네이버 fallback 성공:', productName);
+        }
+      }
+    } catch(e) {
+      console.warn('[fetchCoupang] 네이버 fallback 실패:', e.message);
+    }
+  }
+
+  // 그래도 없으면 productId를 임시 이름으로
+  if (!productName) productName = '쿠팡 상품 ' + productId;
+
   const raw = {
-    productName  : (ogTitle || titleTag).trim(),
-    price        : parseInt(priceStr, 10) || 0,
+    productName,
+    price,
     description  : ogDesc,
     category     : '쿠팡',
     brand        : '',
     platform     : '쿠팡',
     originalUrl  : url,
-    keyword      : (ogTitle || titleTag).trim(),
-    imageUrl     : ogImage,
+    keyword      : productName,
+    imageUrl,
     productId,
     itemId,
     vendorItemId,
@@ -214,7 +248,7 @@ async function fetchCoupang(url) {
     itemId,
     vendorItemId,
     fixedUrl,
-    imageUrl: enriched.imageUrl || ogImage
+    imageUrl: enriched.imageUrl || imageUrl
   };
 }
 
