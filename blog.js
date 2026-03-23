@@ -225,7 +225,8 @@ async function generateBlog() {
     +(urlInfo.pros?'장점: '+urlInfo.pros.join(', ')+'\n':'')
     +(urlInfo.cons?'단점: '+urlInfo.cons.join(', ')+'\n':'')
     +(urlInfo.reviewSummary?'후기 요약: '+urlInfo.reviewSummary+'\n':'')
-    +(urlInfo.originalUrl?'원본 URL: '+urlInfo.originalUrl+'\n':'')
+    +(urlInfo.originalUrl? '구매 링크 URL: '+urlInfo.originalUrl+'\n'
+    +'⚠️ 본문의 모든 CTA(상단/중단/하단) 링크는 반드시 위 URL만 사용할 것. 다른 URL 절대 금지.\n': '')
     +'포함 요소: '+tags.join(', ')+'\n'
     +(validImages.length?'\n첨부 이미지 '+validImages.length+'장을 분석하여 [📸 사진] 배치 설명에 반영하라.\n':'')
     +'\n⚠️ 절대 중간에 끊지 마라. JSON이 완전히 닫힐 때까지 출력을 멈추지 마라.\n'
