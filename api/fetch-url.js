@@ -151,7 +151,6 @@ async function fetchNaver(url) {
 
 // ── 쿠팡 파트너스 API ─────────────────────────────────────────
 function generateCoupangSignature(method, path, query, secretKey) {
-  // 쿠팡 요구 형식: YYYYMMDDTHHmmssZ
   const now = new Date();
   const pad = n => String(n).padStart(2, '0');
   const datetime =
@@ -162,8 +161,11 @@ function generateCoupangSignature(method, path, query, secretKey) {
     pad(now.getUTCMinutes()) +
     pad(now.getUTCSeconds()) + 'Z';
 
-  const message = datetime + method + path + (query || '');
+  // 쿠팡 공식 서명 형식: datetime + method + path + "?" + query
+  const message = datetime + method + path + (query ? '?' + query : '');
   const signature = crypto.createHmac('sha256', secretKey).update(message).digest('hex');
+
+  console.log('[coupang-sig] datetime:', datetime, '| message:', message.slice(0, 80));
   return { datetime, signature };
 }
 
