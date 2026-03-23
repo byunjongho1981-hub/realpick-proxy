@@ -18,7 +18,571 @@ function renderSlots() {
         +'<img src="'+src+'" alt="슬롯'+(i+1)+'"/>'
         +'<button class="img-slot-del" onclick="event.stopPropagation();clearSlot('+i+')">✕</button>'
         +'</div>';
+    }var S = { product:null, titles:[], selectedTitle:0, body:'', hashtags:[], thumb:{}, seo:{}, generated:false };
+var S_IMAGES = new Array(6).fill(null);
+var S_URL_INFO = null;
+var S_ACTIVE_SLOT = -1;
+
+var SLOT_LABELS = ['📸1 대표이미지','📸2 핵심구조','📸3 활용장면','📸4 세부디테일','📸5 구성품','📸6 CTA직전'];
+
+// ── 슬롯 렌더 ────────────────────────────────────────────────
+function renderSlots() {
+  var container = document.getElementById('img-slots');
+  if (!container) return;
+  container.innerHTML = SLOT_LABELS.map(function(label, i) {
+    var img = S_IMAGES[i];
+    if (img) {
+      var src = img.data ? 'data:'+img.mimeType+';base64,'+img.data : (img.url||'');
+      return '<div class="img-slot filled" id="slot-'+i+'" onclick="focusSlot('+i+')">'
+        +'<div class="img-slot-num">'+(i+1)+'</div>'
+        +'<img src="'+src+'" alt="슬롯'+(i+1)+'"/>'
+        +'<button class="img-slot-del" onclick="event.stopPropagation();clearSlot('+i+')">✕</button>'
+        +'</div>';
     }
+    return '<div class="img-slot" id="slot-'+i+'" onclick="openSlot('+i+')" onpaste="pasteSlot(event,'+i+')">'
+      +'<div style="font-size:20px">➕</div>'
+      +'<div class="img-slot-label">'+label+'</div>'
+      +'<div class="img-slot-paste">클릭 or Ctrl+V</div>'
+      +'</div>';
+  }).join('');
+}
+
+function openSlot(idx) {
+  S_ACTIVE_SLOT = idx;
+  var input = document.getElementById('img-input-slot');
+  input.onchange = function(e){ handleSlotFile(e, idx); };
+  input.click();
+}
+
+function focusSlot(idx) { openSlot(idx); }
+
+function handleSlotFile(e, idx) {
+  var file = e.target.files[0]; if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    S_IMAGES[idx] = { data: ev.target.result.split(',')[1], mimeType: file.type };
+    renderSlots();
+    showToast('📸 슬롯 '+(idx+1)+' 이미지 등록됨');
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+}
+
+function pasteSlot(e, idx) {
+  var items = (e.clipboardData||e.originalEvent&&e.originalEvent.clipboardData||{}).items||[];
+  for (var i=0; i<items.length; i++) {
+    if (items[i].type.indexOf('image') === -1) continue;
+    var file = items[i].getAsFile(); if (!file) continue;
+    var reader = new FileReader();
+    (function(f, slotIdx){
+      reader.onload = function(ev) {
+        S_IMAGES[slotIdx] = { data: ev.target.result.split(',')[1], mimeType: f.type };
+        renderSlots();
+        showToast('📸 슬롯 '+(slotIdx+1)+' 붙여넣기 완료');
+      };
+      reader.readAsDataURL(f);
+    })(file, idx);
+    e.preventDefault(); break;
+  }
+}
+
+function clearSlot(idx) {
+  S_IMAGES[idx] = null;
+  renderSlots();
+  showToast('슬롯 '+(idx+1)+' 초기화됨');
+}
+
+document.addEventListener('paste', function(e) {
+  var items = (e.clipboardData||{}).items||[];
+  var hasImg = false;
+  for (var i=0;i<items.length;i++) if(items[i].type.indexOf('image')!==-1){hasImg=true;break;}
+  if (!hasImg) return;
+  var targetIdx = S_ACTIVE_SLOT >= 0 ? S_ACTIVE_SLOT : S_IMAGES.indexOf(null);
+  if (targetIdx < 0) { showToast('⚠️ 슬롯이 모두 찼습니다'); return; }
+  pasteSlot(e, targetIdx);
+});
+
+// ── 초기화 ───────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', function() {
+  renderSlots();
+  try {
+    var hp = sessionStorage.getItem('blog-product');
+    if (hp) { setProduct(JSON.parse(hp)); sessionStorage.removeItem('blog-product'); return; }
+    var hr = sessionStorage.getItem('hot-last-result');
+    if (hr) {
+      var d = JSON.parse(hr);
+      if (d && d.candidates && d.candidates.length) { setProduct(d.candidates[0]); showToast('📦 지금 뜨는 제품 1순위 자동 연결됨'); }
+    }
+  } catch(e) {}
+  var tm = new Date(); tm.setDate(tm.getDate()+1);
+  document.getElementById('schedule-date').value = tm.toISOString().slice(0,10);
+});
+
+// ── URL 분석 ─────────────────────────────────────────────────
+async function analyzeUrl() {
+  var url = document.getElementById('url-input').value.trim();
+  if (!url) { showToast('⚠️ URL을 입력해주세요'); return; }
+  if (!url.startsWith('http')) { showToast('⚠️ http://로 시작하는 URL을 입력해주세요'); return; }
+  var btn = document.getElementById('url-btn');
+  btn.disabled = true; btn.textContent = '분석 중...';
+  document.getElementById('url-result').style.display = 'none';
+  try {
+    var res = await fetch('/api/fetch-url', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({url}) });
+    var data = await res.json();
+    if (data.error) throw new Error(data.error);
+    var p = data.product;
+    S_URL_INFO = p;
+    setProduct({ name:p.productName||'URL 제품', judge:{trendStatus:'spreading',decision:'go'}, score:{total:0,grade:p.priceGrade||'B'}, rss:{}, data:{datalab:{},youtube:{},shopping:{avgPrice:p.price||0}}, urlInfo:p });
+    var re = document.getElementById('url-result');
+    re.style.display = 'flex'; re.className = 'url-result';
+    re.innerHTML = '<div style="flex-basis:100%;font-size:11px;font-weight:800;color:#0891b2;margin-bottom:4px">✅ URL 분석 완료</div>'
+      +(p.productName?'<span class="url-tag">📦 '+p.productName+'</span>':'')
+      +(p.price?'<span class="url-tag">💰 '+Number(p.price).toLocaleString()+'원</span>':'')
+      +(p.priceGrade?'<span class="url-tag">등급 '+p.priceGrade+'</span>':'')
+      +(p.platform?'<span class="url-tag">🛒 '+p.platform+'</span>':'')
+      +(p.category?'<span class="url-tag">'+p.category+'</span>':'')
+      +(p.targetUser?'<span class="url-tag" style="flex-basis:100%">👤 '+p.targetUser+'</span>':'');
+    showToast('✅ URL 분석 완료 — 제품 정보 연결됨');
+  } catch(e) { showToast('⚠️ URL 분석 실패: '+e.message); }
+  finally { btn.disabled=false; btn.textContent='🔍 분석'; }
+}
+
+// ── 제품 연결 ────────────────────────────────────────────────
+function setProduct(p) {
+  S.product = p;
+  var jdg=p.judge||{}, sc=p.score||{}, rss=p.rss||{}, dl=(p.data||{}).datalab||{};
+  var sc2 = jdg.trendStatus==='rising'?'#10b981':'#6366f1';
+  var sl = {rising:'🔥 급상승',spreading:'🚀 확산중',plateau:'⏳ 정체',falling:'❌ 하락'}[jdg.trendStatus]||'–';
+  var dl2 = {go:'🔥 지금 실행',conditional:'⚠️ 조건부',wait:'⏳ 관망',no:'❌ 비추천'}[jdg.decision]||'–';
+  document.getElementById('product-card').className = 'product-card';
+  document.getElementById('product-card').innerHTML =
+    '<div><div class="pc-name">'+(p.name||'–')+'</div>'
+    +'<div class="pc-badges" style="margin-top:8px">'
+    +'<span class="pc-badge" style="background:'+sc2+'18;color:'+sc2+'">'+sl+'</span>'
+    +'<span class="pc-badge" style="background:#fef2f2;color:#ef4444">'+dl2+'</span>'
+    +(dl.surgeRate?'<span class="pc-badge" style="background:#ecfdf5;color:#10b981">검색량 '+(dl.surgeRate>=0?'+':'')+dl.surgeRate+'%</span>':'')
+    +(rss.detectionCount>0?'<span class="pc-badge" style="background:#fff7ed;color:#f97316">📡 RSS '+rss.detectionCount+'건</span>':'')
+    +(p.urlInfo?'<span class="pc-badge" style="background:#ecfeff;color:#0891b2">🔗 URL 분석</span>':'')
+    +'</div></div>'
+    +'<div class="pc-meta">'
+    +'<div class="pc-meta-item"><div class="pc-meta-val">'+(sc.total||0)+'</div><div class="pc-meta-lbl">점수</div></div>'
+    +'<div class="pc-meta-item"><div class="pc-meta-val">'+(sc.grade||'–')+'</div><div class="pc-meta-lbl">등급</div></div>'
+    +'</div>'
+    +'<button onclick="clearProduct()" style="margin-left:auto;padding:4px 10px;background:#f8fafc;border:1px solid var(--bdr);border-radius:6px;font-size:11px;cursor:pointer;color:var(--muted)">변경</button>';
+  updateStep(1);
+  showToast('"'+p.name+'" 연결됨');
+}
+
+function clearProduct() {
+  S.product=null; S_URL_INFO=null;
+  document.getElementById('url-result').style.display='none';
+  document.getElementById('url-input').value='';
+  document.getElementById('product-card').className='product-card empty';
+  document.getElementById('product-card').innerHTML=
+    '<div style="text-align:center"><div style="font-size:28px;margin-bottom:8px">📡</div>'
+    +'<div style="font-size:13px;font-weight:700;color:var(--faint);margin-bottom:6px">연결된 제품 없음</div>'
+    +'<div style="font-size:11px;color:#c4cad4;margin-bottom:12px">아래에서 제품을 연결하세요</div>'
+    +'<button onclick="openProductSearch()" style="padding:8px 18px;background:var(--pri);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🔥 지금 뜨는 제품에서 선택</button></div>';
+}
+
+function setManualProduct() {
+  var kw = document.getElementById('manual-product').value.trim();
+  if (!kw) return;
+  setProduct({ name:kw, judge:{}, score:{total:0,grade:'–'}, rss:{}, data:{} });
+  document.getElementById('manual-product').value='';
+}
+
+function goHotPage() { sessionStorage.setItem('hot-to-blog','1'); location.href='/hot.html'; }
+
+function openProductSearch() {
+  document.getElementById('product-modal').style.display='flex';
+  try {
+    var d = JSON.parse(sessionStorage.getItem('hot-last-result'));
+    var c = (d&&d.candidates)||[];
+    if (c.length) {
+      document.getElementById('modal-product-list').innerHTML = c.map(function(p,i){
+        var sc=p.score||{};
+        var gc=sc.grade==='A'?'#10b981':sc.grade==='B'?'#6366f1':'#94a3b8';
+        return '<div onclick="selectFromModal('+i+')" style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#f8fafc;border-radius:10px;cursor:pointer;border:1.5px solid transparent;transition:all .15s" onmouseover="this.style.borderColor=\'var(--pri-bdr)\'" onmouseout="this.style.borderColor=\'transparent\'">'
+          +'<div style="font-size:22px;font-weight:900;color:'+gc+';min-width:24px">'+(i+1)+'</div>'
+          +'<div style="flex:1"><div style="font-size:13px;font-weight:800">'+p.name+'</div>'
+          +'<div style="font-size:11px;color:var(--muted);margin-top:2px">'+(sc.total||0)+'점 · '+(sc.grade||'–')+'등급</div></div></div>';
+      }).join('');
+    }
+  } catch(e){}
+}
+function selectFromModal(i){ try{var d=JSON.parse(sessionStorage.getItem('hot-last-result'));var p=(d.candidates||[])[i];if(p){setProduct(p);closeModal();}}catch(e){} }
+function closeModal(){ document.getElementById('product-modal').style.display='none'; }
+
+// ── 블로그 생성 ──────────────────────────────────────────────
+async function generateBlog() {
+  if (!S.product) { showToast('⚠️ 제품을 먼저 연결해주세요'); return; }
+  var btn = document.getElementById('gen-btn');
+  btn.disabled=true; showLoading(true); updateStep(2);
+
+  var p=S.product, jdg=p.judge||{}, sc=p.score||{}, rss=p.rss||{};
+  var d=p.data||{}, dl=d.datalab||{}, yt=d.youtube||{}, shop=d.shopping||{};
+  var urlInfo=p.urlInfo||S_URL_INFO||{};
+  var postType=document.getElementById('post-type').value;
+  var postLength=document.getElementById('post-length').value;
+  var tags=[...document.querySelectorAll('.tag.on')].map(function(t){return t.textContent;});
+  var validImages=S_IMAGES.filter(Boolean);
+
+  var TYPE_STRUCTURE = {
+    review: [
+      '글 유형: 상품 리뷰형',
+      '목적: 한 제품을 깊게 파서 신뢰와 확신을 만든다.',
+      '구조를 반드시 아래 순서로 작성하라:',
+      '1. 오프닝 — 구매 전 공감 후킹 (검색자의 고민/실패 경험으로 시작)',
+      '2. 제품 소개 + [📸1] 대표이미지 배치',
+      '3. 핵심 특징 3가지 (각 특징마다 구체적 수치/근거 포함)',
+      '4. 실제 사용 장면 묘사 + [📸2] [📸3] 배치',
+      '5. 장점 / 단점 솔직하게 (단점을 숨기지 말 것 — 신뢰도 상승)',
+      '6. 가격 분석 (가성비 판단 — 일 단위 환산 포함)',
+      '7. 이런 분께 추천 / 비추천 (타깃 명확히)',
+      '8. 구매 CTA + 쿠팡/네이버 링크 + [📸4] 배치',
+    ].join('\n'),
+    compare: [
+      '글 유형: 비교 추천형',
+      '목적: 여러 제품 중 하나를 고르게 만들어 결정을 유도한다.',
+      '구조를 반드시 아래 순서로 작성하라:',
+      '1. 오프닝 — "뭘 살지 모르겠다"는 선택 고민 공감으로 시작',
+      '2. 비교 대상 2~3개 간단 소개 + [📸1] 배치',
+      '3. 항목별 비교 (가격 / 핵심기능 / 디자인 / 내구성 / 가성비) — 표 형식',
+      '4. 제품A 상세 분석 + [📸2] 배치',
+      '5. 제품B 상세 분석 + [📸3] 배치',
+      '6. 상황별 추천 — "이런 분은 A / 이런 분은 B"',
+      '7. 최종 1순위 추천 + 명확한 이유 + CTA + [📸4] 배치',
+    ].join('\n'),
+    guide: [
+      '글 유형: 구매 가이드형',
+      '목적: 초보자의 두려움을 없애고 안심 구매를 만든다.',
+      '구조를 반드시 아래 순서로 작성하라:',
+      '1. 오프닝 — 잘못 샀다가 후회한 경험 공감으로 시작',
+      '2. 이 제품 고를 때 반드시 확인할 것 3가지 (각 항목 구체적 설명)',
+      '3. 가격대별 추천 등급 (A급/B급/C급) + [📸1] 배치',
+      '4. 체크포인트 상세 설명 + [📸2] 배치',
+      '5. 구매 전 절대 하지 말아야 할 실수 2가지',
+      '6. 최저가 찾는 실전 팁 (쿠팡/네이버 비교 방법)',
+      '7. 최종 추천 + CTA + [📸3] 배치',
+    ].join('\n'),
+    trend: [
+      '글 유형: 트렌드 분석형',
+      '목적: 시장의 흐름을 보여주며 지금 사야 할 이유를 만든다.',
+      '구조를 반드시 아래 순서로 작성하라:',
+      '1. 오프닝 — "왜 지금 이게 갑자기 뜨는가" 데이터/근거로 시작',
+      '2. 트렌드 발생 배경 분석 (시즌/이슈/SNS 확산 경로) + [📸1] 배치',
+      '3. 인기 이유 3가지 분석 (감성적 이유 + 실용적 이유 혼합)',
+      '4. 대표 제품 소개 + 실구매자 반응 요약 + [📸2] 배치',
+      '5. 지금 진입해야 하는 이유 (타이밍 분석 — 트렌드 사이클 기준)',
+      '6. 지금 구매 안 하면 생기는 손해 (희소성/가격상승 예측)',
+      '7. 구매 CTA + 링크 + [📸3] 배치',
+    ].join('\n'),
+  };
+
+  var typeStructure = TYPE_STRUCTURE[postType] || TYPE_STRUCTURE.review;
+  var lenLabel = {short:'800자 이상',medium:'1500자 이상',long:'2500자 이상'}[postLength]||'1500자 이상';
+
+  var userPrompt =
+    '아래 제품 데이터를 기반으로 스킬 v10.1을 완전히 적용한 수익형 블로그 글을 작성하라.\n\n'
+    +'제품명: '+p.name+'\n'
+    +typeStructure+'\n'
+    +'글 길이: '+lenLabel+'\n'
+    +'트렌드: '+(jdg.trendStatus||'–')+' / 결정: '+(jdg.decision||'–')+'\n'
+    +'검색량 변화: '+(dl.surgeRate>=0?'+':'')+(dl.surgeRate||0)+'%\n'
+    +'RSS 신호: '+(rss.score||0)+'점 / '+(rss.detectionCount||0)+'건\n'
+    +'유튜브: 영상 '+(yt.videoCount||0)+'개 / 평균 조회수 '+(yt.avgViews||0)+'\n'
+    +'쇼핑: 상품 '+(shop.itemCount||0)+'개 / 평균가 '+(shop.avgPrice||0)+'원\n'
+    +(urlInfo.features?'URL 분석 특징: '+urlInfo.features.join(', ')+'\n':'')
+    +(urlInfo.pros?'장점: '+urlInfo.pros.join(', ')+'\n':'')
+    +(urlInfo.cons?'단점: '+urlInfo.cons.join(', ')+'\n':'')
+    +(urlInfo.reviewSummary?'후기 요약: '+urlInfo.reviewSummary+'\n':'')
+    +(urlInfo.originalUrl?'원본 URL: '+urlInfo.originalUrl+'\n':'')
+    +'포함 요소: '+tags.join(', ')+'\n'
+    +(validImages.length?'\n첨부 이미지 '+validImages.length+'장을 분석하여 [📸 사진] 배치 설명에 반영하라.\n':'')
+    +'\n⚠️ 절대 중간에 끊지 마라. JSON이 완전히 닫힐 때까지 출력을 멈추지 마라.\n'
+    +'반드시 완성된 JSON만 출력:\n'
+    +'{"titles":["제목1","제목2","제목3","제목4","제목5"],"body":"본문(마크다운+사진위치표시)","hashtags":["태그1",...],"thumb":{"main":"20자이내","sub":"15자이내","badge":"8자이내"},"seo":{"keyword_density":true,"title_length":true,"meta_desc":true,"heading_structure":true,"cta_included":true,"internal_link":true}}';
+
+  setLoadingStep('스킬 v10.1 적용 중...', 15); await sleep(300);
+  setLoadingStep('가격대 분석 + 구조 설계 중...', 35); await sleep(300);
+  setLoadingStep('본문 작성 중...', 55);
+
+  try {
+    var res = await fetch('/api/blog-generate', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ user:userPrompt, max_tokens:8000 })
+    });
+    var data2 = await res.json();
+    if (data2.error) throw new Error(data2.error);
+
+    setLoadingStep('SEO 분석 중...', 80); await sleep(200);
+
+    var raw = data2.text||'';
+    var clean = raw.replace(/```json|```/g,'').trim();
+    var result = JSON.parse(clean);
+
+    S.titles=result.titles||[]; S.body=result.body||''; S.hashtags=result.hashtags||[];
+    S.thumb=result.thumb||{}; S.seo=result.seo||{}; S.selectedTitle=0; S.generated=true;
+
+    setLoadingStep('완료!', 100); await sleep(200);
+
+    renderResult();
+    document.getElementById('result-area').style.display='block';
+    document.getElementById('result-area').scrollIntoView({behavior:'smooth',block:'start'});
+    updateStep(3);
+  } catch(e) {
+    showToast('⚠️ 생성 오류: '+e.message);
+    console.error(e);
+  } finally {
+    showLoading(false); btn.disabled=false;
+  }
+}
+
+// ── 본문 이미지 삽입 (슬롯 번호 매칭) ───────────────────────
+function insertImagesIntoBody(body) {
+  if (!S_IMAGES.filter(Boolean).length) return body;
+  var seqIdx = 0;
+  return body.replace(/\[📸\s*(\d*)[^\]]*\]/g, function(m, num) {
+    var idx = num ? parseInt(num) - 1 : seqIdx++;
+    var img = (idx >= 0 && idx < 6) ? S_IMAGES[idx] : null;
+    if (!img) return m;
+    return '\n\n<img src="data:'+img.mimeType+';base64,'+img.data+'" style="max-width:100%;border-radius:10px;margin:10px 0" alt="제품이미지"/>\n\n';
+  });
+}
+
+function cleanMarkdown(t) {
+  return t
+    .replace(/#{1,6}\s*/g,'')
+    .replace(/\*\*(.+?)\*\*/g,'$1')
+    .replace(/\*(.+?)\*/g,'$1')
+    .replace(/__(.+?)__/g,'$1')
+    .replace(/^>\s*/gm,'')
+    .replace(/\n{3,}/g,'\n\n')
+    .trim();
+}
+
+// ── 결과 렌더 ────────────────────────────────────────────────
+function renderResult() {
+  document.getElementById('title-list').innerHTML = S.titles.map(function(t,i){
+    var len=t.length, ok=len>=20&&len<=50;
+    return '<div class="title-item'+(i===S.selectedTitle?' selected':'')+'" onclick="selectTitle('+i+')">'
+      +'<div class="title-num">'+(i+1)+'</div>'
+      +'<div class="title-text">'+t+'</div>'
+      +'<span class="seo-score" style="background:'+(ok?'#ecfdf5;color:#10b981':'#fff7ed;color:#d97706')+'">'+len+'자'+(ok?' ✓':'')+'</span>'
+      +'</div>';
+  }).join('');
+
+  document.getElementById('body-textarea').value = cleanMarkdown(S.body);
+  updateCharCount();
+
+  document.getElementById('hashtag-wrap').innerHTML = S.hashtags.map(function(h){
+    return '<span class="hashtag">#'+h.replace(/^#/,'')+'</span>';
+  }).join('');
+
+  updateThumbPreview();
+
+  var seoItems=[
+    {key:'keyword_density',label:'키워드 밀도 적절'},
+    {key:'title_length',label:'제목 길이 최적 (20~50자)'},
+    {key:'meta_desc',label:'메타 설명 포함'},
+    {key:'heading_structure',label:'헤딩 구조 (H2/H3)'},
+    {key:'cta_included',label:'구매 유도 CTA 포함'},
+    {key:'internal_link',label:'내부/제휴 링크 포함'}
+  ];
+  var pass=0;
+  document.getElementById('seo-checklist').innerHTML = seoItems.map(function(item){
+    var ok=S.seo[item.key]; if(ok) pass++;
+    return '<div class="seo-item"><div class="seo-dot" style="background:'+(ok?'#10b981':'#f43f5e')+'"></div>'
+      +'<span style="flex:1">'+item.label+'</span>'
+      +'<span style="font-size:10px;font-weight:700;color:'+(ok?'#10b981':'#f43f5e')+'">'+(ok?'통과':'미흡')+'</span></div>';
+  }).join('');
+  var score=Math.round((pass/seoItems.length)*100);
+  document.getElementById('seo-bar').style.width=score+'%';
+  document.getElementById('seo-score-text').textContent=score+'점';
+}
+
+function selectTitle(i){ S.selectedTitle=i; renderResult(); }
+
+function updateThumbPreview() {
+  var t=S.thumb, style=(document.getElementById('thumb-style')||{}).value||'dark';
+  var bg={dark:'linear-gradient(135deg,#1e293b,#334155)',red:'linear-gradient(135deg,#7f1d1d,#ef4444)',green:'linear-gradient(135deg,#064e3b,#10b981)',purple:'linear-gradient(135deg,#3b0764,#8b5cf6)'}[style];
+  var prev=document.getElementById('thumb-preview'); if(prev) prev.style.background=bg;
+  var m=document.getElementById('thumb-main'),sb=document.getElementById('thumb-sub'),bd=document.getElementById('thumb-badge');
+  if(m) m.textContent=t.main||(S.product?S.product.name+' 추천':'');
+  if(sb) sb.textContent=t.sub||'지금 구매하면 이득인 이유';
+  if(bd) bd.textContent=t.badge||'🔥 HOT';
+}
+
+function updateCharCount(){
+  var ta=document.getElementById('body-textarea'),el=document.getElementById('char-count');
+  if(ta&&el) el.textContent=ta.value.replace(/\s/g,'').length+'자';
+}
+
+async function regenSection(section) {
+  if(!S.product||!S.generated){showToast('⚠️ 먼저 생성해주세요');return;}
+  var prompts={
+    body:'제품명: '+S.product.name+'\n기존 본문을 다른 스타일로 재작성. 스킬 v10.1 전환 구조 적용. 본문만 출력.',
+    thumb:'제품명: '+S.product.name+'\n썸네일 문구 재생성.\nJSON: {"main":"20자이내","sub":"15자이내","badge":"8자이내"}'
+  };
+  showToast('재생성 중...');
+  try {
+    var res=await fetch('/api/blog-generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:prompts[section],max_tokens:2000})});
+    var data=await res.json(); if(data.error) throw new Error(data.error);
+    var raw=data.text||'';
+    if(section==='body'){document.getElementById('body-textarea').value=raw.trim();updateCharCount();showToast('✓ 본문 재생성 완료');}
+    else if(section==='thumb'){S.thumb=JSON.parse(raw.replace(/```json|```/g,'').trim());updateThumbPreview();showToast('✓ 썸네일 재생성 완료');}
+  } catch(e){showToast('⚠️ 재생성 오류');}
+}
+
+// ── ImgBB 업로드 후 URL 맵 반환 ─────────────────────────────
+async function uploadImagesToImgBB() {
+  var urlMap = {}; // { 0: 'https://i.ibb.co/...', 1: ... }
+  for (var i = 0; i < 6; i++) {
+    var img = S_IMAGES[i];
+    if (!img || !img.data) continue;
+    try {
+      var r = await fetch('/api/proxy-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base64: img.data, mimeType: img.mimeType })
+      });
+      var d = await r.json();
+      if (d.url) urlMap[i] = d.url;
+    } catch(e) { /* 실패한 슬롯은 건너뜀 */ }
+  }
+  return urlMap;
+}
+
+// [📸N] → ImgBB URL img 태그로 교체
+function insertUrlsIntoBody(body, urlMap) {
+  var seqIdx = 0;
+  return body
+    .replace(/\[📸\s*(\d*)[^\]]*\]/g, function(m, num) {
+      var idx = num ? parseInt(num) - 1 : seqIdx++;
+      var url = urlMap[idx];
+      if (!url) return '';
+      return '\n\n<img src="' + url + '" style="max-width:100%;border-radius:10px;margin:16px 0;display:block" alt="제품이미지"/>\n\n';
+    })
+    .replace(/\n{3,}/g, '\n\n') // 3줄 이상 빈줄 → 2줄로 정리
+    .trim();
+}
+
+// ── 복사/업로드 ──────────────────────────────────────────────
+async function copySelected(type){
+  if(type==='body'){
+    var raw = document.getElementById('body-textarea').value;
+    var hasImgs = S_IMAGES.filter(Boolean).length > 0;
+    if(hasImgs){
+      showToast('🔄 이미지 업로드 중...');
+      var urlMap = await uploadImagesToImgBB();
+      var html = insertUrlsIntoBody(raw, urlMap);
+      if(navigator.clipboard && window.ClipboardItem){
+        var blob = new Blob([html], {type:'text/html'});
+        navigator.clipboard.write([new ClipboardItem({'text/html': blob})])
+          .then(function(){ showToast('✓ 이미지 포함 복사됨'); })
+          .catch(function(){ copyText(raw); showToast('✓ 텍스트만 복사됨'); });
+      } else { copyText(html); showToast('✓ 복사됨'); }
+    } else {
+      copyText(raw); showToast('✓ 복사됨');
+    }
+    return;
+  }
+  var text='';
+  if(type==='title') text=S.titles[S.selectedTitle]||'';
+  else if(type==='hashtag') text=S.hashtags.map(function(h){return '#'+h.replace(/^#/,'');}).join(' ');
+  else if(type==='thumb'){var t=S.thumb;text=(t.badge||'')+'\n'+(t.main||'')+'\n'+(t.sub||'');}
+  copyText(text); showToast('✓ 복사됨');
+}
+
+async function uploadTo(platform){
+  if(!S.generated){showToast('⚠️ 먼저 생성해주세요');return;}
+  var title=S.titles[S.selectedTitle]||'';
+  var body=document.getElementById('body-textarea').value;
+  var tags=S.hashtags.map(function(h){return h.replace(/^#/,'');}).join(',');
+  var sched=document.getElementById('use-schedule').checked
+    ?' ('+document.getElementById('schedule-date').value+' '+document.getElementById('schedule-time').value+' 예약)':' (즉시)';
+  if(platform==='both'){
+    var hasImgs = S_IMAGES.filter(Boolean).length > 0;
+    if(!hasImgs){
+      // 이미지 없음 → 동기 복사 (유저 제스처 컨텍스트 유지)
+      copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags);
+      showToast('✓ 전체 복사됨');
+      updateStep(4); return;
+    }
+    // 이미지 있음 → ImgBB 업로드 후 HTML 복사
+    showToast('🔄 이미지 업로드 중...');
+    uploadImagesToImgBB().then(function(urlMap){
+      var bodyWithImgs = insertUrlsIntoBody(body, urlMap);
+      var fullHtml = '<h2>'+title+'</h2>\n'+bodyWithImgs+'\n<p>'+tags+'</p>';
+      if(navigator.clipboard && window.ClipboardItem){
+        var blob = new Blob([fullHtml], {type:'text/html'});
+        navigator.clipboard.write([new ClipboardItem({'text/html': blob})])
+          .then(function(){ showToast('✓ 이미지 포함 전체 복사됨'); })
+          .catch(function(){ copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags); showToast('✓ 텍스트만 복사됨'); });
+      } else {
+        copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags); showToast('✓ 복사됨');
+      }
+    });
+    updateStep(4); return;
+  }
+  copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags);
+  window.open({naver:'https://blog.naver.com/PostWriteForm.naver',tistory:'https://www.tistory.com/manage/post/write'}[platform],'_blank');
+  showToast('✓ '+(platform==='naver'?'네이버':'티스토리')+' 열림 + 내용 복사됨'+sched);
+  updateStep(4);
+}
+
+// ── 미리보기 ─────────────────────────────────────────────────
+function togglePreview() {
+  var ta=document.getElementById('body-textarea');
+  var pv=document.getElementById('body-preview');
+  var btn=document.getElementById('preview-btn');
+  if(pv.style.display==='none'){
+    pv.innerHTML=renderBodyWithImages(ta.value);
+    pv.style.display='block'; ta.style.display='none';
+    btn.textContent='편집'; btn.style.background='#f1f5f9'; btn.style.color='#475569';
+  } else {
+    pv.style.display='none'; ta.style.display='block';
+    btn.textContent='미리보기'; btn.style.background='#fff7ed'; btn.style.color='#f97316';
+  }
+}
+
+function renderBodyWithImages(text) {
+  var escaped=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return escaped.replace(/\[(?:📸|📷|🖼|📟)[^\]]*(\d)[^\]]*\]/g,function(match,num){
+    var idx=parseInt(num)-1;
+    var img=(idx>=0&&idx<6)?S_IMAGES[idx]:null;
+    if(img&&img.data){
+      return '\n<img src="data:'+img.mimeType+';base64,'+img.data+'" style="max-width:100%;border-radius:10px;margin:12px 0;display:block" alt="📸'+(idx+1)+'"/>\n';
+    }
+    if(img&&img.url){
+      return '\n<img src="'+img.url+'" style="max-width:100%;border-radius:10px;margin:12px 0;display:block" alt="📸'+(idx+1)+'" onerror="this.style.display=\'none\'"/>\n';
+    }
+    return '\n<div style="background:#f1f5f9;border:2px dashed #c7d2fe;border-radius:10px;padding:20px;text-align:center;color:#94a3b8;font-size:12px;margin:12px 0">'
+      +'📸 이미지 '+(idx+1)+' 슬롯 — 이미지를 첨부하면 여기에 표시됩니다</div>\n';
+  });
+}
+
+// ── 공통 유틸 ────────────────────────────────────────────────
+function updateStep(active){
+  for(var i=1;i<=4;i++){
+    var n=document.getElementById('step'+i+'-num'),l=document.getElementById('step'+i+'-label');
+    if(!n||!l) continue;
+    if(i<active){n.className='step-num done';n.textContent='✓';l.className='step-label done';}
+    else if(i===active){n.className='step-num active';n.textContent=String(i);l.className='step-label active';}
+    else{n.className='step-num idle';n.textContent=String(i);l.className='step-label idle';}
+  }
+  var hints={1:'제품 연결됨',2:'설정 후 생성 버튼',3:'제목 선택 후 업로드',4:'업로드 완료! 🎉'};
+  var h=document.getElementById('step-hint'); if(h) h.textContent=hints[active]||'';
+}
+function showLoading(on){document.getElementById('loading-overlay').style.display=on?'flex':'none';}
+function setLoadingStep(msg,pct){document.getElementById('loading-step').textContent=msg;document.getElementById('loading-bar').style.width=pct+'%';}
+function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
+function toggleTag(el){el.classList.toggle('on');}
+function copyText(t){try{var e=document.createElement('textarea');e.value=t;e.style.cssText='position:fixed;top:-9999px;opacity:0;';document.body.appendChild(e);e.focus();e.select();document.execCommand('copy');document.body.removeChild(e);}catch(e){if(navigator.clipboard)navigator.clipboard.writeText(t);}}
+function showToast(msg){var t=document.getElementById('_toast');if(!t){t=document.createElement('div');t.id='_toast';t.className='toast';document.body.appendChild(t);}t.textContent=msg;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(function(){t.style.opacity='0';},2500);}
+function showApiSetup(){showToast('💡 네이버/티스토리 API 연동은 OAuth 설정 필요');}
     return '<div class="img-slot" id="slot-'+i+'" onclick="openSlot('+i+')" onpaste="pasteSlot(event,'+i+')">'
       +'<div style="font-size:20px">➕</div>'
       +'<div class="img-slot-label">'+label+'</div>'
