@@ -203,6 +203,8 @@ async function generateBlog() {
   var p=S.product, jdg=p.judge||{}, sc=p.score||{}, rss=p.rss||{};
   var d=p.data||{}, dl=d.datalab||{}, yt=d.youtube||{}, shop=d.shopping||{};
   var urlInfo=p.urlInfo||S_URL_INFO||{};
+  // ★ 사용자가 입력창에 넣은 URL 그대로 사용
+  var inputUrl = document.getElementById('url-input').value.trim() || urlInfo.originalUrl || '';
   var postType=document.getElementById('post-type').value;
   var postLength=document.getElementById('post-length').value;
   var tags=[...document.querySelectorAll('.tag.on')].map(function(t){return t.textContent;});
@@ -212,7 +214,7 @@ async function generateBlog() {
   var lenLabel={short:'800자 이상',medium:'1500자 이상',long:'2500자 이상'}[postLength]||'1500자 이상';
 
   var userPrompt =
-    '아래 제품 데이터를 기반으로 스킬 v10.1을 완전히 적용한 수익형 블로그 글을 작성하라.\n\n'
+    '아래 제품 데이터를 기반으로 스킬 v10.2를 완전히 적용한 수익형 블로그 글을 작성하라.\n\n'
     +'제품명: '+p.name+'\n'
     +'글 유형: '+typeLabel+'\n'
     +'글 길이: '+lenLabel+'\n'
@@ -225,15 +227,17 @@ async function generateBlog() {
     +(urlInfo.pros?'장점: '+urlInfo.pros.join(', ')+'\n':'')
     +(urlInfo.cons?'단점: '+urlInfo.cons.join(', ')+'\n':'')
     +(urlInfo.reviewSummary?'후기 요약: '+urlInfo.reviewSummary+'\n':'')
-    +(urlInfo.originalUrl? '구매 링크 URL: '+urlInfo.originalUrl+'\n'
-    +'⚠️ 본문의 모든 CTA(상단/중단/하단) 링크는 반드시 위 URL만 사용할 것. 다른 URL 절대 금지.\n': '')
+    +(inputUrl
+      ? '구매 링크 URL: '+inputUrl+'\n'
+        +'⚠️ 본문의 모든 CTA(상단/중단/하단) 링크는 반드시 이 URL만 사용할 것: '+inputUrl+'\n'
+      : '')
     +'포함 요소: '+tags.join(', ')+'\n'
     +(validImages.length?'\n첨부 이미지 '+validImages.length+'장을 분석하여 [📸 사진] 배치 설명에 반영하라.\n':'')
     +'\n⚠️ 절대 중간에 끊지 마라. JSON이 완전히 닫힐 때까지 출력을 멈추지 마라.\n'
     +'반드시 완성된 JSON만 출력:\n'
     +'{"titles":["제목1","제목2","제목3","제목4","제목5"],"body":"본문(마크다운+사진위치표시)","hashtags":["태그1",...],"thumb":{"main":"20자이내","sub":"15자이내","badge":"8자이내"},"seo":{"keyword_density":true,"title_length":true,"meta_desc":true,"heading_structure":true,"cta_included":true,"internal_link":true}}';
 
-  setLoadingStep('스킬 v10.1 적용 중...', 15); await sleep(300);
+  setLoadingStep('스킬 v10.2 적용 중...', 15); await sleep(300);
   setLoadingStep('가격대 분석 + 구조 설계 중...', 35); await sleep(300);
   setLoadingStep('본문 작성 중...', 55);
 
@@ -352,7 +356,7 @@ function updateCharCount(){
 async function regenSection(section) {
   if(!S.product||!S.generated){showToast('⚠️ 먼저 생성해주세요');return;}
   var prompts={
-    body:'제품명: '+S.product.name+'\n기존 본문을 다른 스타일로 재작성. 스킬 v10.1 전환 구조 적용. 본문만 출력.',
+    body:'제품명: '+S.product.name+'\n기존 본문을 다른 스타일로 재작성. 스킬 v10.2 전환 구조 적용. 본문만 출력.',
     thumb:'제품명: '+S.product.name+'\n썸네일 문구 재생성.\nJSON: {"main":"20자이내","sub":"15자이내","badge":"8자이내"}'
   };
   showToast('재생성 중...');
@@ -367,7 +371,7 @@ async function regenSection(section) {
 
 // ── ImgBB 업로드 후 URL 맵 반환 ─────────────────────────────
 async function uploadImagesToImgBB() {
-  var urlMap = {}; // { 0: 'https://i.ibb.co/...', 1: ... }
+  var urlMap = {};
   for (var i = 0; i < 6; i++) {
     var img = S_IMAGES[i];
     if (!img || !img.data) continue;
@@ -384,18 +388,28 @@ async function uploadImagesToImgBB() {
   return urlMap;
 }
 
-// [📸N] → ImgBB URL img 태그로 교체
+// ── [수정] [📸N] → ImgBB URL img 태그 + 단락 구조 변환 ───────
 function insertUrlsIntoBody(body, urlMap) {
   var seqIdx = 0;
-  return body
-    .replace(/\[📸\s*(\d*)[^\]]*\]/g, function(m, num) {
-      var idx = num ? parseInt(num) - 1 : seqIdx++;
-      var url = urlMap[idx];
-      if (!url) return '';
-      return '\n\n<img src="' + url + '" style="max-width:100%;border-radius:10px;margin:16px 0;display:block" alt="제품이미지"/>\n\n';
-    })
-    .replace(/\n{3,}/g, '\n\n') // 3줄 이상 빈줄 → 2줄로 정리
-    .trim();
+
+  // 1단계: [📸N] → 임시 구분자로 치환
+  var processed = body.replace(/\[📸\s*(\d*)[^\]]*\]/g, function(m, num) {
+    var idx = num ? parseInt(num) - 1 : seqIdx++;
+    var url = urlMap[idx];
+    if (!url) return '';
+    return '\x00<img src="' + url
+      + '" style="max-width:100%;border-radius:10px;margin:16px 0;display:block" alt="제품이미지"/>\x00';
+  });
+
+  // 2단계: \x00 기준 분리 → 텍스트는 <p>/<br> 변환, img는 그대로
+  return processed.split('\x00').map(function(chunk) {
+    if (chunk.startsWith('<img')) return chunk;
+    return chunk.trim().split(/\n{2,}/).map(function(para) {
+      var t = para.trim();
+      return t ? '<p style="margin:0 0 14px 0;line-height:1.9">'
+        + t.replace(/\n/g, '<br>') + '</p>' : '';
+    }).join('');
+  }).join('');
 }
 
 // ── 복사/업로드 ──────────────────────────────────────────────
@@ -414,7 +428,14 @@ async function copySelected(type){
           .catch(function(){ copyText(raw); showToast('✓ 텍스트만 복사됨'); });
       } else { copyText(html); showToast('✓ 복사됨'); }
     } else {
-      copyText(raw); showToast('✓ 복사됨');
+      // 이미지 없어도 단락 구조 유지
+      var html = insertUrlsIntoBody(raw, {});
+      if(navigator.clipboard && window.ClipboardItem){
+        var blob = new Blob([html], {type:'text/html'});
+        navigator.clipboard.write([new ClipboardItem({'text/html': blob})])
+          .then(function(){ showToast('✓ 복사됨'); })
+          .catch(function(){ copyText(raw); showToast('✓ 복사됨'); });
+      } else { copyText(raw); showToast('✓ 복사됨'); }
     }
     return;
   }
