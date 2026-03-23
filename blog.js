@@ -364,17 +364,51 @@ async function regenSection(section) {
   } catch(e){showToast('⚠️ 재생성 오류');}
 }
 
+// ── ImgBB 업로드 후 URL 맵 반환 ─────────────────────────────
+async function uploadImagesToImgBB() {
+  var urlMap = {}; // { 0: 'https://i.ibb.co/...', 1: ... }
+  for (var i = 0; i < 6; i++) {
+    var img = S_IMAGES[i];
+    if (!img || !img.data) continue;
+    try {
+      var r = await fetch('/api/proxy-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base64: img.data, mimeType: img.mimeType })
+      });
+      var d = await r.json();
+      if (d.url) urlMap[i] = d.url;
+    } catch(e) { /* 실패한 슬롯은 건너뜀 */ }
+  }
+  return urlMap;
+}
+
+// [📸N] → ImgBB URL img 태그로 교체
+function insertUrlsIntoBody(body, urlMap) {
+  var seqIdx = 0;
+  return body.replace(/\[📸\s*(\d*)[^\]]*\]/g, function(m, num) {
+    var idx = num ? parseInt(num) - 1 : seqIdx++;
+    var url = urlMap[idx];
+    if (!url) return m;
+    return '\n<img src="' + url + '" style="max-width:100%;border-radius:10px;margin:10px 0" alt="제품이미지"/>\n';
+  });
+}
+
 // ── 복사/업로드 ──────────────────────────────────────────────
-function copySelected(type){
+async function copySelected(type){
   if(type==='body'){
     var raw = document.getElementById('body-textarea').value;
-    var html = renderBodyWithImages(raw);
-    // 이미지 포함 HTML 클립보드 복사 (붙여넣기 시 이미지 포함)
-    if(navigator.clipboard && window.ClipboardItem){
-      var blob = new Blob([html], {type:'text/html'});
-      navigator.clipboard.write([new ClipboardItem({'text/html': blob})])
-        .then(function(){ showToast('✓ 이미지 포함 복사됨 — 에디터에 붙여넣기 하세요'); })
-        .catch(function(){ copyText(raw); showToast('✓ 텍스트만 복사됨'); });
+    var hasImgs = S_IMAGES.filter(Boolean).length > 0;
+    if(hasImgs){
+      showToast('🔄 이미지 업로드 중...');
+      var urlMap = await uploadImagesToImgBB();
+      var html = insertUrlsIntoBody(raw, urlMap);
+      if(navigator.clipboard && window.ClipboardItem){
+        var blob = new Blob([html], {type:'text/html'});
+        navigator.clipboard.write([new ClipboardItem({'text/html': blob})])
+          .then(function(){ showToast('✓ 이미지 포함 복사됨'); })
+          .catch(function(){ copyText(raw); showToast('✓ 텍스트만 복사됨'); });
+      } else { copyText(html); showToast('✓ 복사됨'); }
     } else {
       copyText(raw); showToast('✓ 복사됨');
     }
@@ -387,7 +421,7 @@ function copySelected(type){
   copyText(text); showToast('✓ 복사됨');
 }
 
-function uploadTo(platform){
+async function uploadTo(platform){
   if(!S.generated){showToast('⚠️ 먼저 생성해주세요');return;}
   var title=S.titles[S.selectedTitle]||'';
   var body=document.getElementById('body-textarea').value;
@@ -395,12 +429,15 @@ function uploadTo(platform){
   var sched=document.getElementById('use-schedule').checked
     ?' ('+document.getElementById('schedule-date').value+' '+document.getElementById('schedule-time').value+' 예약)':' (즉시)';
   if(platform==='both'){
-    var bodyHtml = renderBodyWithImages(body);
-    var fullHtml = '<h2>'+title+'</h2>\n'+bodyHtml+'\n<p>'+tags+'</p>';
+    var hasImgs = S_IMAGES.filter(Boolean).length > 0;
+    showToast(hasImgs ? '🔄 이미지 업로드 중...' : '복사 중...');
+    var urlMap = hasImgs ? await uploadImagesToImgBB() : {};
+    var bodyWithImgs = insertUrlsIntoBody(body, urlMap);
+    var fullHtml = '<h2>'+title+'</h2>\n'+bodyWithImgs+'\n<p>'+tags+'</p>';
     if(navigator.clipboard && window.ClipboardItem){
       var blob = new Blob([fullHtml], {type:'text/html'});
       navigator.clipboard.write([new ClipboardItem({'text/html': blob})])
-        .then(function(){ showToast('✓ 이미지 포함 전체 복사됨 — 에디터에 붙여넣기 하세요'); })
+        .then(function(){ showToast('✓ 이미지 포함 전체 복사됨'); })
         .catch(function(){ copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags); showToast('✓ 텍스트만 복사됨'); });
     } else {
       copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags); showToast('✓ 복사됨');
