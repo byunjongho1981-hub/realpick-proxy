@@ -208,65 +208,13 @@ async function generateBlog() {
   var tags=[...document.querySelectorAll('.tag.on')].map(function(t){return t.textContent;});
   var validImages=S_IMAGES.filter(Boolean);
 
-  var TYPE_STRUCTURE = {
-    review: [
-      '글 유형: 상품 리뷰형',
-      '목적: 한 제품을 깊게 파서 신뢰와 확신을 만든다.',
-      '구조를 반드시 아래 순서로 작성하라:',
-      '1. 오프닝 — 구매 전 공감 후킹 (검색자의 고민/실패 경험으로 시작)',
-      '2. 제품 소개 + [📸1] 대표이미지 배치',
-      '3. 핵심 특징 3가지 (각 특징마다 구체적 수치/근거 포함)',
-      '4. 실제 사용 장면 묘사 + [📸2] [📸3] 배치',
-      '5. 장점 / 단점 솔직하게 (단점을 숨기지 말 것 — 신뢰도 상승)',
-      '6. 가격 분석 (가성비 판단 — 일 단위 환산 포함)',
-      '7. 이런 분께 추천 / 비추천 (타깃 명확히)',
-      '8. 구매 CTA + 쿠팡/네이버 링크 + [📸4] 배치',
-    ].join('\n'),
-    compare: [
-      '글 유형: 비교 추천형',
-      '목적: 여러 제품 중 하나를 고르게 만들어 결정을 유도한다.',
-      '구조를 반드시 아래 순서로 작성하라:',
-      '1. 오프닝 — "뭘 살지 모르겠다"는 선택 고민 공감으로 시작',
-      '2. 비교 대상 2~3개 간단 소개 + [📸1] 배치',
-      '3. 항목별 비교 (가격 / 핵심기능 / 디자인 / 내구성 / 가성비) — 표 형식',
-      '4. 제품A 상세 분석 + [📸2] 배치',
-      '5. 제품B 상세 분석 + [📸3] 배치',
-      '6. 상황별 추천 — "이런 분은 A / 이런 분은 B"',
-      '7. 최종 1순위 추천 + 명확한 이유 + CTA + [📸4] 배치',
-    ].join('\n'),
-    guide: [
-      '글 유형: 구매 가이드형',
-      '목적: 초보자의 두려움을 없애고 안심 구매를 만든다.',
-      '구조를 반드시 아래 순서로 작성하라:',
-      '1. 오프닝 — 잘못 샀다가 후회한 경험 공감으로 시작',
-      '2. 이 제품 고를 때 반드시 확인할 것 3가지 (각 항목 구체적 설명)',
-      '3. 가격대별 추천 등급 (A급/B급/C급) + [📸1] 배치',
-      '4. 체크포인트 상세 설명 + [📸2] 배치',
-      '5. 구매 전 절대 하지 말아야 할 실수 2가지',
-      '6. 최저가 찾는 실전 팁 (쿠팡/네이버 비교 방법)',
-      '7. 최종 추천 + CTA + [📸3] 배치',
-    ].join('\n'),
-    trend: [
-      '글 유형: 트렌드 분석형',
-      '목적: 시장의 흐름을 보여주며 지금 사야 할 이유를 만든다.',
-      '구조를 반드시 아래 순서로 작성하라:',
-      '1. 오프닝 — "왜 지금 이게 갑자기 뜨는가" 데이터/근거로 시작',
-      '2. 트렌드 발생 배경 분석 (시즌/이슈/SNS 확산 경로) + [📸1] 배치',
-      '3. 인기 이유 3가지 분석 (감성적 이유 + 실용적 이유 혼합)',
-      '4. 대표 제품 소개 + 실구매자 반응 요약 + [📸2] 배치',
-      '5. 지금 진입해야 하는 이유 (타이밍 분석 — 트렌드 사이클 기준)',
-      '6. 지금 구매 안 하면 생기는 손해 (희소성/가격상승 예측)',
-      '7. 구매 CTA + 링크 + [📸3] 배치',
-    ].join('\n'),
-  };
-
-  var typeStructure = TYPE_STRUCTURE[postType] || TYPE_STRUCTURE.review;
-  var lenLabel = {short:'800자 이상',medium:'1500자 이상',long:'2500자 이상'}[postLength]||'1500자 이상';
+  var typeLabel={review:'상품 리뷰',compare:'비교 추천',guide:'구매 가이드',trend:'트렌드 분석'}[postType]||'리뷰';
+  var lenLabel={short:'800자 이상',medium:'1500자 이상',long:'2500자 이상'}[postLength]||'1500자 이상';
 
   var userPrompt =
     '아래 제품 데이터를 기반으로 스킬 v10.1을 완전히 적용한 수익형 블로그 글을 작성하라.\n\n'
     +'제품명: '+p.name+'\n'
-    +typeStructure+'\n'
+    +'글 유형: '+typeLabel+'\n'
     +'글 길이: '+lenLabel+'\n'
     +'트렌드: '+(jdg.trendStatus||'–')+' / 결정: '+(jdg.decision||'–')+'\n'
     +'검색량 변화: '+(dl.surgeRate>=0?'+':'')+(dl.surgeRate||0)+'%\n'
@@ -416,63 +364,9 @@ async function regenSection(section) {
   } catch(e){showToast('⚠️ 재생성 오류');}
 }
 
-// ── [수정] 텍스트+이미지 → 붙여넣기용 HTML 빌드 ─────────────
-// [📸N] → ImgBB URL <img> 태그, 일반 텍스트 → <p>/<br> 변환
-function buildCopyHtml(text, urlMap) {
-  var seqIdx = 0;
-  var processed = text.replace(/\[📸\s*(\d*)[^\]]*\]/g, function(m, num) {
-    var idx = num ? parseInt(num) - 1 : seqIdx++;
-    var url = urlMap[idx];
-    if (!url) return '';
-    return '\x00<img src="' + url
-      + '" style="max-width:100%;border-radius:10px;margin:16px 0;display:block" alt="제품이미지"/>\x00';
-  });
-  // \x00 구분자 기준으로 분리 → 텍스트 청크는 <p>/<br> 변환, img는 그대로
-  return processed.split('\x00').map(function(chunk) {
-    if (chunk.startsWith('<img')) return chunk;
-    return chunk.trim().split(/\n{2,}/).map(function(para) {
-      var t = para.trim();
-      return t ? '<p>' + t.replace(/\n/g, '<br>') + '</p>' : '';
-    }).join('');
-  }).join('');
-}
-
-// ── [수정] async copyHtml — 이미지 로드 완료 후 복사 ─────────
-async function copyHtml(html) {
-  var div = document.createElement('div');
-  div.contentEditable = 'true';
-  // opacity:0 이면 브라우저가 이미지 렌더링을 생략할 수 있어 0.01 사용
-  div.style.cssText = 'position:fixed;top:0;left:0;width:800px;opacity:0.01;pointer-events:none;z-index:-9999;';
-  div.innerHTML = html;
-  document.body.appendChild(div);
-
-  // 모든 이미지 로드 대기 (최대 10초 타임아웃)
-  var imgs = Array.from(div.querySelectorAll('img'));
-  if (imgs.length) {
-    await Promise.all(imgs.map(function(img) {
-      return new Promise(function(resolve) {
-        if (img.complete && img.naturalWidth > 0) { resolve(); return; }
-        img.onload  = resolve;
-        img.onerror = resolve;
-        setTimeout(resolve, 10000);
-      });
-    }));
-  }
-  // 렌더링 반영 여유
-  await new Promise(function(r) { setTimeout(r, 100); });
-
-  var range = document.createRange();
-  range.selectNodeContents(div);
-  var sel = window.getSelection();
-  sel.removeAllRanges();
-  sel.addRange(range);
-  document.execCommand('copy');
-  sel.removeAllRanges();
-  document.body.removeChild(div);
-}
-
+// ── ImgBB 업로드 후 URL 맵 반환 ─────────────────────────────
 async function uploadImagesToImgBB() {
-  var urlMap = {};
+  var urlMap = {}; // { 0: 'https://i.ibb.co/...', 1: ... }
   for (var i = 0; i < 6; i++) {
     var img = S_IMAGES[i];
     if (!img || !img.data) continue;
@@ -489,31 +383,45 @@ async function uploadImagesToImgBB() {
   return urlMap;
 }
 
-// ── [수정] copySelected ───────────────────────────────────────
-async function copySelected(type) {
-  if (type === 'body') {
+// [📸N] → ImgBB URL img 태그로 교체
+function insertUrlsIntoBody(body, urlMap) {
+  var seqIdx = 0;
+  return body
+    .replace(/\[📸\s*(\d*)[^\]]*\]/g, function(m, num) {
+      var idx = num ? parseInt(num) - 1 : seqIdx++;
+      var url = urlMap[idx];
+      if (!url) return '';
+      return '\n\n<img src="' + url + '" style="max-width:100%;border-radius:10px;margin:16px 0;display:block" alt="제품이미지"/>\n\n';
+    })
+    .replace(/\n{3,}/g, '\n\n') // 3줄 이상 빈줄 → 2줄로 정리
+    .trim();
+}
+
+// ── 복사/업로드 ──────────────────────────────────────────────
+async function copySelected(type){
+  if(type==='body'){
     var raw = document.getElementById('body-textarea').value;
     var hasImgs = S_IMAGES.filter(Boolean).length > 0;
-    if (hasImgs) {
+    if(hasImgs){
       showToast('🔄 이미지 업로드 중...');
       var urlMap = await uploadImagesToImgBB();
-      var html = buildCopyHtml(raw, urlMap);
-      await copyHtml(html);
-      showToast('✓ 이미지 포함 복사됨');
+      var html = insertUrlsIntoBody(raw, urlMap);
+      if(navigator.clipboard && window.ClipboardItem){
+        var blob = new Blob([html], {type:'text/html'});
+        navigator.clipboard.write([new ClipboardItem({'text/html': blob})])
+          .then(function(){ showToast('✓ 이미지 포함 복사됨'); })
+          .catch(function(){ copyText(raw); showToast('✓ 텍스트만 복사됨'); });
+      } else { copyText(html); showToast('✓ 복사됨'); }
     } else {
-      // 이미지 없어도 단락 구조 유지하며 복사
-      var html = buildCopyHtml(raw, {});
-      await copyHtml(html);
-      showToast('✓ 복사됨');
+      copyText(raw); showToast('✓ 복사됨');
     }
     return;
   }
-  var text = '';
-  if (type === 'title')        text = S.titles[S.selectedTitle] || '';
-  else if (type === 'hashtag') text = S.hashtags.map(function(h){ return '#'+h.replace(/^#/,''); }).join(' ');
-  else if (type === 'thumb')   { var t=S.thumb; text=(t.badge||'')+'\n'+(t.main||'')+'\n'+(t.sub||''); }
-  copyText(text);
-  showToast('✓ 복사됨');
+  var text='';
+  if(type==='title') text=S.titles[S.selectedTitle]||'';
+  else if(type==='hashtag') text=S.hashtags.map(function(h){return '#'+h.replace(/^#/,'');}).join(' ');
+  else if(type==='thumb'){var t=S.thumb;text=(t.badge||'')+'\n'+(t.main||'')+'\n'+(t.sub||'');}
+  copyText(text); showToast('✓ 복사됨');
 }
 
 async function uploadTo(platform){
@@ -524,8 +432,19 @@ async function uploadTo(platform){
   var sched=document.getElementById('use-schedule').checked
     ?' ('+document.getElementById('schedule-date').value+' '+document.getElementById('schedule-time').value+' 예약)':' (즉시)';
   if(platform==='both'){
-    copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags);
-    showToast('✓ 전체 복사됨');
+    var hasImgs = S_IMAGES.filter(Boolean).length > 0;
+    showToast(hasImgs ? '🔄 이미지 업로드 중...' : '복사 중...');
+    var urlMap = hasImgs ? await uploadImagesToImgBB() : {};
+    var bodyWithImgs = insertUrlsIntoBody(body, urlMap);
+    var fullHtml = '<h2>'+title+'</h2>\n'+bodyWithImgs+'\n<p>'+tags+'</p>';
+    if(navigator.clipboard && window.ClipboardItem){
+      var blob = new Blob([fullHtml], {type:'text/html'});
+      navigator.clipboard.write([new ClipboardItem({'text/html': blob})])
+        .then(function(){ showToast('✓ 이미지 포함 전체 복사됨'); })
+        .catch(function(){ copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags); showToast('✓ 텍스트만 복사됨'); });
+    } else {
+      copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags); showToast('✓ 복사됨');
+    }
     updateStep(4); return;
   }
   copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags);
