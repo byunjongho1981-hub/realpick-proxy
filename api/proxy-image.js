@@ -1,26 +1,43 @@
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-  var { base64, mimeType } = req.body;
-  if (!base64) return res.status(400).json({ error: 'base64 필요' });
+  const { base64, mimeType } = req.body;
 
-  var apiKey = process.env.IMGBB_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'IMGBB_API_KEY 미설정' });
+  if (!base64) {
+    return res.status(400).json({ error: 'base64 데이터가 없습니다' });
+  }
+
+  const apiKey = process.env.IMGBB_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'IMGBB_API_KEY 환경변수 없음' });
+  }
 
   try {
-    var form = new URLSearchParams();
+    // ImgBB는 multipart/form-data 방식
+    const form = new URLSearchParams();
     form.append('key', apiKey);
-    form.append('image', base64);
+    form.append('image', base64); // 순수 base64 (data:... 헤더 제거된 것)
 
-    var r = await fetch('https://api.imgbb.com/1/upload', {
+    const response = await fetch('https://api.imgbb.com/1/upload', {
       method: 'POST',
-      body: form
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: form.toString(),
     });
-    var data = await r.json();
-    if (!data.success) throw new Error(data.error?.message || 'ImgBB 업로드 실패');
 
-    res.json({ url: data.data.url });
+    const data = await response.json();
+
+    if (!data.success) {
+      console.error('ImgBB 오류:', data);
+      return res.status(500).json({ error: 'ImgBB 업로드 실패', detail: data });
+    }
+
+    // display_url: 직접 표시용 URL (네이버 블로그 붙여넣기에 적합)
+    return res.status(200).json({ url: data.data.display_url });
+
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.error('proxy-image 오류:', e);
+    return res.status(500).json({ error: e.message });
   }
 }
