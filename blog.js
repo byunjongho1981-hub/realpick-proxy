@@ -416,7 +416,22 @@ async function regenSection(section) {
   } catch(e){showToast('⚠️ 재생성 오류');}
 }
 
-// ── ImgBB 업로드 후 URL 맵 반환 ─────────────────────────────
+// 권한 팝업 없이 HTML 복사
+function copyHtml(html){
+  var div = document.createElement('div');
+  div.contentEditable = 'true';
+  div.style.cssText = 'position:fixed;top:-9999px;opacity:0;';
+  div.innerHTML = html;
+  document.body.appendChild(div);
+  var range = document.createRange();
+  range.selectNodeContents(div);
+  var sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+  document.execCommand('copy');
+  sel.removeAllRanges();
+  document.body.removeChild(div);
+}
 async function uploadImagesToImgBB() {
   var urlMap = {}; // { 0: 'https://i.ibb.co/...', 1: ... }
   for (var i = 0; i < 6; i++) {
@@ -458,12 +473,8 @@ async function copySelected(type){
       showToast('🔄 이미지 업로드 중...');
       var urlMap = await uploadImagesToImgBB();
       var html = insertUrlsIntoBody(raw, urlMap);
-      if(navigator.clipboard && window.ClipboardItem){
-        var blob = new Blob([html], {type:'text/html'});
-        navigator.clipboard.write([new ClipboardItem({'text/html': blob})])
-          .then(function(){ showToast('✓ 이미지 포함 복사됨'); })
-          .catch(function(){ copyText(raw); showToast('✓ 텍스트만 복사됨'); });
-      } else { copyText(html); showToast('✓ 복사됨'); }
+      copyHtml(html);
+      showToast('✓ 이미지 포함 복사됨');
     } else {
       copyText(raw); showToast('✓ 복사됨');
     }
@@ -485,18 +496,20 @@ async function uploadTo(platform){
     ?' ('+document.getElementById('schedule-date').value+' '+document.getElementById('schedule-time').value+' 예약)':' (즉시)';
   if(platform==='both'){
     var hasImgs = S_IMAGES.filter(Boolean).length > 0;
-    showToast(hasImgs ? '🔄 이미지 업로드 중...' : '복사 중...');
-    var urlMap = hasImgs ? await uploadImagesToImgBB() : {};
-    var bodyWithImgs = insertUrlsIntoBody(body, urlMap);
-    var fullHtml = '<h2>'+title+'</h2>\n'+bodyWithImgs+'\n<p>'+tags+'</p>';
-    if(navigator.clipboard && window.ClipboardItem){
-      var blob = new Blob([fullHtml], {type:'text/html'});
-      navigator.clipboard.write([new ClipboardItem({'text/html': blob})])
-        .then(function(){ showToast('✓ 이미지 포함 전체 복사됨'); })
-        .catch(function(){ copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags); showToast('✓ 텍스트만 복사됨'); });
-    } else {
-      copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags); showToast('✓ 복사됨');
+    if(!hasImgs){
+      // 이미지 없음 → 동기 복사 (유저 제스처 컨텍스트 유지)
+      copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags);
+      showToast('✓ 전체 복사됨');
+      updateStep(4); return;
     }
+    // 이미지 있음 → ImgBB 업로드 후 HTML 복사
+    showToast('🔄 이미지 업로드 중...');
+    uploadImagesToImgBB().then(function(urlMap){
+      var bodyWithImgs = insertUrlsIntoBody(body, urlMap);
+      var fullHtml = '<h2>'+title+'</h2>\n'+bodyWithImgs+'\n<p>'+tags+'</p>';
+        copyHtml(fullHtml);
+        showToast('✓ 이미지 포함 전체 복사됨');
+    });
     updateStep(4); return;
   }
   copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags);
