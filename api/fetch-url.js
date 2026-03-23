@@ -1,6 +1,4 @@
 // api/fetch-url.js
-// POST /api/fetch-url  { url }
-
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -43,12 +41,10 @@ export default async function handler(req, res) {
   }
 }
 
-// ── 단축 URL → 최종 URL 추적 ────────────────────────────────
 async function resolveRedirect(url) {
   try {
     const res = await fetch(url, {
-      method: 'GET',
-      redirect: 'follow',
+      method: 'GET', redirect: 'follow',
       headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
       signal: AbortSignal.timeout(8000)
     });
@@ -59,19 +55,13 @@ async function resolveRedirect(url) {
   }
 }
 
-// ── 네이버 쇼핑 API ──────────────────────────────────────────
 async function fetchNaver(url) {
   let keyword = '';
-
   try {
     const urlObj = new URL(url);
-
     if (url.includes('brandconnect.naver.com')) {
       try {
-        const r = await fetch(url, {
-          headers: { 'User-Agent': 'facebookexternalhit/1.1' },
-          signal: AbortSignal.timeout(6000)
-        });
+        const r = await fetch(url, { headers: { 'User-Agent': 'facebookexternalhit/1.1' }, signal: AbortSignal.timeout(6000) });
         if (r.ok) {
           const html = await r.text();
           const og = (html.match(/<meta[^>]+property="og:title"[^>]+content="([^"]+)"/i)||[])[1];
@@ -80,25 +70,16 @@ async function fetchNaver(url) {
         }
       } catch(e) {}
     }
-
-    if (!keyword) {
-      keyword = urlObj.searchParams.get('query') || urlObj.searchParams.get('q') || '';
-    }
-
+    if (!keyword) keyword = urlObj.searchParams.get('query') || urlObj.searchParams.get('q') || '';
     if (!keyword && url.includes('smartstore')) {
       const parts = urlObj.pathname.split('/').filter(Boolean);
       keyword = decodeURIComponent(parts[parts.length - 1] || '');
     }
-
     const catMatch = url.match(/catalog\/(\d+)/);
     if (!keyword && catMatch) keyword = catMatch[1];
-
     if (!keyword) {
       try {
-        const r = await fetch(url, {
-          headers: { 'User-Agent': 'facebookexternalhit/1.1' },
-          signal: AbortSignal.timeout(6000)
-        });
+        const r = await fetch(url, { headers: { 'User-Agent': 'facebookexternalhit/1.1' }, signal: AbortSignal.timeout(6000) });
         if (r.ok) {
           const html = await r.text();
           const og = (html.match(/<meta[^>]+property="og:title"[^>]+content="([^"]+)"/i)||[])[1];
@@ -107,32 +88,24 @@ async function fetchNaver(url) {
         }
       } catch(e) {}
     }
-  } catch(e) {
-    keyword = '';
-  }
+  } catch(e) { keyword = ''; }
 
   if (!keyword) throw new Error('URL에서 키워드를 추출할 수 없습니다. 제품명을 직접 입력해주세요.');
-
   keyword = keyword.slice(0, 50);
 
   const apiUrl = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(keyword)}&display=5&sort=sim`;
   const response = await fetch(apiUrl, {
-    headers: {
-      'X-Naver-Client-Id':     process.env.NAVER_CLIENT_ID,
-      'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET
-    },
+    headers: { 'X-Naver-Client-Id': process.env.NAVER_CLIENT_ID, 'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET },
     signal: AbortSignal.timeout(8000)
   });
-
   if (!response.ok) throw new Error('네이버 API 오류: ' + response.status);
-
   const data = await response.json();
   const items = data.items || [];
   if (!items.length) throw new Error('검색 결과 없음: ' + keyword);
 
-  const item   = items[0];
+  const item = items[0];
   const prices = items.map(i => parseInt(i.lprice)).filter(p => p > 0);
-  const price  = parseInt(item.lprice) || 0;
+  const price = parseInt(item.lprice) || 0;
 
   return enrichWithGemini({
     productName : item.title.replace(/<[^>]+>/g, ''),
@@ -147,25 +120,18 @@ async function fetchNaver(url) {
   });
 }
 
-// ── 쿠팡 파트너스 API ─────────────────────────────────────────
-function generateCoupangSignature(method, path, query, secretKey) {
-  // 쿠팡 공식 형식: yyMMdd'T'HHmmss'Z' (연도 2자리)
-  const now = new Date();
+async function coupangHmac(method, path, query, secretKey) {
   const pad = n => String(n).padStart(2, '0');
-  const yy = String(now.getUTCFullYear()).slice(2); // 2026 → 26
-  const datetime =
-    yy +
-    pad(now.getUTCMonth() + 1) +
-    pad(now.getUTCDate()) + 'T' +
-    pad(now.getUTCHours()) +
-    pad(now.getUTCMinutes()) +
-    pad(now.getUTCSeconds()) + 'Z';
-
-  // 공식 문서: message = datetime + method + path + query (? 없이)
+  const now = new Date();
+  const yy = String(now.getUTCFullYear()).slice(2);
+  const datetime = yy + pad(now.getUTCMonth()+1) + pad(now.getUTCDate())
+    + 'T' + pad(now.getUTCHours()) + pad(now.getUTCMinutes()) + pad(now.getUTCSeconds()) + 'Z';
   const message = datetime + method + path + (query || '');
-  const signature = createHmac('sha256', secretKey).update(message).digest('hex');
-
-  console.log('[coupang-sig] datetime:', datetime, '| msg prefix:', message.slice(0, 60));
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey('raw', enc.encode(secretKey), { name:'HMAC', hash:'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(message));
+  const signature = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2,'0')).join('');
+  console.log('[coupang-hmac] datetime:', datetime);
   return { datetime, signature };
 }
 
@@ -174,21 +140,13 @@ async function fetchCoupang(originalUrl, finalUrl) {
   const secretKey = process.env.COUPANG_SECRET_KEY;
   let keyword = '';
 
-  // 1. URL 파라미터에서 키워드 추출
   try {
     const u = new URL(finalUrl);
-    keyword = u.searchParams.get('contentkeyword')
-      || u.searchParams.get('q')
-      || u.searchParams.get('keyword')
-      || u.searchParams.get('itemName')
-      || '';
-    // URL 디코딩
+    keyword = u.searchParams.get('contentkeyword') || u.searchParams.get('q')
+      || u.searchParams.get('keyword') || u.searchParams.get('itemName') || '';
     if (keyword) keyword = decodeURIComponent(keyword).trim();
-  } catch(e) {
-    console.warn('[fetchCoupang] URL 파싱 실패:', e.message);
-  }
+  } catch(e) {}
 
-  // 2. 정규식으로 직접 추출 (URL 파싱 실패 대비)
   if (!keyword) {
     const m = finalUrl.match(/[?&]contentkeyword=([^&]+)/);
     if (m) keyword = decodeURIComponent(m[1]).trim();
@@ -198,20 +156,16 @@ async function fetchCoupang(originalUrl, finalUrl) {
     if (m) keyword = decodeURIComponent(m[1]).trim();
   }
 
-  // 2. og:title 크롤링 — 다양한 User-Agent로 시도
   if (!keyword) {
     const agents = [
       'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15',
-      'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
-      'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+      'facebookexternalhit/1.1',
+      'Mozilla/5.0 (compatible; Googlebot/2.1)',
       'Twitterbot/1.0'
     ];
     for (const ua of agents) {
       try {
-        const r = await fetch(finalUrl, {
-          headers: { 'User-Agent': ua, 'Accept': 'text/html' },
-          signal: AbortSignal.timeout(5000)
-        });
+        const r = await fetch(finalUrl, { headers: { 'User-Agent': ua, 'Accept': 'text/html' }, signal: AbortSignal.timeout(5000) });
         if (r.ok) {
           const html = await r.text();
           const og = (html.match(/<meta[^>]+property="og:title"[^>]+content="([^"]+)"/i)||[])[1];
@@ -223,15 +177,14 @@ async function fetchCoupang(originalUrl, finalUrl) {
     }
   }
 
-  console.log('[fetchCoupang] keyword:', keyword || '(없음)', '| url length:', finalUrl.length);
+  console.log('[fetchCoupang] keyword:', keyword || '(없음)');
 
-  if (!keyword) throw new Error('쿠팡 제품명을 추출할 수 없습니다. 제품명을 직접 입력해주세요.');
+  if (keyword && accessKey && secretKey) {
     try {
       const method = 'GET';
       const path   = '/v2/providers/affiliate_open_api/apis/openapi/v1/products/search';
       const query  = `keyword=${encodeURIComponent(keyword.slice(0,50))}&limit=5&subId=realpick`;
-      const { datetime, signature } = generateCoupangSignature(method, path, query, secretKey);
-
+      const { datetime, signature } = await coupangHmac(method, path, query, secretKey);
       const r = await fetch(`https://api-gateway.coupang.com${path}?${query}`, {
         method: 'GET',
         headers: {
@@ -240,11 +193,9 @@ async function fetchCoupang(originalUrl, finalUrl) {
         },
         signal: AbortSignal.timeout(10000)
       });
-
       const d = await r.json();
-      console.log('[fetchCoupang] search status:', r.status, '| items:', d.data?.productData?.length || 0);
+      console.log('[fetchCoupang] status:', r.status, '| items:', d.data?.productData?.length || 0);
       const items = d.data?.productData || [];
-
       if (items.length) {
         const item = items[0];
         return enrichWithGemini({
@@ -254,9 +205,7 @@ async function fetchCoupang(originalUrl, finalUrl) {
           platform    : '쿠팡',
           originalUrl : originalUrl,
           keyword,
-          imageUrl    : item.productImage || '',
-          rating      : item.productRating || 0,
-          reviewCount : item.reviewCount || 0
+          imageUrl    : item.productImage || ''
         });
       }
     } catch(e) {
@@ -264,21 +213,16 @@ async function fetchCoupang(originalUrl, finalUrl) {
     }
   }
 
-  // 4. 네이버 쇼핑 fallback
   if (!keyword) throw new Error('쿠팡 제품명을 추출할 수 없습니다. 제품명을 직접 입력해주세요.');
 
-  console.log('[fetchCoupang] 네이버 fallback, keyword:', keyword);
+  console.log('[fetchCoupang] 네이버 fallback');
   const apiUrl = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(keyword.slice(0,50))}&display=3&sort=sim`;
   const rr = await fetch(apiUrl, {
-    headers: {
-      'X-Naver-Client-Id':     process.env.NAVER_CLIENT_ID,
-      'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET
-    },
+    headers: { 'X-Naver-Client-Id': process.env.NAVER_CLIENT_ID, 'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET },
     signal: AbortSignal.timeout(8000)
   });
   const dd = rr.ok ? await rr.json() : {};
   const naverItems = dd.items || [];
-
   return enrichWithGemini({
     productName : naverItems.length ? naverItems[0].title.replace(/<[^>]+>/g,'') : keyword,
     price       : naverItems.length ? parseInt(naverItems[0].lprice) : 0,
@@ -290,25 +234,19 @@ async function fetchCoupang(originalUrl, finalUrl) {
   });
 }
 
-// ── 일반 사이트 ───────────────────────────────────────────────
 async function fetchGeneral(url, platformName) {
   const agents = [
     'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
     'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
     'Twitterbot/1.0'
   ];
-
   let html = '';
   for (const ua of agents) {
     try {
-      const r = await fetch(url, {
-        headers: { 'User-Agent': ua, 'Accept': 'text/html' },
-        signal: AbortSignal.timeout(7000)
-      });
+      const r = await fetch(url, { headers: { 'User-Agent': ua, 'Accept': 'text/html' }, signal: AbortSignal.timeout(7000) });
       if (r.ok) { html = await r.text(); break; }
     } catch(e) { continue; }
   }
-
   if (!html) throw new Error(platformName + ' 페이지를 가져올 수 없습니다. 제품명을 직접 입력해주세요.');
 
   const ogTitle  = (html.match(/<meta[^>]+property="og:title"[^>]+content="([^"]+)"/i)||[])[1] || '';
@@ -327,14 +265,13 @@ async function fetchGeneral(url, platformName) {
   });
 }
 
-// ── Gemini 보강 ───────────────────────────────────────────────
 async function enrichWithGemini(raw) {
   const savedImageUrl = raw.imageUrl || '';
   const apiKey   = process.env.GEMINI_API_KEY;
   const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=' + apiKey;
 
   if (!raw.productName) {
-    console.warn('[enrichWithGemini] 제품명 없음 — fallback 처리');
+    console.warn('[enrichWithGemini] 제품명 없음 — fallback');
     return { ...raw, priceGrade: calcGrade(raw.price), features: [], pros: [], cons: [] };
   }
 
@@ -357,37 +294,21 @@ ${JSON.stringify(raw, null, 2)}
     });
     const d = await r.json();
     if (d.error) throw new Error(d.error.message);
-
     const text = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
     if (!text) throw new Error('Gemini 응답 비어있음');
-
     const clean = text.replace(/```json|```/g, '').trim();
     const startIdx = clean.indexOf('{');
-    if (startIdx === -1) throw new Error('JSON 블록 없음: ' + clean.slice(0, 100));
-
+    if (startIdx === -1) throw new Error('JSON 블록 없음');
     let jsonStr = clean.slice(startIdx);
     const openCount  = (jsonStr.match(/\{/g) || []).length;
     const closeCount = (jsonStr.match(/\}/g) || []).length;
-    if (openCount > closeCount) {
-      jsonStr += '}'.repeat(openCount - closeCount);
-    }
-
+    if (openCount > closeCount) jsonStr += '}'.repeat(openCount - closeCount);
     const result = JSON.parse(jsonStr);
     result.imageUrl = savedImageUrl;
     return result;
-
   } catch(e) {
     console.error('[enrichWithGemini]', e.message);
-    return {
-      ...raw,
-      priceGrade    : calcGrade(raw.price),
-      features      : [],
-      pros          : [],
-      cons          : [],
-      targetUser    : '',
-      hookScene     : '',
-      reviewSummary : ''
-    };
+    return { ...raw, priceGrade: calcGrade(raw.price), features: [], pros: [], cons: [], targetUser: '', hookScene: '', reviewSummary: '' };
   }
 }
 
