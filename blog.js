@@ -310,7 +310,6 @@ async function generateBlog() {
     setLoadingStep('완료!', 100); await sleep(200);
 
     renderResult();
-    showImgUploadBtn(); // ★ 이미지 있으면 업로드 버튼 표시
     document.getElementById('result-area').style.display='block';
     document.getElementById('result-area').scrollIntoView({behavior:'smooth',block:'start'});
     updateStep(3);
@@ -497,18 +496,8 @@ async function uploadTo(platform){
   var sched=document.getElementById('use-schedule').checked
     ?' ('+document.getElementById('schedule-date').value+' '+document.getElementById('schedule-time').value+' 예약)':' (즉시)';
   if(platform==='both'){
-    var hasImgs = S_IMAGES.filter(Boolean).length > 0;
-    if(hasImgs && !S_IMG_URLS){
-      // 업로드 안 됨 → 텍스트만 복사 + 안내
-      copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags);
-      showToast('⚠️ 이미지 업로드 먼저 누른 후 복사하세요');
-      updateStep(4); return;
-    }
-    // 이미지 URL 있음 또는 이미지 없음 → 즉시 동기 복사
-    var bodyFinal = hasImgs ? insertUrlsIntoBody(body, S_IMG_URLS) : body;
-    var fullHtml = '<h2>'+title+'</h2>\n'+bodyFinal+'\n<p>'+tags+'</p>';
-    copyHtml(fullHtml);
-    showToast('✓ 전체 복사됨 — 에디터에 붙여넣기 하세요');
+    copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags);
+    showToast('✓ 전체 복사됨');
     updateStep(4); return;
   }
   copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags);
