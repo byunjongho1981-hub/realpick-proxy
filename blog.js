@@ -388,27 +388,47 @@ async function uploadImagesToImgBB() {
   return urlMap;
 }
 
-// ── [수정] [📸N] → ImgBB URL img 태그 + 단락 구조 변환 ───────
+// ── [수정] [📸N] → ImgBB URL img 태그 + 단락/이모지 구조 변환 ─
 function insertUrlsIntoBody(body, urlMap) {
   var seqIdx = 0;
+
+  // 이모지로 시작하는 소제목 패턴
+  var EMOJI_HEADING = /^([\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|✅|⚠️|💡|🔥|🛒|👉|💰|📌|🎯|⭐|🙌|💬|📦)/u;
 
   // 1단계: [📸N] → 임시 구분자로 치환
   var processed = body.replace(/\[📸\s*(\d*)[^\]]*\]/g, function(m, num) {
     var idx = num ? parseInt(num) - 1 : seqIdx++;
     var url = urlMap[idx];
-    if (!url) return '';
+    if (!url) return '\x01'; // 이미지 없으면 빈 구분자
     return '\x00<img src="' + url
-      + '" style="max-width:100%;border-radius:10px;margin:16px 0;display:block" alt="제품이미지"/>\x00';
+      + '" style="max-width:100%;border-radius:10px;margin:20px 0 20px 0;display:block" alt="제품이미지"/>\x00';
   });
 
-  // 2단계: \x00 기준 분리 → 텍스트는 <p>/<br> 변환, img는 그대로
+  // 2단계: \x00 기준 분리 → 텍스트는 단락 변환, img는 그대로
   return processed.split('\x00').map(function(chunk) {
     if (chunk.startsWith('<img')) return chunk;
-    return chunk.trim().split(/\n{2,}/).map(function(para) {
-      var t = para.trim();
-      return t ? '<p style="margin:0 0 14px 0;line-height:1.9">'
-        + t.replace(/\n/g, '<br>') + '</p>' : '';
-    }).join('');
+
+    return chunk.replace(/\x01/g, '').trim().split(/\n{1,}/).reduce(function(acc, line) {
+      var t = line.trim();
+      if (!t) {
+        // 빈 줄 → 단락 간격
+        acc.push('<div style="height:14px"></div>');
+        return acc;
+      }
+      if (EMOJI_HEADING.test(t)) {
+        // 이모지 소제목 → 앞뒤 여백 포함
+        acc.push('<p style="margin:20px 0 10px 0;line-height:1.8;font-size:16px;font-weight:bold">' + t + '</p>');
+      } else {
+        // 일반 문장 → 단락
+        if (acc.length && acc[acc.length-1].startsWith('<p style="margin:0')) {
+          // 이전이 일반 단락이면 같은 단락에 붙임
+          acc[acc.length-1] = acc[acc.length-1].replace(/<\/p>$/, '<br>' + t + '</p>');
+        } else {
+          acc.push('<p style="margin:0 0 14px 0;line-height:1.9">' + t + '</p>');
+        }
+      }
+      return acc;
+    }, []).join('');
   }).join('');
 }
 
