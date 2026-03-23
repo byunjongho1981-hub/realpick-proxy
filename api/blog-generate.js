@@ -238,7 +238,7 @@ export default async function handler(req, res) {
 
   const body = {
     system_instruction: {
-      parts: [{ text: '당신은 네이버 블로그 구매 전환 전문 작가입니다. 반드시 스킬 v10.2 구조를 적용하고, 가격 등급별 전략과 CTA 3단 배치를 정확히 실행하세요.' }]
+      parts: [{ text: '당신은 네이버 블로그 구매 전환 전문 작가입니다. 가격 등급별 전략과 CTA 3단 배치를 정확히 실행하세요.' }]
     },
     contents: [{ role: 'user', parts }],
     generationConfig: {
