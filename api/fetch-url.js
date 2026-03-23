@@ -1,6 +1,8 @@
 // api/fetch-url.js
 // POST /api/fetch-url  { url }
 
+import crypto from 'crypto';
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -25,7 +27,7 @@ export default async function handler(req, res) {
     ) {
       productInfo = await fetchNaver(finalUrl);
     } else if (finalUrl.includes('coupang.com')) {
-      productInfo = await fetchCoupang(finalUrl);
+      productInfo = await fetchCoupang(url, finalUrl);
     } else if (finalUrl.includes('11st.co.kr')) {
       productInfo = await fetchGeneral(finalUrl, '11번가');
     } else if (finalUrl.includes('oliveyoung.co.kr')) {
@@ -147,34 +149,87 @@ async function fetchNaver(url) {
   });
 }
 
-// ── 쿠팡 ─────────────────────────────────────────────────────
-async function fetchCoupang(url) {
-  let keyword = '';
-  let imageUrl = '';
+// ── 쿠팡 파트너스 API ─────────────────────────────────────────
+function generateCoupangSignature(method, path, query, secretKey) {
+  const datetime = new Date().toISOString()
+    .replace(/\.\d{3}Z$/, 'Z')
+    .replace(/[-:T]/g, '')
+    .slice(0, 14);
+  const message = datetime + method + path + (query || '');
+  const signature = crypto.createHmac('sha256', secretKey).update(message).digest('hex');
+  return { datetime, signature };
+}
 
+async function fetchCoupang(originalUrl, finalUrl) {
+  let keyword = '';
+
+  // 1. URL 파라미터에서 키워드 추출
   try {
-    const r = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1)' },
-      signal: AbortSignal.timeout(8000)
-    });
-    if (r.ok) {
-      const html = await r.text();
-      const og   = (html.match(/<meta[^>]+property="og:title"[^>]+content="([^"]+)"/i)||[])[1];
-      const t    = (html.match(/<title>([^<]+)<\/title>/i)||[])[1];
-      keyword  = (og || t || '').replace(/\s*[|-].*쿠팡.*/i,'').trim();
-      imageUrl = (html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i)||[])[1] || '';
-    }
+    const u = new URL(finalUrl);
+    keyword = u.searchParams.get('q') || u.searchParams.get('keyword') || u.searchParams.get('itemName') || '';
   } catch(e) {}
 
+  // 2. og:title에서 키워드 추출
   if (!keyword) {
     try {
-      const u = new URL(url);
-      keyword = u.searchParams.get('q') || u.searchParams.get('itemName') || '';
+      const r = await fetch(finalUrl, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1)' },
+        signal: AbortSignal.timeout(6000)
+      });
+      if (r.ok) {
+        const html = await r.text();
+        const og = (html.match(/<meta[^>]+property="og:title"[^>]+content="([^"]+)"/i)||[])[1];
+        const t  = (html.match(/<title>([^<]+)<\/title>/i)||[])[1];
+        keyword = (og || t || '').replace(/\s*[\|\-].*쿠팡.*/i, '').trim();
+      }
     } catch(e) {}
   }
 
-  if (!keyword) throw new Error('쿠팡 제품명을 추출할 수 없습니다. 직접 입력해주세요.');
+  if (!keyword) throw new Error('쿠팡 제품명을 추출할 수 없습니다. 제품명을 직접 입력해주세요.');
 
+  const accessKey = process.env.COUPANG_ACCESS_KEY;
+  const secretKey = process.env.COUPANG_SECRET_KEY;
+
+  // 3. 쿠팡 파트너스 API로 검색
+  if (accessKey && secretKey) {
+    try {
+      const method = 'GET';
+      const path   = '/v2/providers/affiliate_open_api/apis/openapi/v1/products/search';
+      const query  = `keyword=${encodeURIComponent(keyword.slice(0,50))}&limit=5&subId=realpick`;
+      const { datetime, signature } = generateCoupangSignature(method, path, query, secretKey);
+
+      const r = await fetch(`https://api-gateway.coupang.com${path}?${query}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `CEA algorithm=HmacSHA256, access-key=${accessKey}, signed-date=${datetime}, signature=${signature}`,
+          'Content-Type': 'application/json;charset=UTF-8'
+        },
+        signal: AbortSignal.timeout(10000)
+      });
+
+      const d = await r.json();
+      const items = d.data?.productData || [];
+
+      if (items.length) {
+        const item = items[0];
+        return enrichWithGemini({
+          productName : item.productName || keyword,
+          price       : item.salePriceStr ? parseInt(item.salePriceStr.replace(/,/g,'')) : 0,
+          category    : item.categoryName || '쇼핑',
+          platform    : '쿠팡',
+          originalUrl : originalUrl, // 사용자가 입력한 원본 URL 유지
+          keyword,
+          imageUrl    : item.productImage || '',
+          rating      : item.productRating || 0,
+          reviewCount : item.reviewCount || 0
+        });
+      }
+    } catch(e) {
+      console.warn('[fetchCoupang] 파트너스 API 실패, 네이버 fallback:', e.message);
+    }
+  }
+
+  // 4. 쿠팡 API 실패 시 네이버 쇼핑으로 fallback
   const apiUrl = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(keyword.slice(0,50))}&display=3&sort=sim`;
   const rr = await fetch(apiUrl, {
     headers: {
@@ -184,16 +239,16 @@ async function fetchCoupang(url) {
     signal: AbortSignal.timeout(8000)
   });
   const dd = rr.ok ? await rr.json() : {};
-  const items = dd.items || [];
-  const price = items.length ? parseInt(items[0].lprice) : 0;
-  if (!imageUrl && items.length) imageUrl = items[0].image || '';
+  const naverItems = dd.items || [];
+  const price    = naverItems.length ? parseInt(naverItems[0].lprice) : 0;
+  const imageUrl = naverItems.length ? (naverItems[0].image || '') : '';
 
   return enrichWithGemini({
     productName : keyword,
     price,
-    category    : items.length ? (items[0].category1 || '') : '쇼핑',
+    category    : naverItems.length ? (naverItems[0].category1 || '') : '쇼핑',
     platform    : '쿠팡',
-    originalUrl : url,
+    originalUrl : originalUrl,
     keyword,
     imageUrl
   });
