@@ -1,7 +1,7 @@
 // api/fetch-url.js
 // POST /api/fetch-url  { url }
 
-import crypto from 'crypto';
+const crypto = require('crypto');
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
