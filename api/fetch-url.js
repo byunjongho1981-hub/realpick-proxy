@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     ) {
       productInfo = await fetchNaver(finalUrl);
     } else if (finalUrl.includes('coupang.com')) {
-      throw new Error('쿠팡 URL은 지원되지 않습니다. 제품명을 직접 입력해주세요.');
+      productInfo = await fetchCoupang(finalUrl);
     } else if (finalUrl.includes('11st.co.kr')) {
       productInfo = await fetchGeneral(finalUrl, '11번가');
     } else if (finalUrl.includes('oliveyoung.co.kr')) {
@@ -147,6 +147,77 @@ async function fetchNaver(url) {
   });
 }
 
+// ── 쿠팡 ─────────────────────────────────────────────────────
+async function fetchCoupang(url) {
+  const parsed = new URL(url);
+  const pathParts = parsed.pathname.split('/').filter(Boolean);
+  let productId = '';
+  if (pathParts.length >= 3 && pathParts[0] === 'vp' && pathParts[1] === 'products') {
+    productId = pathParts[2];
+  }
+  const itemId       = parsed.searchParams.get('itemId') || '';
+  const vendorItemId = parsed.searchParams.get('vendorItemId') || '';
+
+  if (!productId) throw new Error('쿠팡 상품 ID를 추출할 수 없습니다.');
+
+  let fixedUrl = `https://www.coupang.com/vp/products/${productId}`;
+  if (itemId && vendorItemId) {
+    fixedUrl = `https://www.coupang.com/vp/products/${productId}?itemId=${itemId}&vendorItemId=${vendorItemId}`;
+  } else if (itemId) {
+    fixedUrl = `https://www.coupang.com/vp/products/${productId}?itemId=${itemId}`;
+  }
+
+  console.log('[fetchCoupang] productId:', productId, '| itemId:', itemId, '| fixedUrl:', fixedUrl);
+
+  let html = '';
+  try {
+    const r = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'text/html'
+      },
+      signal: AbortSignal.timeout(8000)
+    });
+    if (r.ok) html = await r.text();
+  } catch(e) {}
+
+  const ogTitle  = (html.match(/<meta[^>]+property="og:title"[^>]+content="([^"]+)"/i)||[])[1] || '';
+  const ogDesc   = (html.match(/<meta[^>]+property="og:description"[^>]+content="([^"]+)"/i)||[])[1] || '';
+  const ogImage  = (html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i)||[])[1] || '';
+  const titleTag = (html.match(/<title>([^<]+)<\/title>/i)||[])[1] || '';
+  const priceStr =
+    (html.match(/"salePrice"\s*:\s*([0-9]+)/i)||[])[1] ||
+    (html.match(/"finalPrice"\s*:\s*([0-9]+)/i)||[])[1] ||
+    (html.match(/"price"\s*:\s*([0-9]+)/i)||[])[1] ||
+    '0';
+
+  const raw = {
+    productName  : (ogTitle || titleTag).trim(),
+    price        : parseInt(priceStr, 10) || 0,
+    description  : ogDesc,
+    category     : '쿠팡',
+    brand        : '',
+    platform     : '쿠팡',
+    originalUrl  : url,
+    keyword      : (ogTitle || titleTag).trim(),
+    imageUrl     : ogImage,
+    productId,
+    itemId,
+    vendorItemId,
+    fixedUrl
+  };
+
+  const enriched = await enrichWithGemini(raw);
+  return {
+    ...enriched,
+    productId,
+    itemId,
+    vendorItemId,
+    fixedUrl,
+    imageUrl: enriched.imageUrl || ogImage
+  };
+}
+
 // ── 일반 사이트 ───────────────────────────────────────────────
 async function fetchGeneral(url, platformName) {
   const agents = [
@@ -186,7 +257,12 @@ async function fetchGeneral(url, platformName) {
 
 // ── Gemini 보강 ───────────────────────────────────────────────
 async function enrichWithGemini(raw) {
-  const savedImageUrl = raw.imageUrl || '';
+  const savedImageUrl  = raw.imageUrl     || '';
+  const savedProductId = raw.productId    || '';
+  const savedItemId    = raw.itemId       || '';
+  const savedVendorId  = raw.vendorItemId || '';
+  const savedFixedUrl  = raw.fixedUrl     || '';
+
   const apiKey   = process.env.GEMINI_API_KEY;
   const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=' + apiKey;
 
@@ -228,7 +304,14 @@ ${JSON.stringify(raw, null, 2)}
     if (openCount > closeCount) jsonStr += '}'.repeat(openCount - closeCount);
 
     const result = JSON.parse(jsonStr);
-    result.imageUrl = savedImageUrl;
+
+    // 원본 필드 보존 — Gemini가 덮어쓰지 못하게
+    result.imageUrl     = savedImageUrl;
+    result.productId    = savedProductId;
+    result.itemId       = savedItemId;
+    result.vendorItemId = savedVendorId;
+    result.fixedUrl     = savedFixedUrl;
+
     return result;
 
   } catch(e) {
