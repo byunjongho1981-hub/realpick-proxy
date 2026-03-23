@@ -386,12 +386,15 @@ async function uploadImagesToImgBB() {
 // [📸N] → ImgBB URL img 태그로 교체
 function insertUrlsIntoBody(body, urlMap) {
   var seqIdx = 0;
-  return body.replace(/\[📸\s*(\d*)[^\]]*\]/g, function(m, num) {
-    var idx = num ? parseInt(num) - 1 : seqIdx++;
-    var url = urlMap[idx];
-    if (!url) return m;
-    return '\n<img src="' + url + '" style="max-width:100%;border-radius:10px;margin:10px 0" alt="제품이미지"/>\n';
-  });
+  return body
+    .replace(/\[📸\s*(\d*)[^\]]*\]/g, function(m, num) {
+      var idx = num ? parseInt(num) - 1 : seqIdx++;
+      var url = urlMap[idx];
+      if (!url) return '';
+      return '\n\n<img src="' + url + '" style="max-width:100%;border-radius:10px;margin:16px 0;display:block" alt="제품이미지"/>\n\n';
+    })
+    .replace(/\n{3,}/g, '\n\n') // 3줄 이상 빈줄 → 2줄로 정리
+    .trim();
 }
 
 // ── 복사/업로드 ──────────────────────────────────────────────
