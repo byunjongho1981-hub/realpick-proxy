@@ -161,15 +161,61 @@ function generateCoupangSignature(method, path, query, secretKey) {
 }
 
 async function fetchCoupang(originalUrl, finalUrl) {
-  let keyword = '';
+  const accessKey = process.env.COUPANG_ACCESS_KEY;
+  const secretKey = process.env.COUPANG_SECRET_KEY;
 
-  // 1. URL 파라미터에서 키워드 추출
+  // 1. URL에서 productId 추출
+  const productIdMatch = finalUrl.match(/\/products\/(\d+)/);
+  const productId = productIdMatch ? productIdMatch[1] : null;
+
+  // 2. productId로 쿠팡 파트너스 상품 상세 API 조회
+  if (productId && accessKey && secretKey) {
+    try {
+      const method = 'GET';
+      const path   = `/v2/providers/affiliate_open_api/apis/openapi/v1/products/${productId}`;
+      const query  = 'subId=realpick';
+      const { datetime, signature } = generateCoupangSignature(method, path, query, secretKey);
+
+      const r = await fetch(`https://api-gateway.coupang.com${path}?${query}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `CEA algorithm=HmacSHA256, access-key=${accessKey}, signed-date=${datetime}, signature=${signature}`,
+          'Content-Type': 'application/json;charset=UTF-8'
+        },
+        signal: AbortSignal.timeout(10000)
+      });
+
+      const d = await r.json();
+      const item = d.data;
+
+      if (item && item.productName) {
+        console.log('[fetchCoupang] 상품 상세 API 성공:', item.productName);
+        return enrichWithGemini({
+          productName : item.productName,
+          price       : item.salePriceStr ? parseInt(item.salePriceStr.replace(/,/g,'')) : 0,
+          category    : item.categoryName || '쇼핑',
+          platform    : '쿠팡',
+          originalUrl : originalUrl,
+          keyword     : item.productName,
+          imageUrl    : item.productImage || '',
+          rating      : item.productRating || 0,
+          reviewCount : item.reviewCount || 0
+        });
+      }
+    } catch(e) {
+      console.warn('[fetchCoupang] 상품 상세 API 실패:', e.message);
+    }
+  }
+
+  // 3. keyword 추출 시도 (URL 파라미터)
+  let keyword = '';
   try {
     const u = new URL(finalUrl);
-    keyword = u.searchParams.get('q') || u.searchParams.get('keyword') || u.searchParams.get('itemName') || '';
+    keyword = u.searchParams.get('q') || u.searchParams.get('keyword')
+      || u.searchParams.get('itemName') || u.searchParams.get('contentkeyword') || '';
   } catch(e) {}
 
-  // 2. og:title에서 키워드 추출
+  // 4. og:title 추출 시도
   if (!keyword) {
     try {
       const r = await fetch(finalUrl, {
@@ -185,13 +231,8 @@ async function fetchCoupang(originalUrl, finalUrl) {
     } catch(e) {}
   }
 
-  if (!keyword) throw new Error('쿠팡 제품명을 추출할 수 없습니다. 제품명을 직접 입력해주세요.');
-
-  const accessKey = process.env.COUPANG_ACCESS_KEY;
-  const secretKey = process.env.COUPANG_SECRET_KEY;
-
-  // 3. 쿠팡 파트너스 API로 검색
-  if (accessKey && secretKey) {
+  // 5. keyword로 쿠팡 파트너스 검색 API
+  if (keyword && accessKey && secretKey) {
     try {
       const method = 'GET';
       const path   = '/v2/providers/affiliate_open_api/apis/openapi/v1/products/search';
@@ -209,7 +250,6 @@ async function fetchCoupang(originalUrl, finalUrl) {
 
       const d = await r.json();
       const items = d.data?.productData || [];
-
       if (items.length) {
         const item = items[0];
         return enrichWithGemini({
@@ -217,19 +257,19 @@ async function fetchCoupang(originalUrl, finalUrl) {
           price       : item.salePriceStr ? parseInt(item.salePriceStr.replace(/,/g,'')) : 0,
           category    : item.categoryName || '쇼핑',
           platform    : '쿠팡',
-          originalUrl : originalUrl, // 사용자가 입력한 원본 URL 유지
+          originalUrl : originalUrl,
           keyword,
-          imageUrl    : item.productImage || '',
-          rating      : item.productRating || 0,
-          reviewCount : item.reviewCount || 0
+          imageUrl    : item.productImage || ''
         });
       }
     } catch(e) {
-      console.warn('[fetchCoupang] 파트너스 API 실패, 네이버 fallback:', e.message);
+      console.warn('[fetchCoupang] 검색 API 실패:', e.message);
     }
   }
 
-  // 4. 쿠팡 API 실패 시 네이버 쇼핑으로 fallback
+  if (!keyword) throw new Error('쿠팡 제품명을 추출할 수 없습니다. 제품명을 직접 입력해주세요.');
+
+  // 6. 최후 fallback — 네이버 쇼핑
   const apiUrl = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(keyword.slice(0,50))}&display=3&sort=sim`;
   const rr = await fetch(apiUrl, {
     headers: {
@@ -240,17 +280,15 @@ async function fetchCoupang(originalUrl, finalUrl) {
   });
   const dd = rr.ok ? await rr.json() : {};
   const naverItems = dd.items || [];
-  const price    = naverItems.length ? parseInt(naverItems[0].lprice) : 0;
-  const imageUrl = naverItems.length ? (naverItems[0].image || '') : '';
 
   return enrichWithGemini({
     productName : keyword,
-    price,
+    price       : naverItems.length ? parseInt(naverItems[0].lprice) : 0,
     category    : naverItems.length ? (naverItems[0].category1 || '') : '쇼핑',
     platform    : '쿠팡',
     originalUrl : originalUrl,
     keyword,
-    imageUrl
+    imageUrl    : naverItems.length ? (naverItems[0].image || '') : ''
   });
 }
 
