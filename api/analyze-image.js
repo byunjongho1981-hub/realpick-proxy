@@ -25,26 +25,46 @@ module.exports = async function handler(req, res) {
         contents: [{
           parts: [
             { inline_data: { mime_type: mediaType || 'image/jpeg', data: imageBase64 } },
-            { text: `You are a product image prompt engineer for Korean e-commerce blogs.
-${productName ? `Product name: ${productName}\n` : ''}Analyze this product image and generate 6 English image generation prompts — one per slot.
-Return ONLY valid JSON, no markdown, no preamble.
-Format:
-{"prompts":[
-  {"slot":1,"name":"대표이미지","prompt":"..."},
-  {"slot":2,"name":"핵심구조","prompt":"..."},
-  {"slot":3,"name":"활용장면","prompt":"..."},
-  {"slot":4,"name":"세부디테일","prompt":"..."},
-  {"slot":5,"name":"구성품","prompt":"..."},
-  {"slot":6,"name":"CTA직접","prompt":"..."}
-]}
-Rules:
-1. 대표이미지: product on pure white background, studio lighting, 4K sharp, commercial photography
-2. 핵심구조: technical exploded-view diagram with labeled key features, clean infographic style
-3. 활용장면: Korean lifestyle scene with person using the product naturally, bright natural light
-4. 세부디테일: extreme close-up macro shot of material texture and craftsmanship, shallow DOF
-5. 구성품: overhead flat-lay of product and all accessories on light background, minimal style
-6. CTA직접: bold promotional banner, product featured prominently, vibrant colors, call-to-action
-Make each prompt specific to this exact product.` }
+            { text: `You are a shopping conversion image planning expert and AI prompt design specialist.
+${productName ? `Product name: ${productName}\n` : ''}
+Analyze the provided product image and design 6 purchase-motivating scenes following the EXACT structure below.
+
+SCENE STRUCTURE (fixed, do not change):
+1. problem — Show the discomfort/pain when NOT having this product. Human emotion must be visible.
+2. failure — Show someone trying the old/existing method and struggling. Frustration, inefficiency, wasted time.
+3. solution — Product appears as THE answer. Clean, trustworthy, premium. Must feel like a revelation, not just a product shot.
+4. usage — Actual usage scene. Hands, posture, flow must be intuitive. Keep it simple and natural.
+5. result — Clear before/after improvement. Realistic, not exaggerated. Show the actual change.
+6. lifestyle — Life after the problem is solved. Satisfaction, comfort, confidence, ease. Focus on the transformed state, not the product.
+
+PROMPT RULES:
+- prompt_en must be in English
+- Base style: photorealistic, premium, realistic human expression, 4K, cinematic lighting
+- All 6 scenes must share consistent color tone, lighting, and mood
+- At least 3 scenes must include a person or hands
+- Avoid fake advertising look, over-staged compositions, exaggerated expressions
+- Focus on real-life environments
+- Never repeat the same product-only shot
+- Each scene must serve a clearly different role
+
+Return ONLY valid JSON, no markdown, no preamble:
+{
+  "product_analysis": {
+    "category": "",
+    "use_case": "",
+    "pain_point": "",
+    "desired_outcome": "",
+    "visual_style": "photorealistic, premium, cohesive"
+  },
+  "scenes": [
+    {"step":1,"role":"problem","short_copy":"","visual_focus":"","prompt_en":"","negative_notes":""},
+    {"step":2,"role":"failure","short_copy":"","visual_focus":"","prompt_en":"","negative_notes":""},
+    {"step":3,"role":"solution","short_copy":"","visual_focus":"","prompt_en":"","negative_notes":""},
+    {"step":4,"role":"usage","short_copy":"","visual_focus":"","prompt_en":"","negative_notes":""},
+    {"step":5,"role":"result","short_copy":"","visual_focus":"","prompt_en":"","negative_notes":""},
+    {"step":6,"role":"lifestyle","short_copy":"","visual_focus":"","prompt_en":"","negative_notes":""}
+  ]
+}` }
           ]
         }]
       })
@@ -61,7 +81,19 @@ Make each prompt specific to this exact product.` }
     const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     const clean = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean);
-    return res.status(200).json(parsed);
+
+    // scenes → prompts 배열로 변환 (image.html 호환)
+    const SLOT_NAMES = ['','문제상황','기존한계','제품등장','사용장면','결과변화','라이프스타일'];
+    const prompts = (parsed.scenes || []).map(s => ({
+      slot: s.step,
+      name: SLOT_NAMES[s.step] || `장면${s.step}`,
+      prompt: s.prompt_en,
+      short_copy: s.short_copy,
+      visual_focus: s.visual_focus,
+      negative_notes: s.negative_notes
+    }));
+
+    return res.status(200).json({ prompts, product_analysis: parsed.product_analysis });
 
   } catch (e) {
     return res.status(500).json({ error: e.message });
