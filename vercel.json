@@ -3,15 +3,16 @@
   "buildCommand": null,
   "outputDirectory": ".",
   "functions": {
-    "api/auto-discover.js":     { "maxDuration": 300 },
-    "api/hot-analyze.js":       { "maxDuration": 120 },
-    "api/google-hot.js":        { "maxDuration": 30  },
-    "api/sns-hot.js":           { "maxDuration": 60  },
-    "api/google-trends-rss.js": { "maxDuration": 10  },
-    "api/blog-generate.js":     { "maxDuration": 60  },
-    "api/fetch-url.js":         { "maxDuration": 30  },
-    "api/proxy-image.js":       { "maxDuration": 30  },
-    "api/coupang-search.js":    { "maxDuration": 15  }
+    "api/auto-discover.js":           { "maxDuration": 300 },
+    "api/hot-analyze.js":             { "maxDuration": 120 },
+    "api/google-hot.js":              { "maxDuration": 30  },
+    "api/sns-hot.js":                 { "maxDuration": 60  },
+    "api/google-trends-rss.js":       { "maxDuration": 10  },
+    "api/blog-generate.js":           { "maxDuration": 60  },
+    "api/fetch-url.js":               { "maxDuration": 30  },
+    "api/proxy-image.js":             { "maxDuration": 30  },
+    "api/coupang-search.js":          { "maxDuration": 15  },
+    "api/fetch-coupang-product.js":   { "maxDuration": 15  }
   },
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1" },
