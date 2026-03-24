@@ -6,7 +6,7 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { imageBase64, mediaType, productName } = req.body || {};
+  const { imageBase64, mediaType, productName, charBase64, charMediaType } = req.body || {};
   if (!imageBase64) return res.status(400).json({ error: 'imageBase64 required' });
 
   const apiKey = process.env.GEMINI_API_KEY;
@@ -109,19 +109,7 @@ Return ONLY valid JSON, no markdown, no preamble:
     const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     const clean = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean);
-
-    // scenes → prompts 배열로 변환 (image.html 호환)
-    const SLOT_NAMES = ['','문제상황','기존한계','제품등장','사용장면','결과변화','라이프스타일'];
-    const prompts = (parsed.scenes || []).map(s => ({
-      slot: s.step,
-      name: SLOT_NAMES[s.step] || `장면${s.step}`,
-      prompt: s.prompt_en,
-      short_copy: s.short_copy,
-      visual_focus: s.visual_focus,
-      negative_notes: s.negative_notes
-    }));
-
-    return res.status(200).json({ prompts, product_analysis: parsed.product_analysis });
+    return res.status(200).json({ prompts: parsed.prompts });
 
   } catch (e) {
     return res.status(500).json({ error: e.message });
