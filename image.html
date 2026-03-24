@@ -197,7 +197,7 @@ function loadFile(f) {
     uploadTrigger.style.display = 'none';
     previewArea.style.display = 'flex';
     btnGen.disabled = false;
-    btnText.textContent = '6장 이미지 생성하기 — Gemini 분석 + Pollinations 렌더링';
+    btnText.textContent = '6장 이미지 생성하기 — Gemini 분석 + Gemini 이미지 생성';
     errBox.classList.remove('show');
   };
   reader.readAsDataURL(f);
@@ -251,7 +251,7 @@ btnGen.addEventListener('click', async () => {
     return;
   }
 
-  setProgress(40, 'Pollinations.ai 이미지 생성 중...', '2/2 — 렌더링 (6장)');
+  setProgress(40, 'Gemini 이미지 생성 중...', '2/2 — 렌더링 (6장)');
 
   // Step 2: Pollinations 렌더링
   for (let i = 0; i < prompts.length; i++) {
@@ -264,32 +264,39 @@ btnGen.addEventListener('click', async () => {
     ptEl.textContent = p.prompt;
     imgWrap.innerHTML = '<div class="img-placeholder"><div class="spinner"></div></div>';
 
-    const url = 'https://image.pollinations.ai/prompt/'
-      + encodeURIComponent(p.prompt + ', high quality, commercial product photography')
-      + '?width=800&height=800&nologo=true&seed=' + Math.floor(Math.random() * 99999);
+    const seed = Math.floor(Math.random() * 99999);
 
     await new Promise(resolve => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        imgWrap.innerHTML = '';
-        imgWrap.appendChild(img);
-        card.classList.remove('loading');
-        dlEl.disabled = false;
-        dlEl.onclick = () => {
-          const a = document.createElement('a');
-          a.href = img.src; a.download = `realpick_${p.slot}_${p.name}.jpg`;
-          a.target = '_blank'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        };
+      (async () => {
+        try {
+          const r = await fetch('/api/generate-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: p.prompt + ', high quality, commercial product photography, seed:' + seed })
+          });
+          const d = await r.json();
+          if (!r.ok || !d.base64) throw new Error(d.error || '이미지 없음');
+          const src = `data:${d.mimeType};base64,${d.base64}`;
+          const img = new Image();
+          img.onload = () => {
+            imgWrap.innerHTML = '';
+            imgWrap.appendChild(img);
+            card.classList.remove('loading');
+            dlEl.disabled = false;
+            dlEl.onclick = () => {
+              const a = document.createElement('a');
+              a.href = src;
+              a.download = `realpick_${p.slot}_${p.name}.png`;
+              document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            };
+          };
+          img.src = src;
+        } catch(e) {
+          imgWrap.innerHTML = `<div class="img-placeholder"><div style="font-size:20px">⚠️</div><div style="font-size:11px;color:#94a3b8">${e.message}</div></div>`;
+          card.classList.remove('loading');
+        }
         resolve();
-      };
-      img.onerror = () => {
-        imgWrap.innerHTML = '<div class="img-placeholder"><div style="font-size:24px">⚠️</div><div style="font-size:12px;color:#94a3b8">생성 실패</div></div>';
-        card.classList.remove('loading');
-        resolve();
-      };
-      img.src = url;
-      setTimeout(resolve, 30000);
+      })();
     });
 
     setProgress(40 + Math.round((i + 1) / prompts.length * 58), 'Pollinations.ai 이미지 생성 중...', `${i+1}/${prompts.length}장 완료`);
