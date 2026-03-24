@@ -4,6 +4,7 @@
   "outputDirectory": ".",
   "functions": {
     "api/auto-discover.js":           { "maxDuration": 300 },
+    "api/trend-analyze.js":           { "maxDuration": 300 },
     "api/hot-analyze.js":             { "maxDuration": 120 },
     "api/google-trends-rss.js":       { "maxDuration": 10  },
     "api/blog-generate.js":           { "maxDuration": 60  },
@@ -17,13 +18,14 @@
     "api/naver-search.js":            { "maxDuration": 15  }
   },
   "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/",         "dest": "/index.html" },
-    { "src": "/hot.html",   "dest": "/hot.html"   },
-    { "src": "/trend.html", "dest": "/trend.html" },
-    { "src": "/blog.html",  "dest": "/blog.html"  },
-    { "src": "/data.html",  "dest": "/data.html"  },
-    { "src": "/image.html", "dest": "/image.html" },
-    { "src": "/(.*)",     "dest": "/$1"           }
+    { "src": "/api/(.*)",           "dest": "/api/$1"           },
+    { "src": "/",                   "dest": "/index.html"       },
+    { "src": "/trend-search.html",  "dest": "/trend-search.html"},
+    { "src": "/hot.html",           "dest": "/hot.html"         },
+    { "src": "/trend.html",         "dest": "/trend.html"       },
+    { "src": "/blog.html",          "dest": "/blog.html"        },
+    { "src": "/data.html",          "dest": "/data.html"        },
+    { "src": "/image.html",         "dest": "/image.html"       },
+    { "src": "/(.*)",               "dest": "/$1"               }
   ]
 }
