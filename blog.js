@@ -681,16 +681,30 @@ function extractScenesFromBody(body) {
   return scenes;
 }
 
+// 씬별 카메라 구도만 고정 — 내용은 항상 본문 컨텍스트 우선
+var SCENE_CAMERA = {
+  1: 'CLOSE-UP portrait. Tight frame on face and upper body. Shallow depth of field.',
+  2: 'PRODUCT DETAIL shot. Close-up of the product itself, sharp focus, studio or natural lighting.',
+  3: 'FULL BODY shot. Wide frame showing entire figure in Korean indoor or retail setting.',
+  4: 'DYNAMIC ACTION shot. Low angle, slight motion, subject moving naturally.',
+  5: 'SEATED MEDIUM shot. Subject sitting, warm interior bokeh background.',
+  6: 'WIDE LIFESTYLE shot. Expansive background, subject relaxed, Seoul urban or cafe setting.'
+};
+
 function buildScenePrompt(scene, prodName) {
-  var defaults = {
-    1:'Korean woman looking frustrated with a daily problem that "'+prodName+'" solves, urban Korean setting, photorealistic 4K cinematic',
-    2:'The product "'+prodName+'" shown clearly with key features visible, product photography, studio lighting, 4K sharp detail',
-    3:'Korean woman discovering "'+prodName+'" for the first time, curious expression, Korean retail or home setting, photorealistic 4K',
-    4:'Korean woman actively using "'+prodName+'" in daily life, natural movement, Korean urban background, photorealistic 4K cinematic',
-    5:'Korean woman showing positive results and satisfaction after using "'+prodName+'", happy expression, photorealistic 4K warm lighting',
-    6:'Korean woman confidently enjoying lifestyle with "'+prodName+'", aspirational Korean urban setting, photorealistic 4K cinematic'
-  };
-  return defaults[scene.slot] || ('"'+prodName+'" product lifestyle scene, Korean woman, photorealistic 4K');
+  var camera = SCENE_CAMERA[scene.slot] || '';
+  // 컨텍스트가 있으면 내용으로, 없으면 슬롯별 기본 상황
+  var situation = scene.context && scene.context.length > 20
+    ? scene.context
+    : [
+        'Korean woman in a relatable daily frustration moment related to "'+prodName+'"',
+        '"'+prodName+'" product displayed clearly showing its key features',
+        'Korean woman encountering "'+prodName+'" with curiosity and interest',
+        'Korean woman actively using "'+prodName+'" in a natural daily situation',
+        'Korean woman reacting with satisfaction after using "'+prodName+'"',
+        'Korean woman enjoying life with "'+prodName+'" in an aspirational setting'
+      ][scene.slot - 1] || '"'+prodName+'" lifestyle scene';
+  return camera + ' ' + situation + ' Photorealistic 4K cinematic. Korean setting.';
 }
 
 async function generateImagesFromBody() {
@@ -714,7 +728,8 @@ async function generateImagesFromBody() {
     cnt.textContent=(i+1)+' / '+total;
     bar.style.width=Math.round((i/total)*100)+'%';
 
-    var sceneDesc = scene.context.length>20 ? scene.context : buildScenePrompt(scene,prodName);
+    // 항상 buildScenePrompt 통해 구도+컨텍스트 조합
+    var sceneDesc = buildScenePrompt(scene, prodName);
     var fullPrompt = IMG_CHARACTER_DNA
       +'\n\nSCENE CONTEXT:\n'+sceneDesc
       +'\n\nPRODUCT: '+prodName
