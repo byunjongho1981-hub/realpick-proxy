@@ -1,300 +1,69 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>RealPick – 이미지제작</title>
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{background:#f0f4ff;color:#1e293b;font-family:'Noto Sans KR',sans-serif;min-height:100vh;display:flex;flex-direction:column}
-    nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,0.85);backdrop-filter:blur(12px);border-bottom:1px solid #e2e8f0;height:60px;display:flex;align-items:center;padding:0 32px}
-    .nav-logo{font-size:18px;font-weight:900;color:#6366f1;letter-spacing:-0.5px;margin-right:36px;text-decoration:none}
-    .nav-logo span{color:#1e293b}
-    .nav-links{display:flex;gap:4px}
-    .nav-link{padding:7px 16px;border-radius:8px;font-size:13px;font-weight:500;color:#64748b;cursor:pointer;border:none;background:transparent;transition:all .15s;text-decoration:none}
-    .nav-link:hover{background:#f1f5f9;color:#1e293b}
-    .nav-link.active{background:#6366f1;color:#fff;font-weight:700}
-    .nav-link.hot{color:#ef4444;font-weight:700}
-    .nav-link.hot:hover{background:#fef2f2}
-    .nav-right{margin-left:auto}
-    .nav-badge{background:#6366f1;color:#fff;font-size:10px;padding:3px 10px;border-radius:20px;font-weight:700}
-    .main{flex:1;margin-top:60px;padding:40px 36px;max-width:1200px;margin-left:auto;margin-right:auto;width:100%}
-    .section-label{font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:2px;text-transform:uppercase;margin-bottom:16px}
+module.exports = async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-    /* Upload */
-    .upload-box{background:#fff;border:2px dashed #c7d2fe;border-radius:20px;margin-bottom:28px;overflow:hidden}
-    .upload-box.drag{border-color:#6366f1;background:#f5f3ff}
-    .upload-trigger{padding:56px 40px;text-align:center;cursor:pointer}
-    .upload-trigger:hover{background:#f8f7ff}
-    .upload-icon{font-size:48px;margin-bottom:16px}
-    .upload-title{font-size:16px;font-weight:700;color:#1e293b;margin-bottom:8px}
-    .upload-sub{font-size:13px;color:#94a3b8}
-    .upload-btn{display:inline-block;margin-top:16px;padding:10px 28px;background:#6366f1;color:#fff;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer}
-    .preview-area{padding:24px 40px;display:flex;align-items:center;gap:24px}
-    .preview-img{width:120px;height:120px;object-fit:cover;border-radius:12px;border:2px solid #e2e8f0;flex-shrink:0}
-    .preview-info .p-name{font-size:14px;font-weight:600;color:#1e293b;margin-bottom:4px}
-    .preview-info .p-sub{font-size:12px;color:#94a3b8}
-    .btn-reset{margin-top:10px;font-size:12px;color:#ef4444;background:none;border:none;cursor:pointer;padding:0}
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-    /* Buttons */
-    .btn-gen{width:100%;padding:18px;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;font-size:15px;font-weight:700;border:none;border-radius:14px;cursor:pointer;transition:all .2s;margin-bottom:28px;display:flex;align-items:center;justify-content:center;gap:10px}
-    .btn-gen:hover{opacity:.9;transform:translateY(-1px)}
-    .btn-gen:disabled{opacity:.5;cursor:not-allowed;transform:none}
+  const { imageBase64, mediaType } = req.body || {};
+  if (!imageBase64) return res.status(400).json({ error: 'imageBase64 required' });
 
-    /* Progress */
-    .progress{background:#fff;border-radius:14px;padding:20px 24px;border:1px solid #e2e8f0;margin-bottom:28px;display:none}
-    .progress.show{display:block}
-    .progress-label{font-size:13px;color:#64748b;margin-bottom:10px}
-    .progress-bar-wrap{background:#f1f5f9;border-radius:99px;height:8px;overflow:hidden}
-    .progress-bar{height:100%;background:linear-gradient(90deg,#6366f1,#818cf8);border-radius:99px;transition:width .4s;width:0%}
-    .progress-step{font-size:11px;color:#94a3b8;margin-top:8px}
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY not set' });
 
-    /* Grid */
-    .img-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px}
-    .img-card{background:#fff;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;transition:all .2s}
-    .img-card:hover{box-shadow:0 4px 20px #6366f120;transform:translateY(-2px)}
-    .img-card.loading{opacity:.6}
-    .slot-header{padding:14px 16px 10px;display:flex;align-items:center;gap:8px}
-    .slot-num{width:22px;height:22px;background:#6366f1;color:#fff;border-radius:6px;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-    .slot-name{font-size:13px;font-weight:700;color:#1e293b}
-    .img-wrap{width:100%;aspect-ratio:1;background:#f8fafc;overflow:hidden}
-    .img-wrap img{width:100%;height:100%;object-fit:cover;display:block}
-    .img-placeholder{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#94a3b8}
-    .spinner{width:28px;height:28px;border:3px solid #e2e8f0;border-top-color:#6366f1;border-radius:50%;animation:spin .8s linear infinite}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    .slot-footer{padding:10px 16px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px}
-    .prompt-text{font-size:10px;color:#94a3b8;line-height:1.5;flex:1;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-    .btn-dl{padding:5px 12px;background:#6366f1;color:#fff;font-size:11px;font-weight:700;border:none;border-radius:8px;cursor:pointer}
-    .btn-dl:disabled{background:#e2e8f0;color:#94a3b8;cursor:not-allowed}
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
-    .error-box{background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:16px 20px;color:#dc2626;font-size:13px;margin-bottom:20px;display:none}
-    .error-box.show{display:block}
-    @media(max-width:768px){.img-grid{grid-template-columns:1fr 1fr}.main{padding:24px 16px}}
-  </style>
-</head>
-<body>
-  <nav>
-    <a class="nav-logo" href="/index.html">Real<span>Pick</span></a>
-    <div class="nav-links">
-      <a class="nav-link" href="/index.html">🏠 홈</a>
-      <a class="nav-link" href="/trend.html">🔍 트렌드 탐색</a>
-      <a class="nav-link hot" href="/hot.html">🔥 지금 뜨는 제품</a>
-      <a class="nav-link active" href="/image.html">🖼 이미지제작</a>
-      <a class="nav-link" href="/blog.html">✍️ 블로그제작</a>
-      <a class="nav-link" href="/data.html">🗂 데이터 뷰</a>
-    </div>
-    <div class="nav-right"><span class="nav-badge">BETA</span></div>
-  </nav>
-
-  <main class="main">
-    <div class="section-label">Image Studio</div>
-
-    <!-- Hidden file input (outside upload box) -->
-    <input type="file" id="fileInput" accept="image/*" style="display:none"/>
-
-    <!-- Upload Box -->
-    <div class="upload-box" id="uploadBox">
-      <div id="uploadTrigger" class="upload-trigger">
-        <div class="upload-icon">🖼️</div>
-        <div class="upload-title">제품 원본 이미지를 업로드하세요</div>
-        <div class="upload-sub">JPG, PNG, WEBP 지원</div>
-        <div class="upload-btn">파일 선택</div>
-      </div>
-      <div id="previewArea" class="preview-area" style="display:none">
-        <img id="previewImg" class="preview-img" src="" alt=""/>
-        <div class="preview-info">
-          <div class="p-name" id="previewName"></div>
-          <div class="p-sub">이미지 분석 준비 완료 ✅</div>
-          <button class="btn-reset" id="btnReset">✕ 다시 선택</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="error-box" id="errBox"></div>
-
-    <button class="btn-gen" id="btnGen" disabled>
-      <span>🎨</span>
-      <span id="btnText">이미지 업로드 후 생성 가능</span>
-    </button>
-
-    <div class="progress" id="progressBox">
-      <div class="progress-label" id="progressLabel">분석 중...</div>
-      <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
-      <div class="progress-step" id="progressStep"></div>
-    </div>
-
-    <div class="section-label" id="gridLabel" style="display:none">Generated Images</div>
-    <div class="img-grid" id="imgGrid"></div>
-  </main>
-
-<script>
-const SLOTS = [
-  {num:1, name:'대표이미지'},
-  {num:2, name:'핵심구조'},
-  {num:3, name:'활용장면'},
-  {num:4, name:'세부디테일'},
-  {num:5, name:'구성품'},
-  {num:6, name:'CTA직접'},
-];
-
-let imgFile = null, imgB64 = null, prompts = [];
-
-const fileInput    = document.getElementById('fileInput');
-const uploadBox    = document.getElementById('uploadBox');
-const uploadTrigger= document.getElementById('uploadTrigger');
-const previewArea  = document.getElementById('previewArea');
-const previewImg   = document.getElementById('previewImg');
-const previewName  = document.getElementById('previewName');
-const btnReset     = document.getElementById('btnReset');
-const btnGen       = document.getElementById('btnGen');
-const btnText      = document.getElementById('btnText');
-const progressBox  = document.getElementById('progressBox');
-const progressBar  = document.getElementById('progressBar');
-const progressLabel= document.getElementById('progressLabel');
-const progressStep = document.getElementById('progressStep');
-const imgGrid      = document.getElementById('imgGrid');
-const gridLabel    = document.getElementById('gridLabel');
-const errBox       = document.getElementById('errBox');
-
-// 클릭 → 파일 선택창
-uploadTrigger.addEventListener('click', () => fileInput.click());
-
-// 드래그 앤 드롭
-uploadBox.addEventListener('dragover', e => { e.preventDefault(); uploadBox.classList.add('drag'); });
-uploadBox.addEventListener('dragleave', () => uploadBox.classList.remove('drag'));
-uploadBox.addEventListener('drop', e => {
-  e.preventDefault(); uploadBox.classList.remove('drag');
-  const f = e.dataTransfer.files[0];
-  if (f && f.type.startsWith('image/')) loadFile(f);
-});
-
-// 파일 선택
-fileInput.addEventListener('change', () => {
-  if (fileInput.files[0]) loadFile(fileInput.files[0]);
-});
-
-// 다시 선택
-btnReset.addEventListener('click', () => {
-  fileInput.value = '';
-  imgFile = imgB64 = null;
-  uploadTrigger.style.display = 'block';
-  previewArea.style.display = 'none';
-  btnGen.disabled = true;
-  btnText.textContent = '이미지 업로드 후 생성 가능';
-  imgGrid.innerHTML = '';
-  gridLabel.style.display = 'none';
-  progressBox.classList.remove('show');
-  errBox.classList.remove('show');
-});
-
-function loadFile(f) {
-  imgFile = f;
-  const reader = new FileReader();
-  reader.onload = ev => {
-    imgB64 = ev.target.result.split(',')[1];
-    previewImg.src = ev.target.result;
-    previewName.textContent = f.name;
-    uploadTrigger.style.display = 'none';
-    previewArea.style.display = 'flex';
-    btnGen.disabled = false;
-    btnText.textContent = '6장 이미지 생성하기 — Gemini 분석 + Pollinations 렌더링';
-    errBox.classList.remove('show');
-  };
-  reader.readAsDataURL(f);
-}
-
-function setProgress(pct, label, step='') {
-  progressBar.style.width = pct + '%';
-  progressLabel.textContent = label;
-  progressStep.textContent = step;
-}
-
-btnGen.addEventListener('click', async () => {
-  if (!imgB64) return;
-  errBox.classList.remove('show');
-  btnGen.disabled = true;
-  progressBox.classList.add('show');
-  setProgress(10, 'Gemini가 제품 이미지를 분석 중...', '1/2 — 이미지 인식');
-
-  // 스켈레톤 카드
-  gridLabel.style.display = 'block';
-  imgGrid.innerHTML = SLOTS.map(s => `
-    <div class="img-card loading" id="card${s.num}">
-      <div class="slot-header">
-        <div class="slot-num">${s.num}</div>
-        <div class="slot-name">${s.name}</div>
-      </div>
-      <div class="img-wrap">
-        <div class="img-placeholder"><div class="spinner"></div><div style="font-size:12px;color:#94a3b8">대기 중...</div></div>
-      </div>
-      <div class="slot-footer">
-        <div class="prompt-text" id="pt${s.num}">프롬프트 생성 중...</div>
-        <button class="btn-dl" disabled id="dl${s.num}">저장</button>
-      </div>
-    </div>`).join('');
-
-  // Step 1: Gemini 프록시
   try {
-    const res = await fetch('/api/analyze-image', {
+    const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageBase64: imgB64, mediaType: imgFile.type || 'image/jpeg' })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || res.statusText);
-    prompts = data.prompts;
-  } catch(e) {
-    errBox.textContent = '분석 실패: ' + e.message;
-    errBox.classList.add('show');
-    btnGen.disabled = false;
-    progressBox.classList.remove('show');
-    return;
-  }
-
-  setProgress(40, 'Pollinations.ai 이미지 생성 중...', '2/2 — 렌더링 (6장)');
-
-  // Step 2: Pollinations 렌더링
-  for (let i = 0; i < prompts.length; i++) {
-    const p = prompts[i];
-    const card = document.getElementById('card' + p.slot);
-    const imgWrap = card.querySelector('.img-wrap');
-    const ptEl = document.getElementById('pt' + p.slot);
-    const dlEl = document.getElementById('dl' + p.slot);
-
-    ptEl.textContent = p.prompt;
-    imgWrap.innerHTML = '<div class="img-placeholder"><div class="spinner"></div></div>';
-
-    const url = 'https://image.pollinations.ai/prompt/'
-      + encodeURIComponent(p.prompt + ', high quality, commercial product photography')
-      + '?width=800&height=800&nologo=true&seed=' + Math.floor(Math.random() * 99999);
-
-    await new Promise(resolve => {
-      const img = new Image();
-      img.onload = () => {
-        imgWrap.innerHTML = '';
-        imgWrap.appendChild(img);
-        card.classList.remove('loading');
-        dlEl.disabled = false;
-        dlEl.onclick = () => window.open(img.src, '_blank');
-        resolve();
-      };
-      img.onerror = () => {
-        imgWrap.innerHTML = '<div class="img-placeholder"><div style="font-size:24px">⚠️</div><div style="font-size:12px;color:#94a3b8">생성 실패</div></div>';
-        card.classList.remove('loading');
-        resolve();
-      };
-      img.src = url;
-      setTimeout(resolve, 30000);
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey,
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { inline_data: { mime_type: mediaType || 'image/jpeg', data: imageBase64 } },
+            { text: `You are a product image prompt engineer for Korean e-commerce blogs.
+Analyze this product image and generate 6 English image generation prompts — one per slot.
+Return ONLY valid JSON, no markdown, no preamble.
+Format:
+{"prompts":[
+  {"slot":1,"name":"대표이미지","prompt":"..."},
+  {"slot":2,"name":"핵심구조","prompt":"..."},
+  {"slot":3,"name":"활용장면","prompt":"..."},
+  {"slot":4,"name":"세부디테일","prompt":"..."},
+  {"slot":5,"name":"구성품","prompt":"..."},
+  {"slot":6,"name":"CTA직접","prompt":"..."}
+]}
+Rules:
+1. 대표이미지: product on pure white background, studio lighting, 4K sharp, commercial photography
+2. 핵심구조: technical exploded-view diagram with labeled key features, clean infographic style
+3. 활용장면: Korean lifestyle scene with person using the product naturally, bright natural light
+4. 세부디테일: extreme close-up macro shot of material texture and craftsmanship, shallow DOF
+5. 구성품: overhead flat-lay of product and all accessories on light background, minimal style
+6. CTA직접: bold promotional banner, product featured prominently, vibrant colors, call-to-action
+Make each prompt specific to this exact product.` }
+          ]
+        }]
+      })
     });
 
-    setProgress(40 + Math.round((i + 1) / prompts.length * 58), 'Pollinations.ai 이미지 생성 중...', `${i+1}/${prompts.length}장 완료`);
-  }
+    const data = await response.json();
+    console.log('Gemini status:', response.status);
 
-  setProgress(100, '완료!', '6장 모두 생성되었습니다 ✅');
-  setTimeout(() => progressBox.classList.remove('show'), 2500);
-  btnGen.disabled = false;
-  btnText.textContent = '🔄 다시 생성하기';
-});
-</script>
-</body>
-</html>
+    if (!response.ok) {
+      const errMsg = data?.error?.message || data?.error?.status || JSON.stringify(data);
+      return res.status(response.status).json({ error: errMsg });
+    }
+
+    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+    return res.status(200).json(parsed);
+
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
+};
