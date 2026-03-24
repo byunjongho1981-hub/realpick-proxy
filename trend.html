@@ -649,9 +649,19 @@ window.addEventListener('DOMContentLoaded', function(){
     document.getElementById('result-tbl').style.display='table';
     applySort();
     if(!S.filtered.length){ S.filterStatus='all'; applySort(); }
-    renderAll();
-    showToast('📦 이전 탐색 결과 복원됨');
-  }catch(e){ console.warn('[복원 실패]', e.message); }
+    // 비동기로 렌더링 — 브라우저 멈춤 방지
+    setTimeout(function(){
+      renderCards();
+      renderMeta();
+      renderApiBar();
+      renderClusters();
+      // 테이블은 100ms 뒤 별도 렌더 (DOM 부하 분산)
+      setTimeout(function(){
+        renderTable();
+        renderDetail();
+        showToast('📦 이전 탐색 결과 복원됨');
+      }, 100);
+    }, 50);
 });
 </script>
 </body>
