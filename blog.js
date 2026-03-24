@@ -718,7 +718,7 @@ async function generateImagesFromBody() {
     var fullPrompt = IMG_CHARACTER_DNA
       +'\n\nSCENE CONTEXT:\n'+sceneDesc
       +'\n\nPRODUCT: '+prodName
-      +'\n\nCRITICAL: Photorealistic, 4K, cinematic. Korean setting. Same woman as DNA above.'
+      +'\n\nCRITICAL: Photorealistic, 4K, cinematic. Korean setting. Same woman as DNA above. NO TEXT, NO LETTERS, NO CAPTIONS, NO SUBTITLES anywhere in the image. Pure visual scene only.'
       +(S_PROD_REF ? '\nThe reference image shows the EXACT product. Reproduce its color, shape, branding faithfully. Do NOT alter the product appearance.' : '');
 
     var payload = { prompt: fullPrompt };
