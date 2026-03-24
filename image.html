@@ -23,7 +23,6 @@
     .prod-name-input{width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;outline:none;font-family:inherit;margin-bottom:16px;background:#fff}
     .prod-name-input:focus{border-color:#6366f1}
     .prod-box{background:#eff0ff;border:1.5px solid #c7d2fe;border-radius:12px;padding:12px 20px;margin-bottom:16px;display:flex;align-items:center;gap:12px}
-    /* ── 신규: 본문 분석 패널 ── */
     .body-panel{background:#fff;border:1.5px solid #c7d2fe;border-radius:16px;padding:18px 22px;margin-bottom:20px}
     .body-panel-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;cursor:pointer;user-select:none}
     .body-panel-title{font-size:13px;font-weight:800;color:#6366f1;display:flex;align-items:center;gap:6px}
@@ -31,7 +30,6 @@
     .body-panel-body{display:none}
     .body-panel-body.on{display:block}
     .body-top-grid{display:grid;grid-template-columns:110px 1fr;gap:14px;margin-bottom:12px}
-    /* 작은 제품이미지 */
     .prod-img-sm{width:110px;height:110px;border:2px dashed #c7d2fe;border-radius:12px;background:#f8faff;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:border-color .15s;overflow:hidden;position:relative;flex-shrink:0}
     .prod-img-sm:hover{border-color:#6366f1;background:#eff0ff}
     .prod-img-sm img{width:100%;height:100%;object-fit:cover;border-radius:10px;display:none}
@@ -41,7 +39,6 @@
     .btn-analyze{width:100%;padding:12px;background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;font-size:13px;font-weight:700;border:none;border-radius:10px;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s}
     .btn-analyze:hover{opacity:.9}
     .btn-analyze:disabled{opacity:.5;cursor:not-allowed}
-    /* 프롬프트 미리보기 */
     .prompt-preview{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 16px;margin-top:10px;display:none}
     .prompt-preview.on{display:block}
     .prompt-preview-ttl{font-size:11px;font-weight:700;color:#6366f1;margin-bottom:8px}
@@ -51,7 +48,6 @@
     .prompt-txt-p{color:#475569;flex:1}
     .prompt-edit-btn{background:none;border:1px solid #e2e8f0;border-radius:5px;font-size:10px;padding:2px 7px;cursor:pointer;color:#94a3b8;flex-shrink:0}
     .prompt-edit-btn:hover{border-color:#6366f1;color:#6366f1}
-    /* ── 기존 업로드 ── */
     .upload-wrap{background:#fff;border:2px dashed #c7d2fe;border-radius:20px;margin-bottom:20px;overflow:hidden;transition:border-color .2s}
     .upload-wrap.drag{border-color:#6366f1;background:#f5f3ff}
     .upload-zone{position:relative;padding:48px 40px;text-align:center;cursor:pointer}
@@ -66,7 +62,6 @@
     .preview-fname{font-size:14px;font-weight:600;color:#1e293b;margin-bottom:4px}
     .preview-ok{font-size:12px;color:#94a3b8}
     .btn-reset-upload{margin-top:8px;font-size:12px;color:#ef4444;background:none;border:none;cursor:pointer;padding:0}
-    /* slot selector */
     .slot-sel{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px 20px;margin-bottom:20px}
     .slot-sel-hdr{font-size:12px;font-weight:700;color:#64748b;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
     .slot-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
@@ -106,7 +101,6 @@
     .btn-regen:disabled{opacity:.4;cursor:not-allowed}
     .btn-save{padding:5px 12px;background:#6366f1;color:#fff;font-size:11px;font-weight:700;border:none;border-radius:8px;cursor:pointer;flex-shrink:0}
     .btn-save:disabled{background:#e2e8f0;color:#94a3b8;cursor:not-allowed}
-    /* 블로그 이동 버튼 */
     .btn-to-blog{width:100%;padding:15px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:14px;font-weight:700;border:none;border-radius:12px;cursor:pointer;margin-bottom:16px;display:none;align-items:center;justify-content:center;gap:8px}
     .btn-to-blog.on{display:flex}
     .modal{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;display:none;align-items:center;justify-content:center}
@@ -134,7 +128,7 @@
 <main class="main">
   <div class="sec-label">Image Studio</div>
 
-  <!-- ★ 신규: 블로그 본문 분석 패널 (접기/펼치기) -->
+  <!-- 본문 분석 패널 -->
   <div class="body-panel">
     <div class="body-panel-hdr" onclick="toggleBodyPanel()">
       <div class="body-panel-title">📋 블로그 본문으로 이미지 생성 <span style="font-size:10px;font-weight:500;color:#94a3b8">(본문 붙여넣기 → 씬 자동 분석)</span></div>
@@ -142,7 +136,6 @@
     </div>
     <div class="body-panel-body" id="bodyPanelBody">
       <div class="body-top-grid">
-        <!-- 작은 제품 이미지 -->
         <div>
           <div style="font-size:10px;font-weight:700;color:#94a3b8;margin-bottom:6px">제품 이미지</div>
           <div class="prod-img-sm" id="prodImgSm"
@@ -160,7 +153,6 @@
           <input type="file" id="prodImgSmFile" accept="image/*" style="display:none" onchange="handleProdImgSmFile(this)"/>
           <div style="font-size:9px;color:#c4cad4;text-align:center;margin-top:4px">JPG·PNG·WEBP</div>
         </div>
-        <!-- 본문 textarea -->
         <div style="display:flex;flex-direction:column;gap:8px">
           <input id="bodyProdName" class="prod-name-input" type="text" placeholder="제품명 입력 (예: 에이플심플 여성 일자핏 팬츠)" style="margin-bottom:0"/>
           <textarea id="bodyText" class="body-textarea"
@@ -171,15 +163,12 @@
       <button class="btn-analyze" id="btnAnalyze" onclick="analyzeBody()">
         <span>🔍</span><span id="analyzeTxt">본문 분석 → 씬별 프롬프트 생성</span>
       </button>
-      <!-- 프롬프트 미리보기 -->
       <div class="prompt-preview" id="promptPreview">
         <div class="prompt-preview-ttl">✅ 분석 완료 — 씬별 이미지 프롬프트 (편집 가능)</div>
         <div id="promptList"></div>
       </div>
     </div>
   </div>
-
-  <!-- ── 기존 코드 완전 유지 ── -->
 
   <!-- 제품명 연결 -->
   <div id="prodBox" class="prod-box" style="display:none">
@@ -189,7 +178,7 @@
   </div>
   <input id="prodName" class="prod-name-input" type="text" placeholder="제품명 입력 (없어도 됩니다)"/>
 
-  <!-- 업로드 (기존 그대로) -->
+  <!-- 업로드 -->
   <div class="upload-wrap" id="upWrap">
     <div id="upZone" class="upload-zone">
       <input type="file" id="fileIn" accept="image/*"/>
@@ -208,7 +197,7 @@
     </div>
   </div>
 
-  <!-- 장면 선택 (기존 그대로) -->
+  <!-- 장면 선택 -->
   <div class="slot-sel">
     <div class="slot-sel-hdr">
       <span>🎯 생성할 장면 선택</span>
@@ -239,7 +228,6 @@
     <div class="prog-step" id="progStep"></div>
   </div>
 
-  <!-- ★ 신규: 블로그로 이동 버튼 -->
   <button class="btn-to-blog" id="btnToBlog" onclick="goToBlog()">
     ✍️ 블로그 글쓰기에서 바로 사용하기
   </button>
@@ -256,21 +244,19 @@
 
 <script>
 const NAMES = {1:'문제상황',2:'기존한계',3:'제품등장',4:'사용장면',5:'결과변화',6:'라이프스타일'};
-
-// ★ CHARACTER DNA — callGenerate에서 자동 주입
 const CHARACTER_DNA = `FIXED CHARACTER (must appear identical in every image):
 - Korean woman, age 28-32, slim athletic build
 - Face: soft oval face, natural double eyelids, slightly high cheekbones, small lips
 - Hair: straight black hair, shoulder-length, loosely pulled back, few strands on forehead
 - Skin: fair porcelain skin, light natural makeup only
 - SAME woman in every scene. Do NOT change her appearance.`;
+const IMG_STATE_KEY = 'image-page-state';
 
 let imgFile=null, imgB64=null, prompts=[];
-// ★ 신규: 본문 분석으로 생성된 프롬프트 (있으면 analyze-image 대신 사용)
-let bodyPrompts = [];
-let generatedCards = [];
+let bodyPrompts=[];
+let generatedCards=[];
 
-// DOM (기존 그대로)
+// DOM
 const fileIn   = document.getElementById('fileIn');
 const upWrap   = document.getElementById('upWrap');
 const upZone   = document.getElementById('upZone');
@@ -288,7 +274,7 @@ const imgGrid  = document.getElementById('imgGrid');
 const gridLbl  = document.getElementById('gridLbl');
 const errBox   = document.getElementById('errBox');
 
-// ── 초기화 (기존 그대로) ─────────────────────────────────────
+// ── 초기화 ───────────────────────────────────────────────────
 (function(){
   const n = sessionStorage.getItem('image-product-name');
   if(n){
@@ -301,6 +287,7 @@ const errBox   = document.getElementById('errBox');
     const sv = JSON.parse(sessionStorage.getItem('image-result')||'null');
     if(sv&&sv.length) restoreCards(sv);
   }catch(e){}
+  restoreImageState();
 })();
 
 function restoreCards(cards){
@@ -315,7 +302,7 @@ function restoreCards(cards){
         <button class="btn-save" id="sv${p.slot}" ${p.src?'':'disabled'}>저장</button>
       </div>
     </div>`).join('');
-  generatedCards = cards;
+  generatedCards=cards;
   cards.forEach(p=>{
     const rg=document.getElementById('rg'+p.slot);
     if(rg) rg.onclick=()=>regenOne(p);
@@ -329,7 +316,7 @@ function restoreCards(cards){
   document.getElementById('btnToBlog').classList.add('on');
 }
 
-// ── 파일 업로드 (기존 그대로) ────────────────────────────────
+// ── 파일 업로드 ──────────────────────────────────────────────
 fileIn.onchange=function(){ if(this.files&&this.files[0]) loadImg(this.files[0]); };
 upWrap.addEventListener('dragover',e=>{e.preventDefault();upWrap.classList.add('drag');});
 upWrap.addEventListener('dragleave',()=>upWrap.classList.remove('drag'));
@@ -341,7 +328,6 @@ upWrap.addEventListener('drop',e=>{
 btnReset.onclick=()=>{
   fileIn.value=''; imgFile=imgB64=null;
   upZone.style.display='block'; prevZone.style.display='none';
-  // 본문 프롬프트 없을 때만 버튼 비활성화
   if(!bodyPrompts.length){ btnGen.disabled=true; btnTxt.textContent='이미지 업로드 후 생성 가능'; }
 };
 function loadImg(f){
@@ -360,29 +346,31 @@ function loadImg(f){
   r.readAsDataURL(f);
 }
 
-// ── ★ 신규: 본문 패널 접기/펼치기 ───────────────────────────
+// ── 본문 패널 ────────────────────────────────────────────────
 function toggleBodyPanel(){
-  const body = document.getElementById('bodyPanelBody');
-  const btn  = document.getElementById('bodyPanelToggleBtn');
-  const isOn = body.classList.toggle('on');
-  btn.textContent = isOn ? '접기 ▴' : '펼치기 ▾';
+  const body=document.getElementById('bodyPanelBody');
+  const btn=document.getElementById('bodyPanelToggleBtn');
+  const isOn=body.classList.toggle('on');
+  btn.textContent=isOn?'접기 ▴':'펼치기 ▾';
+  saveImageState();
 }
 
-// ── ★ 신규: 작은 제품 이미지 핸들러 ─────────────────────────
+// ── 작은 제품 이미지 ─────────────────────────────────────────
 function handleProdImgSmFile(input){
-  const file = input.files[0]; if(!file) return;
-  const r = new FileReader();
-  r.onload = ev => {
-    document.getElementById('prodImgSmPreview').src = ev.target.result;
-    document.getElementById('prodImgSmPreview').style.display = 'block';
-    document.getElementById('prodImgSmPh').style.display = 'none';
-    document.getElementById('prodImgSmDel').style.display = 'flex';
+  const file=input.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    document.getElementById('prodImgSmPreview').src=ev.target.result;
+    document.getElementById('prodImgSmPreview').style.display='block';
+    document.getElementById('prodImgSmPh').style.display='none';
+    document.getElementById('prodImgSmDel').style.display='flex';
+    try{ sessionStorage.setItem(IMG_STATE_KEY+'-prodimg', ev.target.result); }catch(e){}
   };
   r.readAsDataURL(file);
   input.value='';
 }
 function handleProdSmDrop(e){
-  const f = e.dataTransfer.files[0];
+  const f=e.dataTransfer.files[0];
   if(f&&f.type.startsWith('image/')) handleProdImgSmFile({files:[f],value:''});
 }
 function clearProdImgSm(){
@@ -390,43 +378,37 @@ function clearProdImgSm(){
   document.getElementById('prodImgSmPreview').style.display='none';
   document.getElementById('prodImgSmPh').style.display='flex';
   document.getElementById('prodImgSmDel').style.display='none';
+  sessionStorage.removeItem(IMG_STATE_KEY+'-prodimg');
 }
 
-// ── ★ 신규: 본문 분석 → 프롬프트 생성 ──────────────────────
+// ── 본문 분석 ────────────────────────────────────────────────
 async function analyzeBody(){
-  const body = document.getElementById('bodyText').value.trim();
+  const body=document.getElementById('bodyText').value.trim();
   if(!body){ showErr('⚠️ 블로그 본문을 입력해주세요'); return; }
   hideErr();
-  const btnA = document.getElementById('btnAnalyze');
-  const txtA = document.getElementById('analyzeTxt');
+  const btnA=document.getElementById('btnAnalyze');
+  const txtA=document.getElementById('analyzeTxt');
   btnA.disabled=true; txtA.textContent='분석 중...';
 
-  const prodName = document.getElementById('bodyProdName').value.trim()
-                || document.getElementById('prodName').value.trim()
-                || '제품';
-  const scenes = extractScenes(body, prodName);
+  const prodName=document.getElementById('bodyProdName').value.trim()
+               ||document.getElementById('prodName').value.trim()||'제품';
+  const scenes=extractScenes(body,prodName);
 
   try{
-    const sysPrompt = `You are an expert at creating photorealistic image generation prompts for Korean affiliate blog posts.
+    const sysPrompt=`You are an expert at creating photorealistic image generation prompts for Korean affiliate blog posts.
 Given scene context, create concise English prompts. Each must include the subject as a Korean woman (same appearance).
 Respond ONLY with valid JSON array: [{"slot":1,"prompt":"..."},...]`;
-
-    const userMsg = `Product: ${prodName}
-Generate prompts for ${scenes.length} scenes:
-${scenes.map(s=>`Scene ${s.slot} (${s.name}): ${s.context}`).join('\n')}`;
-
-    const res = await fetch('/api/blog-generate',{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({user:userMsg, system:sysPrompt, max_tokens:2000})
+    const userMsg=`Product: ${prodName}\nGenerate prompts for ${scenes.length} scenes:\n${scenes.map(s=>`Scene ${s.slot} (${s.name}): ${s.context}`).join('\n')}`;
+    const res=await fetch('/api/blog-generate',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({user:userMsg,system:sysPrompt,max_tokens:2000})
     });
-    const data = await res.json();
+    const data=await res.json();
     if(data.error) throw new Error(data.error);
-    const raw = (data.text||'').replace(/```json|```/g,'').trim();
-    const parsed = JSON.parse(raw);
-    bodyPrompts = parsed.map(p=>({ slot:p.slot, name:NAMES[p.slot]||('씬'+p.slot), prompt:p.prompt }));
-  } catch(e){
-    // API 실패 시 기본 프롬프트 폴백
-    bodyPrompts = scenes.map(s=>({ slot:s.slot, name:s.name, prompt:buildDefaultPrompt(s, prodName) }));
+    const raw=(data.text||'').replace(/```json|```/g,'').trim();
+    bodyPrompts=JSON.parse(raw).map(p=>({slot:p.slot,name:NAMES[p.slot]||('씬'+p.slot),prompt:p.prompt}));
+  }catch(e){
+    bodyPrompts=scenes.map(s=>({slot:s.slot,name:s.name,prompt:buildDefaultPrompt(s,prodName)}));
   }
 
   renderPromptPreview();
@@ -434,21 +416,21 @@ ${scenes.map(s=>`Scene ${s.slot} (${s.name}): ${s.context}`).join('\n')}`;
   btnGen.disabled=false;
   btnTxt.textContent=`🎨 이미지 생성하기 (본문 기반 · ${bodyPrompts.length}장)`;
   btnA.disabled=false; txtA.textContent='본문 분석 → 씬별 프롬프트 생성';
+  saveImageState();
 }
 
-function extractScenes(body, prodName){
+function extractScenes(body,prodName){
   const scenes=[];
   const markerRe=/\[📸\s*(\d+)[^\]]*\]/g;
   let m; const markers=[];
   while((m=markerRe.exec(body))!==null) markers.push({slot:parseInt(m[1]),idx:m.index});
-
   if(markers.length>=3){
     markers.forEach(mk=>{
       const before=body.slice(Math.max(0,mk.idx-200),mk.idx).replace(/\[📸\d+[^\]]*\]/g,'').trim();
-      const after =body.slice(mk.idx,Math.min(body.length,mk.idx+200)).replace(/\[📸\d+[^\]]*\]/g,'').trim();
-      scenes.push({slot:mk.slot, name:NAMES[mk.slot]||('씬'+mk.slot), context:(before.slice(-120)+' '+after.slice(0,120)).trim()});
+      const after=body.slice(mk.idx,Math.min(body.length,mk.idx+200)).replace(/\[📸\d+[^\]]*\]/g,'').trim();
+      scenes.push({slot:mk.slot,name:NAMES[mk.slot]||('씬'+mk.slot),context:(before.slice(-120)+' '+after.slice(0,120)).trim()});
     });
-  } else {
+  }else{
     const clean=body.replace(/\[📸\d+[^\]]*\]/g,'');
     const unit=Math.floor(clean.length/6);
     for(let i=1;i<=6;i++) scenes.push({slot:i,name:NAMES[i],context:clean.slice((i-1)*unit,i*unit).trim().slice(0,200)});
@@ -456,20 +438,20 @@ function extractScenes(body, prodName){
   return scenes;
 }
 
-function buildDefaultPrompt(s, prodName){
+function buildDefaultPrompt(s,prodName){
   const map={
-    1:`A Korean woman looking frustrated in a daily situation related to "${prodName}", photorealistic, 4K, cinematic lighting`,
+    1:`A Korean woman looking frustrated in a daily situation related to "${prodName}", photorealistic, 4K, cinematic`,
     2:`Close-up detail shot of "${prodName}" key structural features, photorealistic, 4K, studio lighting`,
-    3:`A Korean woman first encountering "${prodName}" with curiosity, photorealistic, 4K, cinematic`,
-    4:`A Korean woman actively using "${prodName}" in urban Korean environment, photorealistic, 4K`,
+    3:`A Korean woman first encountering "${prodName}" with curiosity, photorealistic, 4K`,
+    4:`A Korean woman actively using "${prodName}" in Korean urban environment, photorealistic, 4K`,
     5:`A Korean woman showing positive results from using "${prodName}", happy, photorealistic, 4K`,
-    6:`A Korean woman confidently living with "${prodName}" in lifestyle setting, photorealistic, 4K, warm lighting`
+    6:`A Korean woman confidently with "${prodName}" in lifestyle setting, photorealistic, 4K, warm lighting`
   };
   return map[s.slot]||`${prodName} product scene, photorealistic, 4K`;
 }
 
 function renderPromptPreview(){
-  document.getElementById('promptList').innerHTML = bodyPrompts.map(p=>`
+  document.getElementById('promptList').innerHTML=bodyPrompts.map(p=>`
     <div class="prompt-item">
       <div class="prompt-num">${p.slot}</div>
       <div class="prompt-txt-p">${p.name} — ${p.prompt}</div>
@@ -479,17 +461,16 @@ function renderPromptPreview(){
 
 function editPrompt(slot){
   const p=bodyPrompts.find(x=>x.slot===slot); if(!p) return;
-  const v=window.prompt(`씬 ${slot} 프롬프트 편집:`, p.prompt);
-  if(v&&v.trim()){ p.prompt=v.trim(); renderPromptPreview(); }
+  const v=window.prompt(`씬 ${slot} 프롬프트 편집:`,p.prompt);
+  if(v&&v.trim()){ p.prompt=v.trim(); renderPromptPreview(); saveImageState(); }
 }
 
-// ── 블로그로 이동 ────────────────────────────────────────────
 function goToBlog(){
-  sessionStorage.setItem('image-result', JSON.stringify(generatedCards));
+  sessionStorage.setItem('image-result',JSON.stringify(generatedCards));
   location.href='/blog.html';
 }
 
-// ── 유틸 (기존 그대로) ──────────────────────────────────────
+// ── 유틸 ────────────────────────────────────────────────────
 function selAll(v){document.querySelectorAll('.slotChk').forEach(c=>c.checked=v);}
 function getSel(){return[...document.querySelectorAll('.slotChk:checked')].map(c=>+c.value);}
 function clearProd(){document.getElementById('prodBox').style.display='none';document.getElementById('prodName').value='';}
@@ -510,15 +491,15 @@ function showModal(src,info){
 function closeModal(){document.getElementById('modal').classList.remove('on');}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
 
-// ── ★ callGenerate: CHARACTER_DNA 자동 주입 (기존 로직 유지) ─
+// ── callGenerate: CHARACTER_DNA 자동 주입 ────────────────────
 async function callGenerate(prompt){
-  const fullPrompt = `${CHARACTER_DNA}\n\nSCENE:\n${prompt}\n\nCRITICAL: Photorealistic, 4K, cinematic. Korean setting.`;
+  const full=`${CHARACTER_DNA}\n\nSCENE:\n${prompt}\n\nCRITICAL: Photorealistic, 4K, cinematic. Korean setting.`;
   const ctrl=new AbortController();
   const t=setTimeout(()=>ctrl.abort(),55000);
   try{
     const r=await fetch('/api/generate-image',{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({prompt:fullPrompt}), signal:ctrl.signal
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt:full}),signal:ctrl.signal
     });
     clearTimeout(t);
     const d=await r.json();
@@ -530,7 +511,7 @@ async function callGenerate(prompt){
   }
 }
 
-// ── 단일 재생성 (기존 그대로) ────────────────────────────────
+// ── 단일 재생성 ──────────────────────────────────────────────
 async function regenOne(p){
   const card=document.getElementById('c'+p.slot);
   const iw=card.querySelector('.img-wrap');
@@ -559,8 +540,8 @@ async function regenOne(p){
   rg.disabled=false;rg.textContent='↺';
 }
 
-// ── 메인 생성 (기존 로직 유지 + 본문 프롬프트 우선 적용) ────
-btnGen.addEventListener('click', async()=>{
+// ── 메인 생성 ────────────────────────────────────────────────
+btnGen.addEventListener('click',async()=>{
   const sel=getSel();
   if(!sel.length){showErr('⚠️ 최소 1개 이상 선택하세요');return;}
   hideErr();
@@ -568,12 +549,10 @@ btnGen.addEventListener('click', async()=>{
   progWrap.classList.add('on');
   generatedCards=[];
 
-  // ★ 분기: 본문 프롬프트 있으면 바로 생성, 없으면 기존 analyze-image 흐름
   if(bodyPrompts.length){
     // 본문 기반 생성
     const list=bodyPrompts.filter(p=>sel.includes(p.slot));
     if(!list.length){showErr('⚠️ 선택 슬롯과 분석된 씬이 맞지 않습니다');btnGen.disabled=false;progWrap.classList.remove('on');return;}
-
     setProgress(5,'본문 기반 이미지 생성 중...',`총 ${list.length}장`);
     gridLbl.style.display='block';
     imgGrid.innerHTML=list.map(p=>`
@@ -586,7 +565,6 @@ btnGen.addEventListener('click', async()=>{
           <button class="btn-save" disabled id="sv${p.slot}">저장</button>
         </div>
       </div>`).join('');
-
     for(let i=0;i<list.length;i++){
       const p=list[i];
       const card=document.getElementById('c'+p.slot);
@@ -612,12 +590,10 @@ btnGen.addEventListener('click', async()=>{
       }
       setProgress(Math.round((i+1)/list.length*95),'생성 중...',`${i+1}/${list.length}장 완료`);
     }
-
   } else {
-    // ── 기존 analyze-image 흐름 완전 유지 ──
+    // 기존 analyze-image 흐름
     if(!imgB64){showErr('⚠️ 이미지를 업로드하거나 본문을 분석해주세요');btnGen.disabled=false;progWrap.classList.remove('on');return;}
     setProgress(10,'Gemini 제품 분석 중...','1/2 — 이미지 인식');
-
     gridLbl.style.display='block';
     imgGrid.innerHTML=sel.map(n=>`
       <div class="img-card loading" id="c${n}">
@@ -629,7 +605,6 @@ btnGen.addEventListener('click', async()=>{
           <button class="btn-save" disabled id="sv${n}">저장</button>
         </div>
       </div>`).join('');
-
     try{
       const res=await fetch('/api/analyze-image',{
         method:'POST',headers:{'Content-Type':'application/json'},
@@ -642,12 +617,9 @@ btnGen.addEventListener('click', async()=>{
       showErr('분석 실패: '+e.message);
       btnGen.disabled=false;progWrap.classList.remove('on');return;
     }
-
     const list=prompts.filter(p=>sel.includes(p.slot));
     if(!list.length){showErr('분석 결과와 선택 슬롯이 매칭되지 않습니다. 다시 시도해 주세요.');btnGen.disabled=false;progWrap.classList.remove('on');return;}
-
     setProgress(40,'이미지 생성 중...',`2/2 — (${list.length}장)`);
-
     for(let i=0;i<list.length;i++){
       const p=list[i];
       const card=document.getElementById('c'+p.slot);
@@ -681,10 +653,8 @@ btnGen.addEventListener('click', async()=>{
   setTimeout(()=>progWrap.classList.remove('on'),2500);
   btnGen.disabled=false;
   btnTxt.textContent='🔄 다시 생성하기';
-
-  // sessionStorage 저장 후 블로그 버튼 표시
   try{
-    const cards=generatedCards.length ? generatedCards : sel.map(n=>{
+    const cards=generatedCards.length?generatedCards:sel.map(n=>{
       const im=document.querySelector(`#c${n} .img-wrap img`);
       return{slot:n,name:NAMES[n],prompt:'',src:im?im.src:''};
     });
@@ -693,6 +663,61 @@ btnGen.addEventListener('click', async()=>{
   }catch(e){}
   document.getElementById('btnToBlog').classList.add('on');
 });
+
+// ── 탭 이동 복원 ─────────────────────────────────────────────
+function saveImageState(){
+  try{
+    const state={
+      prodName:     document.getElementById('prodName').value||'',
+      bodyProdName: document.getElementById('bodyProdName').value||'',
+      bodyText:     document.getElementById('bodyText').value||'',
+      bodyPrompts:  bodyPrompts,
+      bodyPanelOpen:document.getElementById('bodyPanelBody').classList.contains('on')
+    };
+    sessionStorage.setItem(IMG_STATE_KEY,JSON.stringify(state));
+    const smPrev=document.getElementById('prodImgSmPreview');
+    if(smPrev&&smPrev.src&&smPrev.style.display!=='none'){
+      try{sessionStorage.setItem(IMG_STATE_KEY+'-prodimg',smPrev.src);}catch(e){}
+    }
+  }catch(e){}
+}
+
+function restoreImageState(){
+  try{
+    const raw=sessionStorage.getItem(IMG_STATE_KEY);
+    if(!raw) return;
+    const state=JSON.parse(raw);
+    if(state.prodName)     document.getElementById('prodName').value=state.prodName;
+    if(state.bodyProdName) document.getElementById('bodyProdName').value=state.bodyProdName;
+    if(state.bodyText)     document.getElementById('bodyText').value=state.bodyText;
+    if(state.bodyPanelOpen){
+      document.getElementById('bodyPanelBody').classList.add('on');
+      document.getElementById('bodyPanelToggleBtn').textContent='접기 ▴';
+    }
+    if(state.bodyPrompts&&state.bodyPrompts.length){
+      bodyPrompts=state.bodyPrompts;
+      renderPromptPreview();
+      document.getElementById('promptPreview').classList.add('on');
+      btnGen.disabled=false;
+      btnTxt.textContent=`🎨 이미지 생성하기 (본문 기반 · ${bodyPrompts.length}장)`;
+    }
+    const savedImg=sessionStorage.getItem(IMG_STATE_KEY+'-prodimg');
+    if(savedImg){
+      document.getElementById('prodImgSmPreview').src=savedImg;
+      document.getElementById('prodImgSmPreview').style.display='block';
+      document.getElementById('prodImgSmPh').style.display='none';
+      document.getElementById('prodImgSmDel').style.display='flex';
+    }
+  }catch(e){}
+}
+
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='hidden') saveImageState();
+});
+window.addEventListener('beforeunload',function(){ saveImageState(); });
+document.getElementById('bodyText').addEventListener('input',saveImageState);
+document.getElementById('bodyProdName').addEventListener('input',saveImageState);
+document.getElementById('prodName').addEventListener('input',saveImageState);
 </script>
 </body>
 </html>
