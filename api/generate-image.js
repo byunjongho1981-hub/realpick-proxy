@@ -22,7 +22,7 @@ module.exports = async function handler(req, res) {
         'x-goog-api-key': apiKey,
       },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt + '\n\nIMPORTANT: Only depict elements that are explicitly described in the prompt. Do NOT add, invent, or imagine any extra components, accessories, or features not mentioned. All human figures must be East Asian (Korean appearance): natural skin tone, black hair, realistic Korean facial features. No Western or ambiguous ethnicity.' }] }],
+        contents: [{ parts: [{ text: prompt + '\n\n[STRICT RULES]\n- Same product as input image: identical design, identical color, no modification, no substitution\n- Do NOT change product shape, structure, or color\n- Only change background, lighting, angle, people\n- All human figures must be East Asian (Korean appearance): natural skin tone, black hair\n- No Western or ambiguous ethnicity\n- No cartoon, 3D exaggeration, or heavy stylization' }] }],
         generationConfig: {
           responseModalities: ['TEXT', 'IMAGE']
         }
