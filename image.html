@@ -191,7 +191,7 @@ function loadFile(f) {
     uploadDefault.style.display = 'none';
     uploadPreview.style.display = 'block';
     btnGen.disabled = false;
-    btnText.textContent = '6장 이미지 생성하기 — Claude 분석 + Pollinations 렌더링';
+    btnText.textContent = '6장 이미지 생성하기 — Gemini 분석 + Pollinations 렌더링';
     hideErr();
   };
   reader.readAsDataURL(f);
@@ -244,30 +244,17 @@ btnGen.addEventListener('click', async () => {
 
   // Step 1: HuggingFace BLIP — image captioning (무료, API키 불필요)
   try {
-    // Base64 → Blob 변환 후 raw binary 전송
-    const byteStr = atob(imgB64);
-    const ab = new ArrayBuffer(byteStr.length);
-    const ia = new Uint8Array(ab);
-    for (let i = 0; i < byteStr.length; i++) ia[i] = byteStr.charCodeAt(i);
-    const blob = new Blob([ab], { type: imgFile.type || 'image/jpeg' });
-
-    const hfRes = await fetch(
-      'https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': imgFile.type || 'image/jpeg' },
-        body: blob
-      }
-    );
-    if (!hfRes.ok) {
-      const err = await hfRes.json();
-      throw new Error(err.error || hfRes.statusText);
-    }
-    const hfData = await hfRes.json();
-    const caption = hfData[0]?.generated_text || 'product';
-    prompts = buildPrompts(caption);
+  try {
+    const res = await fetch('/api/analyze-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64: imgB64, mediaType: imgFile.type || 'image/jpeg' })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || res.statusText);
+    prompts = data.prompts;
   } catch(e) {
-    showErr('HuggingFace 분석 실패: ' + e.message + ' (모델 로딩 중이면 30초 후 재시도)');
+    showErr('분석 실패: ' + e.message + ' (HF 모델 웜업 중이면 30초 후 재시도)');
     btnGen.disabled = false;
     progressBox.classList.remove('show');
     return;
