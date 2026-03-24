@@ -15,6 +15,9 @@ module.exports = async function handler(req, res) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${apiKey}`;
 
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 50000);
+
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
@@ -23,8 +26,10 @@ module.exports = async function handler(req, res) {
           text: prompt + '\n\n[STRICT RULES]\n- Same product as input image: identical design, identical color, no modification\n- All human figures: East Asian (Korean appearance), black hair\n- No cartoon, 3D exaggeration, or heavy stylization'
         }] }],
         generationConfig: { responseModalities: ['TEXT', 'IMAGE'] }
-      })
+      }),
+      signal: controller.signal
     });
+    clearTimeout(timeout);
 
     const data = await response.json();
     console.log('generate-image status:', response.status);
