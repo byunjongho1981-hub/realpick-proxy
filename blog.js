@@ -1,6 +1,6 @@
 var S = { product:null, titles:[], selectedTitle:0, body:'', hashtags:[], thumb:{}, seo:{}, generated:false };
 var S_IMAGES = new Array(6).fill(null);
-var S_PROD_REF = null; // 제품 원본 이미지 { data, mimeType }
+var S_PROD_REF = null;
 var S_URL_INFO = null;
 var S_ACTIVE_SLOT = -1;
 
@@ -45,7 +45,6 @@ function openSlot(idx) {
   input.onchange = function(e){ handleSlotFile(e, idx); };
   input.click();
 }
-
 function focusSlot(idx) { openSlot(idx); }
 
 function handleSlotFile(e, idx) {
@@ -107,8 +106,7 @@ function handleProdRefFile(input) {
     if (preview) { preview.src = ev.target.result; preview.style.display = 'block'; }
     if (ph)  ph.style.display  = 'none';
     if (del) del.style.display = 'flex';
-    showToast('📦 제품 원본 이미지 등록됨 — 이미지 생성 시 참조됩니다');
-    // prodRef는 용량이 크므로 sessionStorage 별도 저장
+    showToast('📦 제품 원본 이미지 등록됨');
     try { sessionStorage.setItem(BLOG_STATE_KEY+'-prodref', ev.target.result); } catch(e) {}
   };
   reader.readAsDataURL(file);
@@ -127,7 +125,7 @@ function clearProdRef() {
   var ph  = document.getElementById('prod-ref-ph');
   var del = document.getElementById('prod-ref-del');
   if (preview) { preview.src = ''; preview.style.display = 'none'; }
-  if (ph)  ph.style.display  = 'flex';
+  if (ph)  ph.style.display  = 'block';
   if (del) del.style.display = 'none';
   sessionStorage.removeItem(BLOG_STATE_KEY+'-prodref');
   showToast('제품 원본 이미지 초기화됨');
@@ -153,14 +151,9 @@ function saveDraft() {
   try {
     var ta = document.getElementById('body-textarea');
     var draft = {
-      product: S.product,
-      titles: S.titles,
-      selectedTitle: S.selectedTitle,
-      body: ta ? ta.value : S.body,
-      hashtags: S.hashtags,
-      thumb: S.thumb,
-      seo: S.seo,
-      generated: S.generated,
+      product: S.product, titles: S.titles, selectedTitle: S.selectedTitle,
+      body: ta ? ta.value : S.body, hashtags: S.hashtags, thumb: S.thumb,
+      seo: S.seo, generated: S.generated,
       urlInput: (document.getElementById('url-input')||{}).value || '',
       postType: (document.getElementById('post-type')||{}).value || 'guide',
       postLength: (document.getElementById('post-length')||{}).value || 'medium',
@@ -201,29 +194,21 @@ function restoreDraft() {
         if (!img) return;
         var data = null;
         try { data = sessionStorage.getItem(BLOG_STATE_KEY+'-img'+i); } catch(e){}
-        if (data) {
-          S_IMAGES[i] = { data: data, mimeType: img.mimeType };
-        } else if (img.url) {
-          S_IMAGES[i] = { url: img.url, mimeType: img.mimeType };
-        }
+        if (data) { S_IMAGES[i] = { data: data, mimeType: img.mimeType }; }
+        else if (img.url) { S_IMAGES[i] = { url: img.url, mimeType: img.mimeType }; }
       });
       renderSlots();
     }
     restoreProdRef();
     if (draft.generated && draft.titles && draft.titles.length) {
-      S.titles = draft.titles;
-      S.selectedTitle = draft.selectedTitle || 0;
-      S.body = draft.body || '';
-      S.hashtags = draft.hashtags || [];
-      S.thumb = draft.thumb || {};
-      S.seo = draft.seo || {};
-      S.generated = true;
+      S.titles = draft.titles; S.selectedTitle = draft.selectedTitle || 0;
+      S.body = draft.body || ''; S.hashtags = draft.hashtags || [];
+      S.thumb = draft.thumb || {}; S.seo = draft.seo || {}; S.generated = true;
       var ta = document.getElementById('body-textarea');
       if (ta && draft.body) ta.value = draft.body;
       renderResult();
       document.getElementById('result-area').style.display = 'block';
-      updateStep(3);
-      showImgAutoBtn();
+      updateStep(3); showImgAutoBtn();
       showToast('✅ 이전 작성 내용 복원됨');
     }
     return true;
@@ -241,9 +226,7 @@ function clearDraft() {
 window.addEventListener('DOMContentLoaded', function() {
   renderSlots();
   var ta = document.getElementById('body-textarea');
-  if (ta) {
-    ta.addEventListener('input', function(){ S.body = ta.value; saveDraft(); });
-  }
+  if (ta) { ta.addEventListener('input', function(){ S.body = ta.value; saveDraft(); }); }
   try {
     if (restoreDraft()) return;
     var ir = sessionStorage.getItem('image-result');
@@ -251,9 +234,7 @@ window.addEventListener('DOMContentLoaded', function() {
       var cards = JSON.parse(ir);
       cards.forEach(function(c){
         if (c.src && c.slot >= 1 && c.slot <= 6) {
-          var b64 = c.src.split(',')[1] || '';
-          var mime = c.src.split(';')[0].replace('data:','') || 'image/png';
-          S_IMAGES[c.slot-1] = { data: b64, mimeType: mime };
+          S_IMAGES[c.slot-1] = { data: c.src.split(',')[1]||'', mimeType: c.src.split(';')[0].replace('data:','')||'image/png' };
         }
       });
       renderSlots();
@@ -302,7 +283,7 @@ async function analyzeUrl() {
       +(p.platform?'<span class="url-tag">🛒 '+p.platform+'</span>':'')
       +(p.category?'<span class="url-tag">'+p.category+'</span>':'')
       +(p.targetUser?'<span class="url-tag" style="flex-basis:100%">👤 '+p.targetUser+'</span>':'');
-    showToast('✅ URL 분석 완료 — 제품 정보 연결됨');
+    showToast('✅ URL 분석 완료');
   } catch(e) { showToast('⚠️ URL 분석 실패: '+e.message); }
   finally { btn.disabled=false; btn.textContent='🔍 분석'; }
 }
@@ -329,9 +310,7 @@ function setProduct(p) {
     +'<div class="pc-meta-item"><div class="pc-meta-val">'+(sc.grade||'–')+'</div><div class="pc-meta-lbl">등급</div></div>'
     +'</div>'
     +'<button onclick="clearProduct()" style="margin-left:auto;padding:4px 10px;background:#f8fafc;border:1px solid var(--bdr);border-radius:6px;font-size:11px;cursor:pointer;color:var(--muted)">변경</button>';
-  updateStep(1);
-  showToast('"'+p.name+'" 연결됨');
-  saveDraft();
+  updateStep(1); showToast('"'+p.name+'" 연결됨'); saveDraft();
 }
 
 function clearProduct() {
@@ -414,10 +393,7 @@ async function generateBlog() {
   setLoadingStep('가격대 분석 + 구조 설계 중...', 35); await sleep(300);
   setLoadingStep('본문 작성 중...', 55);
   try {
-    var res = await fetch('/api/blog-generate', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ user:userPrompt, max_tokens:8000 })
-    });
+    var res = await fetch('/api/blog-generate', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user:userPrompt, max_tokens:8000 }) });
     var data2 = await res.json();
     if (data2.error) throw new Error(data2.error);
     setLoadingStep('SEO 분석 중...', 80); await sleep(200);
@@ -430,15 +406,9 @@ async function generateBlog() {
     renderResult();
     document.getElementById('result-area').style.display='block';
     document.getElementById('result-area').scrollIntoView({behavior:'smooth',block:'start'});
-    updateStep(3);
-    saveDraft();
-    showImgAutoBtn();
-  } catch(e) {
-    showToast('⚠️ 생성 오류: '+e.message);
-    console.error(e);
-  } finally {
-    showLoading(false); btn.disabled=false;
-  }
+    updateStep(3); saveDraft(); showImgAutoBtn();
+  } catch(e) { showToast('⚠️ 생성 오류: '+e.message); console.error(e); }
+  finally { showLoading(false); btn.disabled=false; }
 }
 
 // ── 본문 이미지 삽입 ─────────────────────────────────────────
@@ -446,7 +416,7 @@ function insertImagesIntoBody(body) {
   if (!S_IMAGES.filter(Boolean).length) return body;
   var seqIdx = 0;
   return body.replace(/\[📸\s*(\d*)[^\]]*\]/g, function(m, num) {
-    var idx = num ? parseInt(num) - 1 : seqIdx++;
+    var idx = num ? parseInt(num)-1 : seqIdx++;
     var img = (idx >= 0 && idx < 6) ? S_IMAGES[idx] : null;
     if (!img) return m;
     return '\n\n<img src="data:'+img.mimeType+';base64,'+img.data+'" style="max-width:100%;border-radius:10px;margin:10px 0" alt="제품이미지"/>\n\n';
@@ -526,7 +496,7 @@ async function regenSection(section) {
 // ── ImgBB 업로드 ─────────────────────────────────────────────
 async function uploadImagesToImgBB() {
   var urlMap = {};
-  for (var i = 0; i < 6; i++) {
+  for (var i=0; i<6; i++) {
     var img = S_IMAGES[i];
     if (!img || !img.data) continue;
     try {
@@ -633,7 +603,7 @@ function renderBodyWithImages(text) {
     var idx=parseInt(num)-1, img=(idx>=0&&idx<6)?S_IMAGES[idx]:null;
     if(img&&img.data) return '\n<img src="data:'+img.mimeType+';base64,'+img.data+'" style="max-width:100%;border-radius:10px;margin:12px 0;display:block" alt="📸'+(idx+1)+'"/>\n';
     if(img&&img.url) return '\n<img src="'+img.url+'" style="max-width:100%;border-radius:10px;margin:12px 0;display:block" alt="📸'+(idx+1)+'" onerror="this.style.display=\'none\'"/>\n';
-    return '\n<div style="background:#f1f5f9;border:2px dashed #c7d2fe;border-radius:10px;padding:20px;text-align:center;color:#94a3b8;font-size:12px;margin:12px 0">📸 이미지 '+(idx+1)+' 슬롯 — 이미지를 첨부하면 여기에 표시됩니다</div>\n';
+    return '\n<div style="background:#f1f5f9;border:2px dashed #c7d2fe;border-radius:10px;padding:20px;text-align:center;color:#94a3b8;font-size:12px;margin:12px 0">📸 이미지 '+(idx+1)+' 슬롯</div>\n';
   });
 }
 
@@ -676,46 +646,73 @@ var IMG_CHARACTER_DNA = [
   '- Do NOT age her, alter her face shape, or change any feature'
 ].join('\n');
 
-// ── 제품 분석 → 씬별 맞춤 프롬프트 생성 ─────────────────────
+function showImgAutoBtn() {
+  var wrap = document.getElementById('img-auto-wrap');
+  if (wrap) wrap.style.display = 'block';
+}
+
+// ── 제품 분석 → 씬별 맞춤 프롬프트 (Gemini 텍스트 API) ───────
 async function analyzeProductForScenes(prodName, bodyText) {
   var prompt =
-    '아래 제품명과 블로그 본문을 분석해서 구매 전환을 높이는 이미지 6장의 씬 프롬프트를 영어로 만들어라.\n\n'
-    + '제품명: ' + prodName + '\n'
-    + '본문 요약: ' + bodyText.slice(0, 500) + '\n\n'
-    + '분석 기준:\n'
-    + '1. 이 제품이 어디서 어떻게 쓰이는지 파악\n'
-    + '2. 구매자가 구매 전 느끼는 불편/문제가 무엇인지\n'
-    + '3. 구매 후 어떤 감정/변화를 경험하는지\n'
-    + '4. 각 씬이 구매 욕구를 자극하는 스토리 흐름을 가져야 함\n\n'
-    + '씬 구성 규칙:\n'
-    + '씬1: 제품 없이 — 구매 전 불편한 상황. 찡그린 표정, 문제 상황 연출\n'
-    + '씬2: 제품 단독샷 — NO PEOPLE. 제품만, 깔끔한 배경, 선명한 디테일\n'
-    + '씬3: 제품 첫 만남 — 여성이 제품을 처음 보는 순간, 호기심·기대 표정\n'
-    + '씬4: 실제 사용 장면 — 제품 용도에 맞는 환경에서 자연스럽게 사용 중\n'
-    + '씬5: 사용 후 만족 — 결과물이나 효과가 보이는 장면, 밝고 만족스러운 표정\n'
-    + '씬6: 라이프스타일 — 제품 덕분에 더 나아진 일상, 여유롭고 행복한 분위기\n\n'
-    + '⚠️ 반드시 제품의 실제 용도에 맞는 환경만 사용할 것\n'
-    + '예) 주방가전→주방, 자전거→야외, 화장품→욕실·거울 앞, 옷→옷장·거울·외출\n\n'
-    + '반드시 JSON만 출력:\n'
+    'Analyze the product and blog content below. Create 6 scene prompts in English for photorealistic images that drive purchase conversion.\n\n'
+    + 'Product: ' + prodName + '\n'
+    + 'Blog content summary: ' + bodyText.slice(0, 600) + '\n\n'
+    + 'ANALYSIS RULES:\n'
+    + '1. Identify exactly where and how this product is used (kitchen, outdoors, bathroom, etc.)\n'
+    + '2. Identify the problem/frustration buyers feel BEFORE purchase\n'
+    + '3. Identify the emotion/change buyers feel AFTER purchase\n'
+    + '4. Each scene must tell a purchase-motivating story\n\n'
+    + 'SCENE STRUCTURE:\n'
+    + 'Scene 1: NO product shown. Korean woman experiencing the problem/frustration. Frowning or stressed expression. Must be in the CORRECT environment for this product type.\n'
+    + 'Scene 2: PRODUCT ONLY. No people. Clean background. Sharp detail. Studio lighting.\n'
+    + 'Scene 3: Korean woman seeing/discovering the product for the first time. Curious, hopeful expression.\n'
+    + 'Scene 4: Korean woman actively using the product in its CORRECT environment. Natural, realistic usage.\n'
+    + 'Scene 5: Korean woman experiencing the result/benefit. Satisfied, happy expression. Show the outcome.\n'
+    + 'Scene 6: Korean woman enjoying improved daily life thanks to the product. Warm, aspirational atmosphere.\n\n'
+    + 'CRITICAL: Match environment to product type:\n'
+    + '- Kitchen appliance → kitchen/dining room\n'
+    + '- Bicycle/outdoor gear → outdoors, park, street\n'
+    + '- Skincare/cosmetics → bathroom, vanity mirror\n'
+    + '- Clothing → wardrobe, mirror, street fashion\n'
+    + '- Exercise equipment → gym, home workout space\n\n'
+    + 'Output ONLY valid JSON:\n'
     + '{"scenes":[{"slot":1,"prompt":"..."},{"slot":2,"prompt":"..."},{"slot":3,"prompt":"..."},{"slot":4,"prompt":"..."},{"slot":5,"prompt":"..."},{"slot":6,"prompt":"..."}]}';
 
   try {
-    var res = await fetch('/api/blog-generate', {
+    var apiKey = null;
+    // Gemini 텍스트 API 직접 호출 — /api/generate-image 경유 없이
+    var res = await fetch('/api/analyze-scenes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user: prompt, max_tokens: 2000 })
+      body: JSON.stringify({ prompt: prompt })
     });
     var data = await res.json();
     if (data.error) throw new Error(data.error);
     var raw = (data.text || '').replace(/```json|```/g, '').trim();
+    var startIdx = raw.indexOf('{');
+    if (startIdx > 0) raw = raw.slice(startIdx);
     var parsed = JSON.parse(raw);
     return parsed.scenes || [];
   } catch(e) {
-    console.warn('[analyzeProductForScenes] 실패:', e.message);
+    console.warn('[analyzeProductForScenes] 실패, 폴백 사용:', e.message);
     return [];
   }
 }
 
+// ── 씬 폴백용 기본 프롬프트 ──────────────────────────────────
+function buildFallbackPrompt(slotNum, prodName) {
+  var defaults = [
+    'Korean woman with frustrated expression experiencing a daily problem that "'+prodName+'" would solve. Correct environment for this product. Close-up portrait.',
+    '"'+prodName+'" product displayed alone on clean white surface. No people. Sharp studio lighting. Top-down angle.',
+    'Korean woman seeing "'+prodName+'" for the first time with curious and hopeful expression. Correct product environment.',
+    'Korean woman actively using "'+prodName+'" in its correct natural environment. Realistic usage scene.',
+    'Korean woman smiling with satisfaction after using "'+prodName+'". Showing positive results or benefits.',
+    'Korean woman enjoying improved daily life with "'+prodName+'". Warm aspirational lifestyle scene.'
+  ];
+  return defaults[slotNum - 1] || '"'+prodName+'" lifestyle scene, Korean woman';
+}
+
+// ── 이미지 자동 생성 ──────────────────────────────────────────
 async function generateImagesFromBody() {
   if (!S.generated) { showToast('⚠️ 먼저 블로그 글을 생성해주세요'); return; }
 
@@ -735,24 +732,23 @@ async function generateImagesFromBody() {
   var success  = 0;
   var fail     = 0;
 
-  // ── 1단계: 제품 분석 → 맞춤 씬 프롬프트 생성 ──────────────
+  // 1단계: 제품 분석 → 씬 프롬프트
   step.textContent = '제품 분석 중...';
-  cnt.textContent  = '';
   bar.style.width  = '5%';
 
   var analyzedScenes = await analyzeProductForScenes(prodName, body);
 
-  // 분석 실패 시 기존 방식 폴백
+  // 폴백: 분석 실패 시 기본 프롬프트
   if (!analyzedScenes.length) {
-    analyzedScenes = extractScenesFromBody(body).map(function(s) {
-      return { slot: s.slot, prompt: buildScenePrompt(s, prodName) };
+    analyzedScenes = [1,2,3,4,5,6].map(function(n) {
+      return { slot: n, prompt: buildFallbackPrompt(n, prodName) };
     });
   }
 
-  var total = analyzedScenes.length;
   bar.style.width = '10%';
+  var total = analyzedScenes.length;
 
-  // ── 2단계: 이미지 순차 생성 ────────────────────────────────
+  // 2단계: 이미지 순차 생성
   for (var i = 0; i < analyzedScenes.length; i++) {
     var scene   = analyzedScenes[i];
     var slotIdx = scene.slot - 1;
@@ -762,39 +758,32 @@ async function generateImagesFromBody() {
 
     var fullPrompt = IMG_CHARACTER_DNA
       + '\n\nSCENE:\n' + scene.prompt
-      + '\n\nPRODUCT NAME: ' + prodName
-      + '\n\nRULES: Photorealistic, 4K, cinematic.'
-      + ' NO TEXT, NO LETTERS, NO CAPTIONS, NO SUBTITLES anywhere.'
+      + '\n\nPRODUCT: ' + prodName
+      + '\n\nRULES: Photorealistic, 4K, cinematic. Korean setting.'
+      + ' NO TEXT, NO LETTERS, NO CAPTIONS, NO SUBTITLES anywhere in the image.'
       + (S_PROD_REF
-        ? ' The reference product image must appear in this scene with EXACT same color, shape, design.'
-          + (scene.slot === 2 ? ' Product-only shot, absolutely no people.' : '')
+        ? ' The reference product image must appear with EXACT same color, shape, design.'
+          + (scene.slot === 2 ? ' Product-only shot, no people.' : '')
         : '');
 
     var payload = { prompt: fullPrompt };
-    if (S_PROD_REF) {
-      payload.imageBase64   = S_PROD_REF.data;
-      payload.imageMimeType = S_PROD_REF.mimeType;
-    }
+    if (S_PROD_REF) { payload.imageBase64 = S_PROD_REF.data; payload.imageMimeType = S_PROD_REF.mimeType; }
 
     var ctrl    = new AbortController();
     var timeout = setTimeout(function() { ctrl.abort(); }, 55000);
 
     try {
       var res = await fetch('/api/generate-image', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(payload),
-        signal:  ctrl.signal
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload), signal: ctrl.signal
       });
       clearTimeout(timeout);
       var data = await res.json();
       if (!res.ok || !data.base64) throw new Error(data.error || '생성 실패');
       S_IMAGES[slotIdx] = { data: data.base64, mimeType: data.mimeType };
-      renderSlots();
-      success++;
+      renderSlots(); success++;
     } catch(e) {
-      clearTimeout(timeout);
-      fail++;
+      clearTimeout(timeout); fail++;
       console.warn('슬롯 ' + scene.slot + ' 실패:', e.message);
     }
 
@@ -807,165 +796,59 @@ async function generateImagesFromBody() {
   btn.disabled     = false;
   btn.innerHTML    = '🔄 이미지 다시 생성';
 
-  if (success > 0) {
-    saveDraft();
-    showToast('🎨 이미지 ' + success + '장 생성 완료');
-  } else {
-    showToast('⚠️ 이미지 생성 실패 — API 상태를 확인해주세요');
-  }
+  if (success > 0) { saveDraft(); showToast('🎨 이미지 ' + success + '장 생성 완료'); }
+  else showToast('⚠️ 이미지 생성 실패 — API 상태를 확인해주세요');
 }
+
+// ── 슬롯 개별 재작성 ─────────────────────────────────────────
+async function regenSlotImage(slotIdx) {
   if (!S.generated) { showToast('⚠️ 먼저 블로그 글을 생성해주세요'); return; }
 
-  var btn = document.getElementById('regen-slot-'+slotIdx);
-  var slot = document.getElementById('slot-'+slotIdx);
-  if (btn) { btn.disabled=true; btn.textContent='생성 중...'; }
+  var btn  = document.getElementById('regen-slot-' + slotIdx);
+  var slot = document.getElementById('slot-' + slotIdx);
+  if (btn)  { btn.disabled = true; btn.textContent = '생성 중...'; }
   if (slot) slot.style.opacity = '0.5';
 
   var body     = document.getElementById('body-textarea').value;
   var prodName = S.product ? S.product.name : '제품';
   var sceneNum = slotIdx + 1;
 
-  // 해당 슬롯의 본문 컨텍스트 추출
-  var scenes   = extractScenesFromBody(body);
-  var scene    = scenes.find(function(s){ return s.slot === sceneNum; })
-              || { slot: sceneNum, context: '' };
-
-  var camera   = SCENE_CAMERA[sceneNum] || '';
-  var situation = (scene.slot !== 2 && scene.context && scene.context.length > 20)
-    ? scene.context
-    : buildScenePrompt(scene, prodName);
+  // 해당 씬만 재분석
+  var analyzed = await analyzeProductForScenes(prodName, body);
+  var scene    = analyzed.find(function(s) { return s.slot === sceneNum; });
+  if (!scene)  scene = { slot: sceneNum, prompt: buildFallbackPrompt(sceneNum, prodName) };
 
   var fullPrompt = IMG_CHARACTER_DNA
-    + '\n\nSCENE CAMERA DIRECTION: ' + camera
-    + '\n\nSCENE CONTENT:\n' + situation
+    + '\n\nSCENE:\n' + scene.prompt
     + '\n\nPRODUCT: ' + prodName
-    + '\n\nIMAGE RULES: Photorealistic, 4K, cinematic. Korean setting.'
-    + ' NO TEXT, NO LETTERS, NO CAPTIONS anywhere in the image.'
+    + '\n\nRULES: Photorealistic, 4K, cinematic. Korean setting.'
+    + ' NO TEXT, NO LETTERS, NO CAPTIONS anywhere.'
     + (S_PROD_REF
-        ? ' PRODUCT CONSISTENCY: Reference image shows the EXACT product.'
-        + ' Reproduce same color, shape, design. Do NOT change the product.'
-        + (sceneNum === 2 ? ' Product-only shot, no people.' : '')
-        : '');
+      ? ' Reference product must appear with EXACT same color, shape, design.'
+        + (sceneNum === 2 ? ' Product-only, no people.' : '')
+      : '');
 
   var payload = { prompt: fullPrompt };
-  if (S_PROD_REF) { payload.imageBase64=S_PROD_REF.data; payload.imageMimeType=S_PROD_REF.mimeType; }
+  if (S_PROD_REF) { payload.imageBase64 = S_PROD_REF.data; payload.imageMimeType = S_PROD_REF.mimeType; }
 
-  var ctrl = new AbortController();
-  var timeout = setTimeout(function(){ ctrl.abort(); }, 55000);
+  var ctrl    = new AbortController();
+  var timeout = setTimeout(function() { ctrl.abort(); }, 55000);
 
   try {
     var res = await fetch('/api/generate-image', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload), signal: ctrl.signal
     });
     clearTimeout(timeout);
     var data = await res.json();
     if (!res.ok || !data.base64) throw new Error(data.error || '생성 실패');
     S_IMAGES[slotIdx] = { data: data.base64, mimeType: data.mimeType };
-    renderSlots();
-    saveDraft();
-    showToast('✅ 슬롯 '+sceneNum+' 재작성 완료');
+    renderSlots(); saveDraft();
+    showToast('✅ 씬 ' + sceneNum + ' 재작성 완료');
   } catch(e) {
     clearTimeout(timeout);
     if (slot) slot.style.opacity = '1';
-    if (btn) { btn.disabled=false; btn.textContent='↺ 재작성'; }
-    showToast('⚠️ 슬롯 '+sceneNum+' 재작성 실패: '+(e.name==='AbortError'?'시간 초과':e.message));
+    if (btn)  { btn.disabled = false; btn.textContent = '↺ 재작성'; }
+    showToast('⚠️ 씬 ' + sceneNum + ' 실패: ' + (e.name === 'AbortError' ? '시간 초과' : e.message));
   }
-}
-
-function extractScenesFromBody(body) {
-  var scenes = [], markerRe = /\[📸\s*(\d+)[^\]]*\]/g, match, markers = [];
-  while ((match = markerRe.exec(body)) !== null) markers.push({ slot:parseInt(match[1]), idx:match.index });
-  if (markers.length >= 3) {
-    markers.forEach(function(mk) {
-      var before = body.slice(Math.max(0,mk.idx-220),mk.idx).replace(/\[📸\d+[^\]]*\]/g,'').trim();
-      var after  = body.slice(mk.idx,Math.min(body.length,mk.idx+220)).replace(/\[📸\d+[^\]]*\]/g,'').trim();
-      scenes.push({ slot:mk.slot, context:(before.slice(-130)+' '+after.slice(0,130)).trim() });
-    });
-  } else {
-    var clean = body.replace(/\[📸\d+[^\]]*\]/g,'').replace(/\n{2,}/g,'\n').trim();
-    var unit = Math.floor(clean.length/6);
-    for (var i=1;i<=6;i++) scenes.push({ slot:i, context:clean.slice((i-1)*unit,i*unit).trim().slice(0,220) });
-  }
-  return scenes;
-}
-
-// 씬별 카메라 구도만 고정 — 내용은 항상 본문 컨텍스트 우선
-var SCENE_CAMERA = {
-  1: 'CLOSE-UP portrait. Tight frame on face and upper body only. Shallow depth of field. Subject looking slightly to the side.',
-  2: 'PRODUCT ONLY shot. NO PEOPLE. The product laid flat or displayed alone on clean white or light grey surface. Top-down or 45-degree angle. Sharp studio lighting. Macro detail visible.',
-  3: 'FULL BODY shot. Full figure visible head to toe. Korean indoor setting, bright natural light.',
-  4: 'DYNAMIC shot. Low camera angle looking slightly upward. Subject in natural motion. Bokeh street background.',
-  5: 'SEATED MEDIUM shot. Waist-up. Subject sitting naturally, warm indoor bokeh background.',
-  6: 'WIDE LIFESTYLE shot. Full figure in expansive modern Korean urban or café environment. Relaxed, natural posture.'
-};
-
-function buildScenePrompt(scene, prodName) {
-  var camera = SCENE_CAMERA[scene.slot] || '';
-  // 컨텍스트가 있으면 내용으로, 없으면 슬롯별 기본 상황
-  var situation = [
-    'Korean woman in a relatable daily frustration moment related to "'+prodName+'"',
-    '"'+prodName+'" product displayed alone, no people, clean background',  // 씬2 인물 없음
-    'Korean woman encountering "'+prodName+'" with curiosity and interest',
-    'Korean woman actively using "'+prodName+'" in a natural daily situation',
-    'Korean woman reacting with satisfaction and delight after using "'+prodName+'"',
-    'Korean woman enjoying life with "'+prodName+'" in an aspirational setting'
-  ][scene.slot - 1] || '"'+prodName+'" lifestyle scene';
-}
-
-async function generateImagesFromBody() {
-  if (!S.generated) { showToast('⚠️ 먼저 블로그 글을 생성해주세요'); return; }
-  var btn  = document.getElementById('img-auto-btn');
-  var prog = document.getElementById('img-auto-prog');
-  var bar  = document.getElementById('img-auto-bar');
-  var step = document.getElementById('img-auto-step');
-  var cnt  = document.getElementById('img-auto-count');
-  btn.disabled=true; btn.innerHTML='⏳ 생성 중...';
-  prog.style.display='block'; bar.style.width='0%';
-
-  var body     = document.getElementById('body-textarea').value;
-  var prodName = S.product ? S.product.name : '제품';
-  var scenes   = extractScenesFromBody(body);
-  var total=scenes.length, success=0, fail=0;
-
-  for (var i=0; i<scenes.length; i++) {
-    var scene=scenes[i], slotIdx=scene.slot-1;
-    step.textContent='씬 '+scene.slot+' 생성 중...';
-    cnt.textContent=(i+1)+' / '+total;
-    bar.style.width=Math.round((i/total)*100)+'%';
-
-    // 항상 buildScenePrompt 통해 구도+컨텍스트 조합
-    var sceneDesc = buildScenePrompt(scene, prodName);
-    var fullPrompt = IMG_CHARACTER_DNA
-      + '\n\nSCENE CAMERA DIRECTION: ' + (SCENE_CAMERA[scene.slot] || '')
-      + '\n\nSCENE CONTENT:\n' + sceneDesc
-      + '\n\nPRODUCT: ' + prodName
-      + '\n\nIMAGE RULES: Photorealistic, 4K, cinematic. Korean setting.'
-      + ' NO TEXT, NO LETTERS, NO CAPTIONS anywhere in the image.'
-      + (S_PROD_REF
-          ? ' PRODUCT CONSISTENCY: The reference image shows the EXACT product.'
-          + ' Every scene must show this EXACT product — same color, same shape, same design. Do NOT change the product.'
-          + (scene.slot === 2 ? ' This is a product-only shot, no people.' : '')
-          : '');
-
-    var payload = { prompt: fullPrompt };
-    if (S_PROD_REF) { payload.imageBase64=S_PROD_REF.data; payload.imageMimeType=S_PROD_REF.mimeType; }
-
-    var ctrl=new AbortController(), timeout=setTimeout(function(){ctrl.abort();},55000);
-    try {
-      var res=await fetch('/api/generate-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:ctrl.signal});
-      clearTimeout(timeout);
-      var data=await res.json();
-      if(!res.ok||!data.base64) throw new Error(data.error||'생성 실패');
-      S_IMAGES[slotIdx]={data:data.base64,mimeType:data.mimeType};
-      renderSlots(); success++;
-    } catch(e) { clearTimeout(timeout); fail++; console.warn('슬롯 '+scene.slot+' 실패:',e.message); }
-    bar.style.width=Math.round(((i+1)/total)*100)+'%';
-  }
-
-  bar.style.width='100%';
-  step.textContent='완료! ✅ '+success+'장 성공'+(fail>0?' / '+fail+'장 실패':'');
-  cnt.textContent=''; btn.disabled=false; btn.innerHTML='🔄 이미지 다시 생성';
-  if(success>0){ saveDraft(); showToast('🎨 이미지 '+success+'장 생성 완료 — 슬롯에 자동 배치됨'); }
-  else showToast('⚠️ 이미지 생성 실패 — API 상태를 확인해주세요');
 }
