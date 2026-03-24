@@ -1,9 +1,17 @@
-const CHARACTER_DNA = `FIXED CHARACTER (must appear identical in every image):
-- Korean woman, age 28-32, slim athletic build
-- Face: soft oval face, natural double eyelids, slightly high cheekbones, small lips with natural lip color
-- Hair: straight black hair, shoulder-length, pulled back loosely with a few strands falling on forehead
-- Skin: fair porcelain skin, light natural makeup only
-- Always the SAME woman across all scenes. Do NOT change her face, hair, or body type.`;
+const CHARACTER_DNA = `CRITICAL: This exact woman must appear in every image — same face, same hair, same body. No variation allowed.
+CHARACTER SPECIFICATION:
+- Korean woman, exactly age 29, slim build, height 165cm
+- Face: soft oval face shape, natural double eyelids (not dramatic), slightly defined cheekbones, small lips with pale pink natural color, straight nose, no dimples
+- Eyes: dark brown almond-shaped eyes, thin natural eyebrows
+- Hair: straight jet-black hair, shoulder-length bob cut, tucked behind ears, no bangs, clean and simple
+- Skin: very fair porcelain skin tone (#F5E6D8), zero blemishes, minimal natural makeup — light foundation only, no bold eye makeup, no lipstick
+- Body: slim but not skinny, natural posture, no exaggerated proportions
+CONSISTENCY RULES:
+- Her face MUST look identical across all scenes
+- Same hair style and color in every image
+- Same skin tone in every image
+- Do NOT age her, alter her face shape, or change any feature
+- Do NOT add accessories, glasses, or jewelry unless specified`;
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -30,7 +38,14 @@ module.exports = async function handler(req, res) {
   const parts = [];
   if (imageBase64 && imageMimeType) {
     parts.push({ inlineData: { mimeType: imageMimeType, data: imageBase64 } });
-    parts.push({ text: 'PRODUCT REFERENCE IMAGE ABOVE: Reproduce this product\'s exact color, shape, branding, and design faithfully in every scene. Do NOT alter the product.\n\n' + fullPrompt });
+    // 씬1은 제품 원본 이미지 참조 안 함
+    const isScene1 = fullPrompt.includes('Scene 1') || fullPrompt.includes('SCENE 1') || fullPrompt.includes('NO product shown');
+    if (isScene1) {
+      parts.length = 0; // 이미지 파트 제거
+      parts.push({ text: fullPrompt });
+    } else {
+      parts.push({ text: 'PRODUCT REFERENCE IMAGE ABOVE: Reproduce this product\'s exact color, shape, branding, and design faithfully in every scene. Do NOT alter the product.\n\n' + fullPrompt });
+    }
   } else {
     parts.push({ text: fullPrompt });
   }
