@@ -233,47 +233,14 @@ btnGen.addEventListener('click', async () => {
 
   // Step 1: Claude analyze
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:1000,
-        messages:[{
-          role:'user',
-          content:[
-            {type:'image', source:{type:'base64', media_type: imgFile.type || 'image/jpeg', data: imgB64}},
-            {type:'text', text:`You are a product image prompt engineer for Korean e-commerce blogs.
-Analyze this product image and generate 6 English image generation prompts — one per slot.
-Return ONLY valid JSON, no markdown, no preamble.
-Format:
-{"prompts":[
-  {"slot":1,"name":"대표이미지","prompt":"..."},
-  {"slot":2,"name":"핵심구조","prompt":"..."},
-  {"slot":3,"name":"활용장면","prompt":"..."},
-  {"slot":4,"name":"세부디테일","prompt":"..."},
-  {"slot":5,"name":"구성품","prompt":"..."},
-  {"slot":6,"name":"CTA직접","prompt":"..."}
-]}
-
-Rules per slot:
-1. 대표이미지: product on pure white background, studio lighting, 4K sharp, commercial photography
-2. 핵심구조: technical exploded-view or annotated diagram showing key features, clean infographic style
-3. 활용장면: Korean lifestyle scene with person using the product naturally, bright natural light
-4. 세부디테일: extreme close-up macro shot of material texture and craftsmanship, shallow DOF
-5. 구성품: overhead flat-lay of product and all accessories on light background, minimal style
-6. CTA직접: bold promotional banner, product featured prominently, Korean text overlay space, vibrant colors
-
-Make each prompt specific to this exact product.`}
-          ]
-        }]
-      })
+    const res = await fetch('/api/analyze-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64: imgB64, mediaType: imgFile.type || 'image/jpeg' })
     });
     const data = await res.json();
-    const raw = data.content.find(b => b.type==='text')?.text || '';
-    const clean = raw.replace(/```json|```/g,'').trim();
-    const parsed = JSON.parse(clean);
-    prompts = parsed.prompts;
+    if (!res.ok) throw new Error(JSON.stringify(data.error));
+    prompts = data.prompts;
   } catch(e) {
     showErr('Claude 분석 실패: ' + e.message);
     btnGen.disabled = false;
