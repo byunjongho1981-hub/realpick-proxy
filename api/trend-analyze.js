@@ -9,11 +9,10 @@ function sleep(ms){ return new Promise(function(r){setTimeout(r,ms);}); }
 function safeNum(v){ return isNaN(Number(v))?0:Number(v); }
 
 // ════════════════════════════════════════════════════════════
-// STEP 1: CSV 키워드 전처리 + 교차 비교
+// STEP 1: CSV 교차 맵 구성
 // ════════════════════════════════════════════════════════════
 function buildKeywordMap(kw7d, kw24h){
   var map = {};
-  // 7일 키워드 등록
   (kw7d||[]).forEach(function(item){
     var kw = (item.keyword||'').trim();
     if(!kw) return;
@@ -23,7 +22,6 @@ function buildKeywordMap(kw7d, kw24h){
       kw24h: { exists:false, searchVolume:0, increaseRate:0 },
     };
   });
-  // 24시간 키워드 교차
   (kw24h||[]).forEach(function(item){
     var kw = (item.keyword||'').trim();
     if(!kw) return;
@@ -41,69 +39,81 @@ function buildKeywordMap(kw7d, kw24h){
 }
 
 // ════════════════════════════════════════════════════════════
-// STEP 2: 노이즈 제거 + 유형 분류 (Groq + 규칙 기반)
+// STEP 2: 키워드 분류 + 노이즈 제거 (Groq + 규칙 기반 폴백)
 // ════════════════════════════════════════════════════════════
 async function classifyAndFilter(keywordItems){
   var kwList = keywordItems.map(function(i){ return i.keyword; });
-  // Groq 분류 시도
-  var classified = await GROQ.classifyKeywords(kwList).catch(function(){
-    // 폴백: 규칙 기반
-    return kwList.map(function(kw){
-      return { kw:kw, normalized:kw, type:GROQ.ruleBasedClassify(kw), isNoise:CFG.NOISE_PATTERNS.some(function(p){return p.test(kw);}) };
+  var classified;
+  try{
+    classified = await GROQ.classifyKeywords(kwList);
+  }catch(e){
+    console.warn('[classify-fallback]', e.message);
+    classified = kwList.map(function(kw){
+      return {
+        kw:       kw,
+        normalized: kw,
+        type:     GROQ.ruleBasedClassify(kw),
+        isNoise:  CFG.NOISE_PATTERNS.some(function(p){return p.test(kw);}),
+      };
     });
-  });
-  // classified를 map으로 변환
+  }
   var classMap = {};
   (classified||[]).forEach(function(c){ classMap[c.kw] = c; });
 
   return keywordItems
     .map(function(item){
-      var cls = classMap[item.keyword] || { kw:item.keyword, normalized:item.keyword, type:GROQ.ruleBasedClassify(item.keyword), isNoise:false };
+      var cls = classMap[item.keyword] || {
+        kw:       item.keyword,
+        normalized: item.keyword,
+        type:     GROQ.ruleBasedClassify(item.keyword),
+        isNoise:  CFG.NOISE_PATTERNS.some(function(p){return p.test(item.keyword);}),
+      };
       return Object.assign({}, item, { normalized:cls.normalized, kwType:cls.type, isNoise:cls.isNoise });
     })
     .filter(function(item){
-      // 노이즈 및 news_event 제거
-      if(item.isNoise) return false;
-      if(item.kwType === CFG.KW_TYPE.NEWS_EVENT) return false;
-      return true;
+      return !item.isNoise && item.kwType !== CFG.KW_TYPE.NEWS_EVENT;
     });
 }
 
 // ════════════════════════════════════════════════════════════
-// STEP 3: 문제/상황 → 제품 후보 변환
+// STEP 3: 문제/상황 → 제품 후보 확장
 // ════════════════════════════════════════════════════════════
 async function expandToProducts(filteredItems){
   var candidates = [];
   for(var i=0; i<filteredItems.length; i++){
     var item = filteredItems[i];
+    // 브랜드·뉴스 제외
+    if(item.kwType === CFG.KW_TYPE.BRAND || item.kwType === CFG.KW_TYPE.NEWS_EVENT) continue;
+
     var productNames;
     if(item.kwType === CFG.KW_TYPE.PROBLEM || item.kwType === CFG.KW_TYPE.SITUATION){
-      productNames = await GROQ.mapKeywordToProducts(item.keyword, item.kwType).catch(function(){
-        return GROQ.ruleBasedProductMapping(item.keyword);
-      });
+      try{
+        productNames = await GROQ.mapKeywordToProducts(item.keyword, item.kwType);
+      }catch(e){
+        productNames = GROQ.ruleBasedProductMapping(item.keyword);
+      }
       await sleep(100);
-    } else if(item.kwType === CFG.KW_TYPE.NEWS_EVENT || item.kwType === CFG.KW_TYPE.BRAND){
-      continue;
     } else {
       productNames = [item.normalized || item.keyword];
     }
+
     productNames.forEach(function(pname){
+      if(!pname || !pname.trim()) return;
       candidates.push({
         originalKeyword: item.keyword,
-        productName:     pname,
+        productName:     pname.trim(),
         normalized:      item.normalized,
         kwType:          item.kwType,
         kw7d:            item.kw7d,
         kw24h:           item.kw24h,
-        // 후처리에서 채워질 필드
-        naverData: null, datalabData:null, insightData:null, ytData:null,
-        groqFit:null, geminiBonus:null,
+        naverData:       null, datalabData:null, insightData:null, ytData:null,
+        groqFit:         null, geminiBonus:null,
         isGeneralNoun:      !/[A-Za-z0-9]/.test(pname) && pname.length <= 10,
-        isProblemSolving:   item.kwType===CFG.KW_TYPE.PROBLEM||item.kwType===CFG.KW_TYPE.SITUATION,
+        isProblemSolving:   item.kwType===CFG.KW_TYPE.PROBLEM || item.kwType===CFG.KW_TYPE.SITUATION,
         isBrandDependent:   item.kwType===CFG.KW_TYPE.BRAND,
         isTemporaryTrend:   false,
         hasMedicalRisk:     /의약품|처방|진단|치료|수술/.test(pname),
-        isHardToConvert:    item.kwType===CFG.KW_TYPE.ACTION||item.kwType===CFG.KW_TYPE.UNKNOWN,
+        isHardToConvert:    item.kwType===CFG.KW_TYPE.ACTION || item.kwType===CFG.KW_TYPE.UNKNOWN,
         shopWeakVsSearch:   false,
         isShortsCompatible: false,
         isBlogCompatible:   false,
@@ -123,12 +133,12 @@ async function expandToProducts(filteredItems){
 }
 
 // ════════════════════════════════════════════════════════════
-// STEP 4: 외부 API 데이터 수집 (네이버 + YouTube)
+// STEP 4: 외부 API 데이터 수집
 // ════════════════════════════════════════════════════════════
 async function collectExternalData(candidates, period, apiStatus){
   var productNames = candidates.map(function(c){ return c.productName; });
 
-  // 네이버 배치 수집 (레이트 리밋 준수)
+  // 네이버 배치 (레이트 리밋 준수)
   var naverBatch = {};
   try{
     naverBatch = await NAVER.fetchNaverBatch(productNames, period);
@@ -139,7 +149,7 @@ async function collectExternalData(candidates, period, apiStatus){
   }
   await sleep(500);
 
-  // YouTube 배치 수집
+  // YouTube 배치 (상위 10개)
   var ytBatch = {};
   try{
     ytBatch = await YOUTUBE.fetchYouTubeBatch(productNames.slice(0,10));
@@ -149,31 +159,30 @@ async function collectExternalData(candidates, period, apiStatus){
     apiStatus.youtube = '❌ 실패: '+e.message;
   }
 
-  // 후보에 데이터 주입
+  // 데이터 주입
   candidates.forEach(function(c){
     var nd = naverBatch[c.productName] || {};
     c.naverData   = nd.search  || null;
     c.datalabData = nd.datalab || null;
     c.insightData = nd.insight || null;
     c.ytData      = ytBatch[c.productName] || null;
-    // YouTube 호환성 반영
     if(c.ytData){
-      c.isShortsCompatible = c.ytData.isShortsCompatible;
-      c.isBlogCompatible   = c.ytData.isBlogCompatible;
+      c.isShortsCompatible = !!c.ytData.isShortsCompatible;
+      c.isBlogCompatible   = !!c.ytData.isBlogCompatible;
     }
     // 쇼핑 약세 여부
     if(c.naverData && c.datalabData){
-      c.shopWeakVsSearch = !c.naverData.shoppingExists && (c.datalabData.surgeRate||0) > 20;
+      c.shopWeakVsSearch = !c.naverData.shoppingExists && safeNum(c.datalabData.surgeRate) > 20;
     }
   });
   return candidates;
 }
 
 // ════════════════════════════════════════════════════════════
-// STEP 5: Groq/Gemini 보조 분석
+// STEP 5: Groq 보조 분석 (제품 전환 적합성)
+// ★ 버그2 수정: Gemini는 점수 계산(STEP6) 이후에 호출
 // ════════════════════════════════════════════════════════════
-async function enrichWithAI(candidates, apiStatus){
-  // Groq: 제품 전환 적합성 (상위 10개만)
+async function enrichWithGroq(candidates, apiStatus){
   for(var i=0; i<Math.min(candidates.length,10); i++){
     var c = candidates[i];
     try{
@@ -181,18 +190,7 @@ async function enrichWithAI(candidates, apiStatus){
       await sleep(150);
     }catch(e){ c.groqFit = null; }
   }
-  apiStatus.groq = '✅ Groq 보조 분석 완료';
-
-  // Gemini: 신뢰 보정 (상위 10개만)
-  for(var j=0; j<Math.min(candidates.length,10); j++){
-    var c2 = candidates[j];
-    try{
-      c2.geminiBonus = await GEMINI.calcTrustBonusGemini(c2);
-      await sleep(200);
-    }catch(e){ c2.geminiBonus = null; }
-  }
-  apiStatus.gemini = '✅ Gemini 신뢰 보정 완료';
-
+  apiStatus.groq = '✅ Groq 제품적합성 분석 완료';
   return candidates;
 }
 
@@ -200,18 +198,41 @@ async function enrichWithAI(candidates, apiStatus){
 // STEP 6: 점수 계산 + 정렬 + 그룹 분류
 // ════════════════════════════════════════════════════════════
 function scoreSortGroup(candidates){
-  // 1차 채점
   candidates = candidates.map(function(c){ return SCORE.scoreCandidate(c); });
-  // 점수순 정렬
   candidates.sort(function(a,b){ return b.finalScore-a.finalScore; });
   return candidates;
 }
 
 // ════════════════════════════════════════════════════════════
-// STEP 7: 결과 설명 생성 (Groq 한줄 + Gemini 종합)
+// STEP 7: Gemini 신뢰 보정 (★ 점수 계산 후 실행)
+// ════════════════════════════════════════════════════════════
+async function enrichWithGemini(candidates, apiStatus){
+  for(var j=0; j<Math.min(candidates.length,10); j++){
+    var c = candidates[j];
+    try{
+      c.geminiBonus = await GEMINI.calcTrustBonusGemini(c);
+      // Gemini 보정을 trustBonus에 반영 후 최종점수 재계산
+      if(c.geminiBonus && typeof c.geminiBonus.adjustment === 'number'){
+        var adj = safeNum(c.geminiBonus.adjustment);
+        c.scores.trustBonus = Math.min(100, Math.max(0, safeNum(c.scores.trustBonus) + adj));
+        // 최종점수도 보정
+        c.finalScore = Math.min(100, Math.max(0, safeNum(c.finalScore) + Math.round(adj * CFG.WEIGHTS.trustBonus)));
+      }
+      await sleep(200);
+    }catch(e){ c.geminiBonus = null; }
+  }
+  // Gemini 보정 후 재정렬
+  candidates.sort(function(a,b){ return b.finalScore-a.finalScore; });
+  apiStatus.gemini = '✅ Gemini 신뢰 보정 완료';
+  return candidates;
+}
+
+// ════════════════════════════════════════════════════════════
+// STEP 8: 결과 설명 생성 (Groq 한줄 + Gemini 종합)
 // ════════════════════════════════════════════════════════════
 async function generateDescriptions(candidates){
   var top10 = candidates.slice(0,10);
+
   // Groq 이유 설명
   for(var i=0; i<top10.length; i++){
     try{
@@ -221,26 +242,31 @@ async function generateDescriptions(candidates){
       top10[i].blogIdea   = desc.blog    || '';
       await sleep(150);
     }catch(e){
-      top10[i].groqReason = '';
-      top10[i].shortsIdea = '';
-      top10[i].blogIdea   = '';
+      top10[i].groqReason = top10[i].productName+'의 상승 트렌드가 확인됨. 즉시 콘텐츠 제작 권장.';
+      top10[i].shortsIdea = top10[i].productName+' 사용 전후 비교 쇼츠';
+      top10[i].blogIdea   = top10[i].productName+' 추천 TOP5 + 가격비교';
     }
   }
-  // Gemini 종합 설명 (상위 5개)
+
+  // Gemini: 상위 5개 "왜 지금인지" 설명
   for(var j=0; j<Math.min(top10.length,5); j++){
     try{
       top10[j].geminiExplanation = await GEMINI.explainWhyNow(top10[j]);
       await sleep(200);
     }catch(e){ top10[j].geminiExplanation = ''; }
   }
-  // Gemini 전체 요약
+
+  // Gemini: 전체 요약
   var summary = null;
   try{ summary = await GEMINI.mergeAndSummarizeSignals(top10); }catch(e){}
-  // Gemini 최종 가이드
-  var guide = '';
-  try{ guide = await GEMINI.generateFinalNarrative(top10, summary); }catch(e){}
 
-  return { candidates: top10, summary, guide };
+  // Gemini: 실행 가이드
+  var guide = '';
+  try{ guide = await GEMINI.generateFinalNarrative(top10, summary); }catch(e){
+    guide = 'TOP 후보 제품으로 쇼츠 영상을 먼저 제작하고\n블로그 리뷰로 검색 트래픽을 확보하세요.\n쿠팡 파트너스 링크를 삽입하여 제휴 수익을 창출하세요.';
+  }
+
+  return { candidates:top10, summary:summary, guide:guide };
 }
 
 // ════════════════════════════════════════════════════════════
@@ -253,20 +279,20 @@ module.exports = async function(req, res){
   if(req.method==='OPTIONS') return res.status(200).end();
   if(req.method!=='POST') return res.status(405).json({error:'POST만 허용'});
 
-  // 환경변수 확인
   if(!process.env.NAVER_CLIENT_ID||!process.env.NAVER_CLIENT_SECRET){
     return res.status(500).json({error:'NAVER 환경변수 누락'});
   }
 
-  var body = '';
+  var body='';
   req.on('data',function(c){body+=c;});
   req.on('end', async function(){
     try{
       var payload  = JSON.parse(body);
-      var kw7d     = payload.kw7d   || [];   // [{keyword, searchVolume, increaseRate}]
+      var kw7d     = payload.kw7d   || [];
       var kw24h    = payload.kw24h  || [];
       var period   = payload.period || 'week';
       var filters  = payload.filters || {};
+      var maxCount = safeNum(payload.maxCount) || 10;
 
       if(!kw7d.length && !kw24h.length){
         return res.status(400).json({error:'키워드 데이터가 없습니다'});
@@ -275,63 +301,71 @@ module.exports = async function(req, res){
       var apiStatus = {};
 
       // ── PIPELINE ──────────────────────────────────────────
-      // STEP 1: 교차 맵
+      // STEP1: 교차 맵
       var merged = buildKeywordMap(kw7d, kw24h);
-      console.log('[trend-analyze] STEP1 merged:', merged.length);
+      console.log('[STEP1] merged:', merged.length);
 
-      // STEP 2: 분류 + 노이즈 제거
+      // STEP2: 분류 + 노이즈 제거
       var filtered = await classifyAndFilter(merged);
-      console.log('[trend-analyze] STEP2 filtered:', filtered.length);
-      if(!filtered.length) return res.status(200).json({ candidates:[], apiStatus, error:'유효 키워드 없음' });
+      console.log('[STEP2] filtered:', filtered.length);
+      if(!filtered.length) return res.status(200).json({candidates:[],apiStatus:apiStatus,error:'유효 키워드 없음'});
 
-      // STEP 3: 제품 후보 확장
+      // STEP3: 제품 후보 확장
       var candidates = await expandToProducts(filtered);
-      console.log('[trend-analyze] STEP3 candidates:', candidates.length);
-      if(!candidates.length) return res.status(200).json({ candidates:[], apiStatus, error:'제품 후보 없음' });
+      console.log('[STEP3] candidates:', candidates.length);
+      if(!candidates.length) return res.status(200).json({candidates:[],apiStatus:apiStatus,error:'제품 후보 없음'});
 
-      // STEP 4: 외부 API 수집 (상위 15개만 — 시간 절약)
+      // STEP4: 외부 API 수집 (최대 15개)
       candidates = candidates.slice(0,15);
       candidates = await collectExternalData(candidates, period, apiStatus);
+      console.log('[STEP4] external data collected');
 
-      // STEP 5: AI 보조 분석
-      candidates = await enrichWithAI(candidates, apiStatus);
+      // STEP5: Groq 제품 적합성
+      candidates = await enrichWithGroq(candidates, apiStatus);
+      console.log('[STEP5] Groq enriched');
 
-      // STEP 6: 점수 + 정렬 + 그룹
+      // STEP6: 점수 계산 + 정렬 (★ Gemini 전에 실행)
       candidates = scoreSortGroup(candidates);
+      console.log('[STEP6] scored');
+
+      // STEP7: Gemini 신뢰 보정 (★ 점수 계산 후 실행)
+      candidates = await enrichWithGemini(candidates, apiStatus);
+      console.log('[STEP7] Gemini enriched');
 
       // 필터 적용
-      if(filters.minFinalScore)    candidates = candidates.filter(function(c){return c.finalScore>=safeNum(filters.minFinalScore);});
-      if(filters.minBuyIntent)     candidates = candidates.filter(function(c){return (c.scores.buyIntent||0)>=safeNum(filters.minBuyIntent);});
-      if(filters.minShopping)      candidates = candidates.filter(function(c){return (c.scores.shoppingInterest||0)>=safeNum(filters.minShopping);});
-      if(filters.minYoutube)       candidates = candidates.filter(function(c){return (c.scores.youtubeViral||0)>=safeNum(filters.minYoutube);});
-      if(filters.shortsOnly)       candidates = candidates.filter(function(c){return c.isShortsCompatible;});
-      if(filters.blogOnly)         candidates = candidates.filter(function(c){return c.isBlogCompatible;});
-      if(filters.noBrand)          candidates = candidates.filter(function(c){return !c.isBrandDependent;});
-      if(filters.generalNounOnly)  candidates = candidates.filter(function(c){return c.isGeneralNoun;});
+      if(safeNum(filters.minFinalScore)>0)  candidates=candidates.filter(function(c){return c.finalScore>=safeNum(filters.minFinalScore);});
+      if(safeNum(filters.minBuyIntent)>0)   candidates=candidates.filter(function(c){return safeNum(c.scores.buyIntent)>=safeNum(filters.minBuyIntent);});
+      if(safeNum(filters.minShopping)>0)    candidates=candidates.filter(function(c){return safeNum(c.scores.shoppingInterest)>=safeNum(filters.minShopping);});
+      if(safeNum(filters.minYoutube)>0)     candidates=candidates.filter(function(c){return safeNum(c.scores.youtubeViral)>=safeNum(filters.minYoutube);});
+      if(filters.shortsOnly)                candidates=candidates.filter(function(c){return c.isShortsCompatible;});
+      if(filters.blogOnly)                  candidates=candidates.filter(function(c){return c.isBlogCompatible;});
+      if(filters.noBrand)                   candidates=candidates.filter(function(c){return !c.isBrandDependent;});
+      if(filters.generalNounOnly)           candidates=candidates.filter(function(c){return c.isGeneralNoun;});
+      candidates = candidates.slice(0, Math.max(maxCount,5));
 
-      // STEP 7: 설명 생성
+      // STEP8: 설명 생성
       var result = await generateDescriptions(candidates);
+      console.log('[STEP8] descriptions generated');
 
       // 그룹별 분류
-      var groups = {
-        [CFG.GROUP.A]: result.candidates.filter(function(c){return c.group===CFG.GROUP.A;}),
-        [CFG.GROUP.B]: result.candidates.filter(function(c){return c.group===CFG.GROUP.B;}),
-        [CFG.GROUP.C]: result.candidates.filter(function(c){return c.group===CFG.GROUP.C;}),
-      };
+      var groups = {};
+      groups[CFG.GROUP.A] = result.candidates.filter(function(c){return c.group===CFG.GROUP.A;});
+      groups[CFG.GROUP.B] = result.candidates.filter(function(c){return c.group===CFG.GROUP.B;});
+      groups[CFG.GROUP.C] = result.candidates.filter(function(c){return c.group===CFG.GROUP.C;});
 
       return res.status(200).json({
-        candidates:  result.candidates,
-        groups:      groups,
-        summary:     result.summary,
-        guide:       result.guide,
-        apiStatus:   apiStatus,
-        total:       result.candidates.length,
-        updatedAt:   new Date().toISOString(),
+        candidates: result.candidates,
+        groups:     groups,
+        summary:    result.summary,
+        guide:      result.guide,
+        apiStatus:  apiStatus,
+        total:      result.candidates.length,
+        updatedAt:  new Date().toISOString(),
       });
 
     }catch(e){
       console.error('[trend-analyze]', e.message, e.stack);
-      return res.status(500).json({ error:'분석 중 오류', detail:e.message });
+      return res.status(500).json({error:'분석 중 오류', detail:e.message});
     }
   });
 };
