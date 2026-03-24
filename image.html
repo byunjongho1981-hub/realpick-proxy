@@ -11,7 +11,7 @@
     .nav-logo{font-size:18px;font-weight:900;color:#6366f1;letter-spacing:-0.5px;margin-right:36px;text-decoration:none}
     .nav-logo span{color:#1e293b}
     .nav-links{display:flex;gap:4px}
-    .nav-link{padding:7px 16px;border-radius:8px;font-size:13px;font-weight:500;color:#64748b;cursor:pointer;border:none;background:transparent;transition:all .15s;text-decoration:none}
+    .nav-link{padding:7px 16px;border-radius:8px;font-size:13px;font-weight:500;color:#64748b;text-decoration:none;border:none;background:transparent;transition:all .15s}
     .nav-link:hover{background:#f1f5f9;color:#1e293b}
     .nav-link.active{background:#6366f1;color:#fff;font-weight:700}
     .nav-link.hot{color:#ef4444;font-weight:700}
@@ -19,69 +19,76 @@
     .nav-right{margin-left:auto}
     .nav-badge{background:#6366f1;color:#fff;font-size:10px;padding:3px 10px;border-radius:20px;font-weight:700}
     .main{flex:1;margin-top:60px;padding:40px 36px;max-width:1200px;margin-left:auto;margin-right:auto;width:100%}
-    .section-label{font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:2px;text-transform:uppercase;margin-bottom:16px}
-    .upload-box{background:#fff;border:2px dashed #c7d2fe;border-radius:20px;margin-bottom:20px;overflow:hidden;transition:all .2s}
-    .upload-box.drag{border-color:#6366f1;background:#f5f3ff}
-    .upload-trigger{padding:48px 40px;text-align:center;position:relative}
-    .upload-trigger input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:5}
-    .upload-trigger:hover{background:#f8f7ff}
+    .sec-label{font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:2px;text-transform:uppercase;margin-bottom:16px}
+    .prod-name-input{width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;outline:none;font-family:inherit;margin-bottom:16px;background:#fff}
+    .prod-name-input:focus{border-color:#6366f1}
+    .prod-box{background:#eff0ff;border:1.5px solid #c7d2fe;border-radius:12px;padding:12px 20px;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+    /* upload */
+    .upload-wrap{background:#fff;border:2px dashed #c7d2fe;border-radius:20px;margin-bottom:20px;overflow:hidden;transition:border-color .2s}
+    .upload-wrap.drag{border-color:#6366f1;background:#f5f3ff}
+    .upload-zone{position:relative;padding:48px 40px;text-align:center;cursor:pointer}
+    .upload-zone input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:5}
+    .upload-zone:hover{background:#f8f7ff}
     .upload-icon{font-size:44px;margin-bottom:12px;pointer-events:none}
-    .upload-title{font-size:16px;font-weight:700;color:#1e293b;margin-bottom:6px;pointer-events:none}
+    .upload-ttl{font-size:16px;font-weight:700;color:#1e293b;margin-bottom:6px;pointer-events:none}
     .upload-sub{font-size:13px;color:#94a3b8;pointer-events:none}
     .upload-cta{display:inline-block;margin-top:14px;padding:10px 28px;background:#6366f1;color:#fff;border-radius:10px;font-size:13px;font-weight:700;pointer-events:none}
-    .preview-area{padding:24px 40px;display:flex;align-items:center;gap:24px}
-    .preview-img{width:100px;height:100px;object-fit:cover;border-radius:12px;border:2px solid #e2e8f0;flex-shrink:0}
-    .p-name{font-size:14px;font-weight:600;color:#1e293b;margin-bottom:4px}
-    .p-sub{font-size:12px;color:#94a3b8}
-    .btn-reset{margin-top:8px;font-size:12px;color:#ef4444;background:none;border:none;cursor:pointer;padding:0}
-    .product-box{background:#eff0ff;border:1.5px solid #c7d2fe;border-radius:12px;padding:12px 20px;margin-bottom:16px;display:flex;align-items:center;gap:12px}
-    .product-input{width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;outline:none;font-family:inherit;margin-bottom:16px;background:#fff}
-    .product-input:focus{border-color:#6366f1}
-    .slot-select{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px 20px;margin-bottom:20px}
-    .slot-select-title{font-size:12px;font-weight:700;color:#64748b;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
-    .slot-checks{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
-    .slot-check{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
-    .slot-check input{display:none}
-    .slot-check-box{width:44px;height:44px;border-radius:10px;border:2px solid #e2e8f0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#94a3b8;transition:all .15s;background:#f8fafc}
-    .slot-check input:checked ~ .slot-check-box{border-color:#6366f1;background:#6366f1;color:#fff}
-    .slot-check-lbl{font-size:9px;color:#94a3b8;text-align:center;line-height:1.4;font-weight:600}
-    .slot-check input:checked ~ .slot-check-lbl{color:#6366f1;font-weight:700}
-    .error-box{background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:14px 18px;color:#dc2626;font-size:13px;margin-bottom:16px;display:none}
-    .error-box.show{display:block}
+    .preview-zone{padding:24px 40px;display:flex;align-items:center;gap:24px}
+    .preview-thumb{width:100px;height:100px;object-fit:cover;border-radius:12px;border:2px solid #e2e8f0;flex-shrink:0}
+    .preview-fname{font-size:14px;font-weight:600;color:#1e293b;margin-bottom:4px}
+    .preview-ok{font-size:12px;color:#94a3b8}
+    .btn-reset-upload{margin-top:8px;font-size:12px;color:#ef4444;background:none;border:none;cursor:pointer;padding:0}
+    /* slot selector */
+    .slot-sel{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px 20px;margin-bottom:20px}
+    .slot-sel-hdr{font-size:12px;font-weight:700;color:#64748b;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+    .slot-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+    .slot-lbl{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
+    .slot-lbl input{display:none}
+    .slot-box{width:44px;height:44px;border-radius:10px;border:2px solid #e2e8f0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#94a3b8;transition:all .15s;background:#f8fafc}
+    .slot-lbl input:checked ~ .slot-box{border-color:#6366f1;background:#6366f1;color:#fff}
+    .slot-txt{font-size:9px;color:#94a3b8;text-align:center;line-height:1.4;font-weight:600}
+    .slot-lbl input:checked ~ .slot-txt{color:#6366f1;font-weight:700}
+    /* error */
+    .err-box{background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:14px 18px;color:#dc2626;font-size:13px;margin-bottom:16px;display:none}
+    .err-box.on{display:block}
+    /* gen btn */
     .btn-gen{width:100%;padding:18px;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;font-size:15px;font-weight:700;border:none;border-radius:14px;cursor:pointer;transition:all .2s;margin-bottom:24px;display:flex;align-items:center;justify-content:center;gap:10px}
     .btn-gen:hover{opacity:.9;transform:translateY(-1px)}
     .btn-gen:disabled{opacity:.5;cursor:not-allowed;transform:none}
-    .progress{background:#fff;border-radius:14px;padding:20px 24px;border:1px solid #e2e8f0;margin-bottom:24px;display:none}
-    .progress.show{display:block}
-    .progress-label{font-size:13px;color:#64748b;margin-bottom:10px}
-    .progress-bar-wrap{background:#f1f5f9;border-radius:99px;height:8px;overflow:hidden}
-    .progress-bar{height:100%;background:linear-gradient(90deg,#6366f1,#818cf8);border-radius:99px;transition:width .4s;width:0%}
-    .progress-step{font-size:11px;color:#94a3b8;margin-top:8px}
+    /* progress */
+    .prog-wrap{background:#fff;border-radius:14px;padding:20px 24px;border:1px solid #e2e8f0;margin-bottom:24px;display:none}
+    .prog-wrap.on{display:block}
+    .prog-lbl{font-size:13px;color:#64748b;margin-bottom:10px}
+    .prog-track{background:#f1f5f9;border-radius:99px;height:8px;overflow:hidden}
+    .prog-bar{height:100%;background:linear-gradient(90deg,#6366f1,#818cf8);border-radius:99px;transition:width .4s;width:0%}
+    .prog-step{font-size:11px;color:#94a3b8;margin-top:8px}
+    /* grid */
     .img-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px}
     .img-card{background:#fff;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;transition:all .2s}
     .img-card:hover{box-shadow:0 4px 20px #6366f120;transform:translateY(-2px)}
     .img-card.loading{opacity:.6}
-    .slot-header{padding:14px 16px 10px;display:flex;align-items:center;gap:8px}
-    .slot-num{width:22px;height:22px;background:#6366f1;color:#fff;border-radius:6px;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-    .slot-name{font-size:13px;font-weight:700;color:#1e293b}
+    .card-hdr{padding:14px 16px 10px;display:flex;align-items:center;gap:8px}
+    .card-num{width:22px;height:22px;background:#6366f1;color:#fff;border-radius:6px;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .card-name{font-size:13px;font-weight:700;color:#1e293b}
     .img-wrap{width:100%;aspect-ratio:1;background:#f8fafc;overflow:hidden;cursor:zoom-in}
     .img-wrap img{width:100%;height:100%;object-fit:cover;display:block}
-    .img-placeholder{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#94a3b8}
+    .img-ph{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#94a3b8}
     .spinner{width:28px;height:28px;border:3px solid #e2e8f0;border-top-color:#6366f1;border-radius:50%;animation:spin .8s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
-    .slot-footer{padding:10px 16px 14px;display:flex;align-items:center;gap:6px}
-    .prompt-text{font-size:10px;color:#94a3b8;line-height:1.5;flex:1;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+    .card-ftr{padding:10px 16px 14px;display:flex;align-items:center;gap:6px}
+    .prompt-txt{font-size:10px;color:#94a3b8;line-height:1.5;flex:1;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
     .btn-regen{padding:5px 10px;background:#f1f5f9;color:#64748b;font-size:11px;font-weight:700;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer;flex-shrink:0}
     .btn-regen:hover{background:#e2e8f0}
     .btn-regen:disabled{opacity:.4;cursor:not-allowed}
-    .btn-dl{padding:5px 12px;background:#6366f1;color:#fff;font-size:11px;font-weight:700;border:none;border-radius:8px;cursor:pointer;flex-shrink:0}
-    .btn-dl:disabled{background:#e2e8f0;color:#94a3b8;cursor:not-allowed}
-    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;display:none;align-items:center;justify-content:center}
-    .modal-overlay.show{display:flex}
-    .modal-img{max-width:90vw;max-height:88vh;object-fit:contain;border-radius:12px}
-    .modal-info{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;text-align:center;max-width:560px;line-height:1.6;pointer-events:none}
+    .btn-save{padding:5px 12px;background:#6366f1;color:#fff;font-size:11px;font-weight:700;border:none;border-radius:8px;cursor:pointer;flex-shrink:0}
+    .btn-save:disabled{background:#e2e8f0;color:#94a3b8;cursor:not-allowed}
+    /* modal */
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;display:none;align-items:center;justify-content:center}
+    .modal.on{display:flex}
+    .modal img{max-width:90vw;max-height:88vh;object-fit:contain;border-radius:12px}
+    .modal-info{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;text-align:center;max-width:560px;pointer-events:none}
     .modal-close{position:fixed;top:20px;right:24px;color:#fff;font-size:22px;cursor:pointer;background:rgba(255,255,255,.15);border:none;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center}
-    @media(max-width:768px){.img-grid{grid-template-columns:1fr 1fr}.main{padding:24px 16px}.slot-checks{grid-template-columns:repeat(3,1fr)}}
+    @media(max-width:768px){.img-grid{grid-template-columns:1fr 1fr}.main{padding:24px 16px}.slot-grid{grid-template-columns:repeat(3,1fr)}}
   </style>
 </head>
 <body>
@@ -99,342 +106,329 @@
 </nav>
 
 <main class="main">
-  <div class="section-label">Image Studio</div>
+  <div class="sec-label">Image Studio</div>
 
-  <!-- 제품명 연결됨 표시 -->
-  <div id="productBox" class="product-box" style="display:none">
+  <!-- 제품명 연결 -->
+  <div id="prodBox" class="prod-box" style="display:none">
     <span style="font-size:13px;color:#6366f1;font-weight:700">📦 연결된 제품:</span>
-    <span id="productBoxName" style="font-size:14px;font-weight:800;color:#1e293b"></span>
-    <button onclick="clearProduct()" style="margin-left:auto;font-size:11px;color:#94a3b8;background:none;border:none;cursor:pointer">✕ 해제</button>
+    <span id="prodBoxName" style="font-size:14px;font-weight:800;color:#1e293b"></span>
+    <button onclick="clearProd()" style="margin-left:auto;font-size:11px;color:#94a3b8;background:none;border:none;cursor:pointer">✕</button>
   </div>
-
-  <!-- 제품명 입력 -->
-  <input id="productName" class="product-input" type="text" placeholder="제품명 입력 (예: 티티카카 스트림 P7 접이식 자전거) — 없어도 됩니다"/>
+  <input id="prodName" class="prod-name-input" type="text" placeholder="제품명 입력 (없어도 됩니다)"/>
 
   <!-- 업로드 -->
-  <div class="upload-box" id="uploadBox">
-    <div id="uploadTrigger" class="upload-trigger">
-      <input type="file" id="fileInput" accept="image/*"/>
+  <div class="upload-wrap" id="upWrap">
+    <div id="upZone" class="upload-zone">
+      <input type="file" id="fileIn" accept="image/*"/>
       <div class="upload-icon">🖼️</div>
-      <div class="upload-title">제품 원본 이미지를 업로드하세요</div>
-      <div class="upload-sub">JPG, PNG, WEBP 지원</div>
+      <div class="upload-ttl">제품 원본 이미지 업로드</div>
+      <div class="upload-sub">JPG · PNG · WEBP</div>
       <div class="upload-cta">파일 선택</div>
     </div>
-    <div id="previewArea" class="preview-area" style="display:none">
-      <img id="previewImg" class="preview-img" src="" alt=""/>
+    <div id="prevZone" class="preview-zone" style="display:none">
+      <img id="prevImg" class="preview-thumb" src="" alt=""/>
       <div>
-        <div class="p-name" id="previewName"></div>
-        <div class="p-sub">이미지 분석 준비 완료 ✅</div>
-        <button class="btn-reset" id="btnReset">✕ 다시 선택</button>
+        <div class="preview-fname" id="prevName"></div>
+        <div class="preview-ok">이미지 분석 준비 완료 ✅</div>
+        <button class="btn-reset-upload" id="btnReset">✕ 다시 선택</button>
       </div>
     </div>
   </div>
 
-  <!-- 슬롯 선택 -->
-  <div class="slot-select">
-    <div class="slot-select-title">
+  <!-- 장면 선택 -->
+  <div class="slot-sel">
+    <div class="slot-sel-hdr">
       <span>🎯 생성할 장면 선택</span>
       <div style="display:flex;gap:8px">
-        <button onclick="selectAll(true)" style="font-size:11px;padding:3px 10px;background:#6366f1;color:#fff;border:none;border-radius:6px;cursor:pointer">전체선택</button>
-        <button onclick="selectAll(false)" style="font-size:11px;padding:3px 10px;background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer">전체해제</button>
+        <button onclick="selAll(true)" style="font-size:11px;padding:3px 10px;background:#6366f1;color:#fff;border:none;border-radius:6px;cursor:pointer">전체선택</button>
+        <button onclick="selAll(false)" style="font-size:11px;padding:3px 10px;background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer">전체해제</button>
       </div>
     </div>
-    <div class="slot-checks">
-      <label class="slot-check"><input type="checkbox" class="slot-chk" value="1" checked/><div class="slot-check-box">1</div><div class="slot-check-lbl">문제<br/>상황</div></label>
-      <label class="slot-check"><input type="checkbox" class="slot-chk" value="2" checked/><div class="slot-check-box">2</div><div class="slot-check-lbl">기존<br/>한계</div></label>
-      <label class="slot-check"><input type="checkbox" class="slot-chk" value="3" checked/><div class="slot-check-box">3</div><div class="slot-check-lbl">제품<br/>등장</div></label>
-      <label class="slot-check"><input type="checkbox" class="slot-chk" value="4" checked/><div class="slot-check-box">4</div><div class="slot-check-lbl">사용<br/>장면</div></label>
-      <label class="slot-check"><input type="checkbox" class="slot-chk" value="5" checked/><div class="slot-check-box">5</div><div class="slot-check-lbl">결과<br/>변화</div></label>
-      <label class="slot-check"><input type="checkbox" class="slot-chk" value="6" checked/><div class="slot-check-box">6</div><div class="slot-check-lbl">라이프<br/>스타일</div></label>
+    <div class="slot-grid">
+      <label class="slot-lbl"><input type="checkbox" class="slotChk" value="1" checked/><div class="slot-box">1</div><div class="slot-txt">문제<br/>상황</div></label>
+      <label class="slot-lbl"><input type="checkbox" class="slotChk" value="2" checked/><div class="slot-box">2</div><div class="slot-txt">기존<br/>한계</div></label>
+      <label class="slot-lbl"><input type="checkbox" class="slotChk" value="3" checked/><div class="slot-box">3</div><div class="slot-txt">제품<br/>등장</div></label>
+      <label class="slot-lbl"><input type="checkbox" class="slotChk" value="4" checked/><div class="slot-box">4</div><div class="slot-txt">사용<br/>장면</div></label>
+      <label class="slot-lbl"><input type="checkbox" class="slotChk" value="5" checked/><div class="slot-box">5</div><div class="slot-txt">결과<br/>변화</div></label>
+      <label class="slot-lbl"><input type="checkbox" class="slotChk" value="6" checked/><div class="slot-box">6</div><div class="slot-txt">라이프<br/>스타일</div></label>
     </div>
   </div>
 
-  <div class="error-box" id="errBox"></div>
+  <div class="err-box" id="errBox"></div>
 
   <button class="btn-gen" id="btnGen" disabled>
-    <span>🎨</span><span id="btnText">이미지 업로드 후 생성 가능</span>
+    <span>🎨</span><span id="btnTxt">이미지 업로드 후 생성 가능</span>
   </button>
 
-  <div class="progress" id="progressBox">
-    <div class="progress-label" id="progressLabel">분석 중...</div>
-    <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
-    <div class="progress-step" id="progressStep"></div>
+  <div class="prog-wrap" id="progWrap">
+    <div class="prog-lbl" id="progLbl">분석 중...</div>
+    <div class="prog-track"><div class="prog-bar" id="progBar"></div></div>
+    <div class="prog-step" id="progStep"></div>
   </div>
 
-  <div class="section-label" id="gridLabel" style="display:none">Generated Images</div>
+  <div class="sec-label" id="gridLbl" style="display:none">Generated Images</div>
   <div class="img-grid" id="imgGrid"></div>
 </main>
 
-<!-- 전체화면 모달 -->
-<div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
+<div class="modal" id="modal" onclick="closeModal()">
   <button class="modal-close" onclick="closeModal()">✕</button>
-  <img class="modal-img" id="modalImg" src="" alt=""/>
+  <img id="modalImg" src="" alt=""/>
   <div class="modal-info" id="modalInfo"></div>
 </div>
 
 <script>
-const SLOT_NAMES = {1:'문제상황',2:'기존한계',3:'제품등장',4:'사용장면',5:'결과변화',6:'라이프스타일'};
-let imgFile = null, imgB64 = null, prompts = [];
+const NAMES = {1:'문제상황',2:'기존한계',3:'제품등장',4:'사용장면',5:'결과변화',6:'라이프스타일'};
+let imgFile=null, imgB64=null, prompts=[];
 
-// ── DOM refs ──
-const fileInput   = document.getElementById('fileInput');
-const uploadBox   = document.getElementById('uploadBox');
-const uploadTrigger = document.getElementById('uploadTrigger');
-const previewArea = document.getElementById('previewArea');
-const previewImg  = document.getElementById('previewImg');
-const previewName = document.getElementById('previewName');
-const btnReset    = document.getElementById('btnReset');
-const btnGen      = document.getElementById('btnGen');
-const btnText     = document.getElementById('btnText');
-const progressBox = document.getElementById('progressBox');
-const progressBar = document.getElementById('progressBar');
-const progressLabel = document.getElementById('progressLabel');
-const progressStep  = document.getElementById('progressStep');
-const imgGrid     = document.getElementById('imgGrid');
-const gridLabel   = document.getElementById('gridLabel');
-const errBox      = document.getElementById('errBox');
+// DOM
+const fileIn   = document.getElementById('fileIn');
+const upWrap   = document.getElementById('upWrap');
+const upZone   = document.getElementById('upZone');
+const prevZone = document.getElementById('prevZone');
+const prevImg  = document.getElementById('prevImg');
+const prevName = document.getElementById('prevName');
+const btnReset = document.getElementById('btnReset');
+const btnGen   = document.getElementById('btnGen');
+const btnTxt   = document.getElementById('btnTxt');
+const progWrap = document.getElementById('progWrap');
+const progBar  = document.getElementById('progBar');
+const progLbl  = document.getElementById('progLbl');
+const progStep = document.getElementById('progStep');
+const imgGrid  = document.getElementById('imgGrid');
+const gridLbl  = document.getElementById('gridLbl');
+const errBox   = document.getElementById('errBox');
 
-// ── 초기화: sessionStorage 복원 ──
-(function init() {
-  const name = sessionStorage.getItem('image-product-name');
-  if (name) {
-    document.getElementById('productBox').style.display = 'flex';
-    document.getElementById('productBoxName').textContent = name;
-    document.getElementById('productName').value = name;
+// 초기화
+(function(){
+  const n = sessionStorage.getItem('image-product-name');
+  if(n){
+    document.getElementById('prodBox').style.display='flex';
+    document.getElementById('prodBoxName').textContent=n;
+    document.getElementById('prodName').value=n;
     sessionStorage.removeItem('image-product-name');
   }
-  try {
-    const saved = JSON.parse(sessionStorage.getItem('image-result') || 'null');
-    if (saved && saved.length) restoreCards(saved);
-  } catch(e) {}
+  try{
+    const sv = JSON.parse(sessionStorage.getItem('image-result')||'null');
+    if(sv&&sv.length) restoreCards(sv);
+  }catch(e){}
 })();
 
-function restoreCards(cards) {
-  gridLabel.style.display = 'block';
-  imgGrid.innerHTML = cards.map(p => `
-    <div class="img-card" id="card${p.slot}">
-      <div class="slot-header"><div class="slot-num">${p.slot}</div><div class="slot-name">${p.name}</div></div>
-      <div class="img-wrap">${p.src ? `<img src="${p.src}"/>` : '<div class="img-placeholder">⚠️</div>'}</div>
-      <div class="slot-footer">
-        <div class="prompt-text">${p.short_copy ? `"${p.short_copy}"` : (p.prompt||'')}</div>
-        <button class="btn-regen" id="regen${p.slot}">↺</button>
-        <button class="btn-dl" id="dl${p.slot}" ${p.src?'':'disabled'}>저장</button>
+function restoreCards(cards){
+  gridLbl.style.display='block';
+  imgGrid.innerHTML=cards.map(p=>`
+    <div class="img-card" id="c${p.slot}">
+      <div class="card-hdr"><div class="card-num">${p.slot}</div><div class="card-name">${p.name}</div></div>
+      <div class="img-wrap">${p.src?`<img src="${p.src}"/>`:'<div class="img-ph">⚠️</div>'}</div>
+      <div class="card-ftr">
+        <div class="prompt-txt">${p.prompt||''}</div>
+        <button class="btn-regen" id="rg${p.slot}">↺</button>
+        <button class="btn-save" id="sv${p.slot}" ${p.src?'':'disabled'}>저장</button>
       </div>
     </div>`).join('');
-  cards.forEach(p => {
-    const regenEl = document.getElementById('regen'+p.slot);
-    if (regenEl) regenEl.onclick = () => regenSlot(p);
-    if (!p.src) return;
-    const dlEl = document.getElementById('dl'+p.slot);
-    if (dlEl) dlEl.onclick = () => dlFile(p.src, p.slot, p.name);
-    const imgEl = document.querySelector(`#card${p.slot} .img-wrap img`);
-    if (imgEl) imgEl.onclick = () => openModal(p.src, p.short_copy ? `"${p.short_copy}"` : p.name);
+  cards.forEach(p=>{
+    const rg=document.getElementById('rg'+p.slot);
+    if(rg) rg.onclick=()=>regenOne(p);
+    if(!p.src) return;
+    const sv=document.getElementById('sv'+p.slot);
+    if(sv) sv.onclick=()=>saveFile(p.src,p.slot,p.name);
+    const im=document.querySelector(`#c${p.slot} .img-wrap img`);
+    if(im) im.onclick=()=>showModal(p.src,p.name);
   });
-  btnText.textContent = '🔄 다시 생성하기';
+  btnTxt.textContent='🔄 다시 생성하기';
 }
 
-// ── 파일 업로드 ──
-fileInput.onchange = function() {
-  if (this.files && this.files[0]) loadFile(this.files[0]);
-};
-
-uploadBox.addEventListener('dragover', e => { e.preventDefault(); uploadBox.classList.add('drag'); });
-uploadBox.addEventListener('dragleave', () => uploadBox.classList.remove('drag'));
-uploadBox.addEventListener('drop', e => {
-  e.preventDefault(); uploadBox.classList.remove('drag');
-  const f = e.dataTransfer.files[0];
-  if (f && f.type.startsWith('image/')) loadFile(f);
+// 파일 업로드
+fileIn.onchange=function(){ if(this.files&&this.files[0]) loadImg(this.files[0]); };
+upWrap.addEventListener('dragover',e=>{e.preventDefault();upWrap.classList.add('drag');});
+upWrap.addEventListener('dragleave',()=>upWrap.classList.remove('drag'));
+upWrap.addEventListener('drop',e=>{
+  e.preventDefault();upWrap.classList.remove('drag');
+  const f=e.dataTransfer.files[0];
+  if(f&&f.type.startsWith('image/')) loadImg(f);
 });
-
-btnReset.onclick = function() {
-  fileInput.value = '';
-  imgFile = imgB64 = null;
-  uploadTrigger.style.display = 'block';
-  previewArea.style.display = 'none';
-  btnGen.disabled = true;
-  btnText.textContent = '이미지 업로드 후 생성 가능';
+btnReset.onclick=()=>{
+  fileIn.value=''; imgFile=imgB64=null;
+  upZone.style.display='block'; prevZone.style.display='none';
+  btnGen.disabled=true; btnTxt.textContent='이미지 업로드 후 생성 가능';
 };
-
-function loadFile(f) {
-  imgFile = f;
-  const reader = new FileReader();
-  reader.onload = ev => {
-    imgB64 = ev.target.result.split(',')[1];
-    previewImg.src = ev.target.result;
-    previewName.textContent = f.name;
-    uploadTrigger.style.display = 'none';
-    previewArea.style.display = 'flex';
-    btnGen.disabled = false;
-    btnText.textContent = '이미지 생성하기 — Gemini 분석 + Gemini 이미지 생성';
-    errBox.classList.remove('show');
+function loadImg(f){
+  imgFile=f;
+  const r=new FileReader();
+  r.onload=ev=>{
+    imgB64=ev.target.result.split(',')[1];
+    prevImg.src=ev.target.result;
+    prevName.textContent=f.name;
+    upZone.style.display='none';
+    prevZone.style.display='flex';
+    btnGen.disabled=false;
+    btnTxt.textContent='이미지 생성하기 — Gemini 분석 + 생성';
+    hideErr();
   };
-  reader.readAsDataURL(f);
+  r.readAsDataURL(f);
 }
 
-// ── 슬롯 선택 ──
-function selectAll(v) { document.querySelectorAll('.slot-chk').forEach(c => c.checked = v); }
-function getSelected() { return [...document.querySelectorAll('.slot-chk:checked')].map(c => +c.value); }
+// 유틸
+function selAll(v){document.querySelectorAll('.slotChk').forEach(c=>c.checked=v);}
+function getSel(){return[...document.querySelectorAll('.slotChk:checked')].map(c=>+c.value);}
+function clearProd(){document.getElementById('prodBox').style.display='none';document.getElementById('prodName').value='';}
+function getProd(){return document.getElementById('prodName').value.trim();}
+function setProgress(pct,lbl,step=''){progBar.style.width=pct+'%';progLbl.textContent=lbl;progStep.textContent=step;}
+function showErr(m){errBox.textContent=m;errBox.classList.add('on');}
+function hideErr(){errBox.classList.remove('on');}
+function saveFile(src,slot,name){
+  const a=document.createElement('a');
+  a.href=src;a.download=`realpick_${slot}_${name}.png`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+function showModal(src,info){
+  document.getElementById('modalImg').src=src;
+  document.getElementById('modalInfo').textContent=info||'';
+  document.getElementById('modal').classList.add('on');
+}
+function closeModal(){document.getElementById('modal').classList.remove('on');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
 
-// ── 제품명 ──
-function clearProduct() {
-  document.getElementById('productBox').style.display = 'none';
-  document.getElementById('productName').value = '';
-}
-function getProductName() { return document.getElementById('productName').value.trim(); }
-
-// ── 유틸 ──
-function setProgress(pct, label, step='') {
-  progressBar.style.width = pct+'%';
-  progressLabel.textContent = label;
-  progressStep.textContent = step;
-}
-function dlFile(src, slot, name) {
-  const a = document.createElement('a');
-  a.href = src; a.download = `realpick_${slot}_${name}.png`;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-}
-function openModal(src, info) {
-  document.getElementById('modalImg').src = src;
-  document.getElementById('modalInfo').textContent = info || '';
-  document.getElementById('modalOverlay').classList.add('show');
-}
-function closeModal() { document.getElementById('modalOverlay').classList.remove('show'); }
-document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
-
-// ── 단일 슬롯 재생성 ──
-async function regenSlot(p) {
-  const card = document.getElementById('card'+p.slot);
-  const imgWrap = card.querySelector('.img-wrap');
-  const regenEl = document.getElementById('regen'+p.slot);
-  const dlEl = document.getElementById('dl'+p.slot);
-  regenEl.disabled = true; regenEl.textContent = '...';
-  imgWrap.innerHTML = '<div class="img-placeholder"><div class="spinner"></div></div>';
-  try {
-    const r = await fetch('/api/generate-image', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ prompt: p.prompt+', seed:'+Math.floor(Math.random()*99999) })
+// API 호출 공통
+async function callGenerate(prompt){
+  const ctrl=new AbortController();
+  const t=setTimeout(()=>ctrl.abort(),55000);
+  try{
+    const r=await fetch('/api/generate-image',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt}),
+      signal:ctrl.signal
     });
-    const d = await r.json();
-    if (!r.ok || !d.base64) throw new Error(d.error||'이미지 없음');
-    const src = `data:${d.mimeType};base64,${d.base64}`;
-    const img = new Image();
-    img.onload = () => {
-      imgWrap.innerHTML = ''; imgWrap.appendChild(img);
-      img.onclick = () => openModal(src, p.short_copy ? `"${p.short_copy}"` : p.name);
-      dlEl.disabled = false;
-      dlEl.onclick = () => dlFile(src, p.slot, p.name);
-      try {
-        const saved = JSON.parse(sessionStorage.getItem('image-result')||'[]');
-        const idx = saved.findIndex(c=>c.slot===p.slot);
-        if(idx>=0) saved[idx].src = src;
-        sessionStorage.setItem('image-result', JSON.stringify(saved));
-      } catch(e){}
-    };
-    img.src = src;
-  } catch(e) {
-    imgWrap.innerHTML = `<div class="img-placeholder"><div style="font-size:20px">⚠️</div><div style="font-size:11px">${e.message}</div></div>`;
+    clearTimeout(t);
+    const d=await r.json();
+    if(!r.ok||!d.base64) throw new Error(d.error||'이미지 생성 실패');
+    return `data:${d.mimeType};base64,${d.base64}`;
+  }catch(e){
+    clearTimeout(t);
+    throw new Error(e.name==='AbortError'?'시간 초과 (55초)':e.message);
   }
-  regenEl.disabled = false; regenEl.textContent = '↺';
 }
 
-// ── 메인 생성 ──
-btnGen.addEventListener('click', async () => {
-  if (!imgB64) return;
-  const selected = getSelected();
-  if (!selected.length) {
-    errBox.textContent = '⚠️ 최소 1개 이상 선택하세요';
-    errBox.classList.add('show'); return;
+// 단일 재생성
+async function regenOne(p){
+  const card=document.getElementById('c'+p.slot);
+  const iw=card.querySelector('.img-wrap');
+  const rg=document.getElementById('rg'+p.slot);
+  const sv=document.getElementById('sv'+p.slot);
+  rg.disabled=true; rg.textContent='...';
+  iw.innerHTML='<div class="img-ph"><div class="spinner"></div></div>';
+  try{
+    const src=await callGenerate(p.prompt);
+    const img=new Image();
+    img.onload=()=>{
+      iw.innerHTML='';iw.appendChild(img);
+      img.onclick=()=>showModal(src,p.name);
+      sv.disabled=false;sv.onclick=()=>saveFile(src,p.slot,p.name);
+      try{
+        const sv2=JSON.parse(sessionStorage.getItem('image-result')||'[]');
+        const idx=sv2.findIndex(c=>c.slot===p.slot);
+        if(idx>=0){sv2[idx].src=src;sessionStorage.setItem('image-result',JSON.stringify(sv2));}
+      }catch(e){}
+    };
+    img.src=src;
+  }catch(e){
+    iw.innerHTML=`<div class="img-ph"><div style="font-size:20px">⚠️</div><div style="font-size:11px">${e.message}</div></div>`;
   }
-  errBox.classList.remove('show');
-  btnGen.disabled = true;
-  progressBox.classList.add('show');
-  setProgress(10, 'Gemini가 제품 이미지를 분석 중...', '1/2 — 이미지 인식');
+  rg.disabled=false;rg.textContent='↺';
+}
+
+// 메인 생성
+btnGen.addEventListener('click',async()=>{
+  if(!imgB64) return;
+  const sel=getSel();
+  if(!sel.length){showErr('⚠️ 최소 1개 이상 선택하세요');return;}
+  hideErr();
+  btnGen.disabled=true;
+  progWrap.classList.add('on');
+  setProgress(10,'Gemini 제품 분석 중...','1/2 — 이미지 인식');
 
   // 스켈레톤
-  gridLabel.style.display = 'block';
-  imgGrid.innerHTML = selected.map(num => `
-    <div class="img-card loading" id="card${num}">
-      <div class="slot-header"><div class="slot-num">${num}</div><div class="slot-name">${SLOT_NAMES[num]}</div></div>
-      <div class="img-wrap"><div class="img-placeholder"><div class="spinner"></div><div style="font-size:12px">대기 중...</div></div></div>
-      <div class="slot-footer">
-        <div class="prompt-text" id="pt${num}">프롬프트 생성 중...</div>
-        <button class="btn-regen" disabled id="regen${num}">↺</button>
-        <button class="btn-dl" disabled id="dl${num}">저장</button>
+  gridLbl.style.display='block';
+  imgGrid.innerHTML=sel.map(n=>`
+    <div class="img-card loading" id="c${n}">
+      <div class="card-hdr"><div class="card-num">${n}</div><div class="card-name">${NAMES[n]}</div></div>
+      <div class="img-wrap"><div class="img-ph"><div class="spinner"></div><div style="font-size:12px">대기 중...</div></div></div>
+      <div class="card-ftr">
+        <div class="prompt-txt" id="pt${n}">프롬프트 생성 중...</div>
+        <button class="btn-regen" disabled id="rg${n}">↺</button>
+        <button class="btn-save" disabled id="sv${n}">저장</button>
       </div>
     </div>`).join('');
 
   // Step1: 분석
-  try {
-    const res = await fetch('/api/analyze-image', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ imageBase64:imgB64, mediaType:imgFile.type||'image/jpeg', productName:getProductName() })
+  try{
+    const res=await fetch('/api/analyze-image',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({imageBase64:imgB64,mediaType:imgFile.type||'image/jpeg',productName:getProd()})
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error||res.statusText);
-    prompts = data.prompts;
-  } catch(e) {
-    errBox.textContent = '분석 실패: '+e.message;
-    errBox.classList.add('show');
-    btnGen.disabled = false;
-    progressBox.classList.remove('show');
-    return;
+    const d=await res.json();
+    if(!res.ok) throw new Error(d.error||res.statusText);
+    prompts=d.prompts||[];
+    console.log('[analyze] prompts count:',prompts.length,prompts.map(p=>p.slot));
+  }catch(e){
+    showErr('분석 실패: '+e.message);
+    btnGen.disabled=false;progWrap.classList.remove('on');return;
   }
 
-  // Step2: 이미지 생성
-  const filtered = prompts.filter(p => selected.includes(p.slot));
-  setProgress(40, 'Gemini 이미지 생성 중...', `2/2 — 렌더링 (${filtered.length}장)`);
+  // Step2: 생성
+  const list=prompts.filter(p=>sel.includes(p.slot));
+  console.log('[generate] filtered:',list.length,'selected:',sel);
 
-  for (let i=0; i<filtered.length; i++) {
-    const p = filtered[i];
-    const card = document.getElementById('card'+p.slot);
-    const imgWrap = card.querySelector('.img-wrap');
-    const ptEl = document.getElementById('pt'+p.slot);
-    const dlEl = document.getElementById('dl'+p.slot);
-    const regenEl = document.getElementById('regen'+p.slot);
+  if(!list.length){
+    showErr('분석 결과와 선택 슬롯이 매칭되지 않습니다. 다시 시도해 주세요.');
+    btnGen.disabled=false;progWrap.classList.remove('on');return;
+  }
 
-    ptEl.textContent = p.short_copy ? `"${p.short_copy}"` : p.prompt;
-    imgWrap.innerHTML = '<div class="img-placeholder"><div class="spinner"></div></div>';
+  setProgress(40,'이미지 생성 중...',`2/2 — (${list.length}장)`);
 
-    await (async () => {
-      try {
-        const r = await fetch('/api/generate-image', {
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ prompt: p.prompt+', high quality, commercial product photography, seed:'+Math.floor(Math.random()*99999) })
-        });
-        const d = await r.json();
-        if (!r.ok || !d.base64) throw new Error(d.error||'이미지 없음');
-        const src = `data:${d.mimeType};base64,${d.base64}`;
-        const img = new Image();
-        img.onload = () => {
-          imgWrap.innerHTML = ''; imgWrap.appendChild(img);
-          card.classList.remove('loading');
-          img.onclick = () => openModal(src, p.short_copy ? `"${p.short_copy}"` : p.name);
-          dlEl.disabled = false; dlEl.onclick = () => dlFile(src, p.slot, p.name);
-          regenEl.disabled = false; regenEl.onclick = () => regenSlot(p);
-        };
-        img.src = src;
-      } catch(e) {
-        imgWrap.innerHTML = `<div class="img-placeholder"><div style="font-size:20px">⚠️</div><div style="font-size:11px">${e.message}</div></div>`;
+  for(let i=0;i<list.length;i++){
+    const p=list[i];
+    const card=document.getElementById('c'+p.slot);
+    const iw=card.querySelector('.img-wrap');
+    const pt=document.getElementById('pt'+p.slot);
+    const sv=document.getElementById('sv'+p.slot);
+    const rg=document.getElementById('rg'+p.slot);
+
+    pt.textContent=p.prompt||'';
+    iw.innerHTML='<div class="img-ph"><div class="spinner"></div></div>';
+
+    try{
+      const src=await callGenerate(p.prompt);
+      const img=new Image();
+      img.onload=()=>{
+        iw.innerHTML='';iw.appendChild(img);
         card.classList.remove('loading');
-      }
-    })();
+        img.onclick=()=>showModal(src,p.name);
+        sv.disabled=false;sv.onclick=()=>saveFile(src,p.slot,p.name);
+        rg.disabled=false;rg.onclick=()=>regenOne(p);
+      };
+      img.src=src;
+    }catch(e){
+      iw.innerHTML=`<div class="img-ph"><div style="font-size:20px">⚠️</div><div style="font-size:11px">${e.message}</div></div>`;
+      card.classList.remove('loading');
+    }
 
-    setProgress(40+Math.round((i+1)/filtered.length*58), 'Gemini 이미지 생성 중...', `${i+1}/${filtered.length}장 완료`);
+    setProgress(40+Math.round((i+1)/list.length*58),'이미지 생성 중...',`${i+1}/${list.length}장 완료`);
   }
 
-  setProgress(100, '완료!', `${filtered.length}장 생성 완료 ✅`);
-  setTimeout(()=>progressBox.classList.remove('show'), 2500);
-  btnGen.disabled = false;
-  btnText.textContent = '🔄 다시 생성하기';
+  setProgress(100,'완료!',`${list.length}장 생성 ✅`);
+  setTimeout(()=>progWrap.classList.remove('on'),2500);
+  btnGen.disabled=false;
+  btnTxt.textContent='🔄 다시 생성하기';
 
   // sessionStorage 저장
-  try {
-    const cards = filtered.map(p => {
-      const imgEl = document.querySelector(`#card${p.slot} .img-wrap img`);
-      return { slot:p.slot, name:p.name, prompt:p.prompt, short_copy:p.short_copy||'', src:imgEl?imgEl.src:'' };
+  try{
+    const cards=list.map(p=>{
+      const im=document.querySelector(`#c${p.slot} .img-wrap img`);
+      return{slot:p.slot,name:p.name,prompt:p.prompt,src:im?im.src:''};
     });
-    sessionStorage.setItem('image-result', JSON.stringify(cards));
-  } catch(e) {}
+    sessionStorage.setItem('image-result',JSON.stringify(cards));
+  }catch(e){}
 });
 </script>
 </body>
