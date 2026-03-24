@@ -111,21 +111,42 @@
   <!-- 제품명 입력 -->
   <input id="productName" class="product-input" type="text" placeholder="제품명 입력 (예: 티티카카 스트림 P7 접이식 자전거) — 없어도 됩니다"/>
 
-  <!-- 업로드 -->
-  <div class="upload-box" id="uploadBox">
-    <div id="uploadTrigger" class="upload-trigger">
-      <input type="file" id="fileInput" accept="image/*"/>
-      <div class="upload-icon">🖼️</div>
-      <div class="upload-title">제품 원본 이미지를 업로드하세요</div>
-      <div class="upload-sub">JPG, PNG, WEBP 지원</div>
-      <div class="upload-cta">파일 선택</div>
+  <!-- 업로드 2분할 -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+    <!-- 제품 이미지 -->
+    <div class="upload-box" id="uploadBox">
+      <div id="uploadTrigger" class="upload-trigger">
+        <input type="file" id="fileInput" accept="image/*"/>
+        <div class="upload-icon">📦</div>
+        <div class="upload-title" style="font-size:14px">제품 이미지 업로드</div>
+        <div class="upload-sub">쿠팡·네이버 대표 이미지</div>
+        <div class="upload-cta">파일 선택</div>
+      </div>
+      <div id="previewArea" class="preview-area" style="display:none">
+        <img id="previewImg" class="preview-img" src="" alt=""/>
+        <div>
+          <div class="p-name" id="previewName"></div>
+          <div class="p-sub">✔ 제품은 절대 변형되지 않음</div>
+          <button class="btn-reset" id="btnReset">✕ 다시 선택</button>
+        </div>
+      </div>
     </div>
-    <div id="previewArea" class="preview-area" style="display:none">
-      <img id="previewImg" class="preview-img" src="" alt=""/>
-      <div>
-        <div class="p-name" id="previewName"></div>
-        <div class="p-sub">이미지 분석 준비 완료 ✅</div>
-        <button class="btn-reset" id="btnReset">✕ 다시 선택</button>
+    <!-- 캐릭터 이미지 -->
+    <div class="upload-box" id="charBox">
+      <div id="charTrigger" class="upload-trigger">
+        <input type="file" id="charInput" accept="image/*"/>
+        <div class="upload-icon">👤</div>
+        <div class="upload-title" style="font-size:14px">캐릭터 이미지 업로드</div>
+        <div class="upload-sub">고정 캐릭터 이미지 (선택)</div>
+        <div class="upload-cta">파일 선택</div>
+      </div>
+      <div id="charPreviewArea" class="preview-area" style="display:none">
+        <img id="charPreviewImg" class="preview-img" src="" alt=""/>
+        <div>
+          <div class="p-name" id="charPreviewName"></div>
+          <div class="p-sub">✔ 캐릭터는 항상 동일 유지</div>
+          <button class="btn-reset" id="btnCharReset">✕ 다시 선택</button>
+        </div>
       </div>
     </div>
   </div>
@@ -174,7 +195,7 @@
 
 <script>
 const SLOT_NAMES = {1:'문제상황',2:'기존한계',3:'제품등장',4:'사용장면',5:'결과변화',6:'라이프스타일'};
-let imgFile = null, imgB64 = null, prompts = [];
+let imgFile = null, imgB64 = null, charFile = null, charB64 = null, prompts = [];
 
 // ── DOM refs ──
 const fileInput   = document.getElementById('fileInput');
@@ -238,7 +259,38 @@ fileInput.onchange = function() {
   if (this.files && this.files[0]) loadFile(this.files[0]);
 };
 
-uploadBox.addEventListener('dragover', e => { e.preventDefault(); uploadBox.classList.add('drag'); });
+// 캐릭터 업로드
+document.getElementById('charInput').onchange = function() {
+  if (this.files && this.files[0]) loadCharFile(this.files[0]);
+};
+document.getElementById('btnCharReset').onclick = function() {
+  document.getElementById('charInput').value = '';
+  charFile = charB64 = null;
+  document.getElementById('charTrigger').style.display = 'block';
+  document.getElementById('charPreviewArea').style.display = 'none';
+};
+function loadCharFile(f) {
+  charFile = f;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    charB64 = ev.target.result.split(',')[1];
+    document.getElementById('charPreviewImg').src = ev.target.result;
+    document.getElementById('charPreviewName').textContent = f.name;
+    document.getElementById('charTrigger').style.display = 'none';
+    document.getElementById('charPreviewArea').style.display = 'flex';
+  };
+  reader.readAsDataURL(f);
+}
+
+// 드래그 앤 드롭 (캐릭터)
+const charBox = document.getElementById('charBox');
+charBox.addEventListener('dragover', e => { e.preventDefault(); charBox.classList.add('drag'); });
+charBox.addEventListener('dragleave', () => charBox.classList.remove('drag'));
+charBox.addEventListener('drop', e => {
+  e.preventDefault(); charBox.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) loadCharFile(f);
+});
 uploadBox.addEventListener('dragleave', () => uploadBox.classList.remove('drag'));
 uploadBox.addEventListener('drop', e => {
   e.preventDefault(); uploadBox.classList.remove('drag');
