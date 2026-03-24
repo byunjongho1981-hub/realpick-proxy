@@ -752,7 +752,7 @@ async function analyzeProductForScenes(prodName, bodyText) {
     + '3. Identify the emotion/change buyers feel AFTER purchase\n'
     + '4. Each scene must tell a purchase-motivating story\n\n'
     + 'SCENE STRUCTURE:\n'
-    + 'Scene 1: NO product shown. Korean woman experiencing the problem/frustration. Frowning or stressed expression. Must be in the CORRECT environment for this product type.\n'
+    + 'Scene 1: NO product shown at all. Korean woman experiencing the problem/frustration BEFORE knowing the product exists. Frowning or stressed expression. Must be in the CORRECT environment for this product type. Do NOT include the product in this scene.\n'
     + 'Scene 2: PRODUCT ONLY. No people. Clean background. Sharp detail. Studio lighting.\n'
     + 'Scene 3: Korean woman seeing/discovering the product for the first time. Curious, hopeful expression.\n'
     + 'Scene 4: Korean woman actively using the product in its CORRECT environment. Natural, realistic usage.\n'
@@ -791,7 +791,7 @@ async function analyzeProductForScenes(prodName, bodyText) {
 // ── 씬 폴백용 기본 프롬프트 ──────────────────────────────────
 function buildFallbackPrompt(slotNum, prodName) {
   var defaults = [
-    'Korean woman with frustrated expression experiencing a daily problem that "'+prodName+'" would solve. Correct environment for this product. Close-up portrait.',
+    'Korean woman with frustrated expression experiencing a daily problem. NO product visible anywhere in the scene. Correct environment for this product type. Close-up portrait, stressed or annoyed expression.',
     '"'+prodName+'" product displayed alone on clean white surface. No people. Sharp studio lighting. Top-down angle.',
     'Korean woman seeing "'+prodName+'" for the first time with curious and hopeful expression. Correct product environment.',
     'Korean woman actively using "'+prodName+'" in its correct natural environment. Realistic usage scene.',
