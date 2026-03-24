@@ -384,6 +384,31 @@ async function generateBlog() {
     +(urlInfo.reviewSummary?'후기 요약: '+urlInfo.reviewSummary+'\n':'')
     +(inputUrl?'구매 링크 URL: '+inputUrl+'\n⚠️ 본문의 모든 CTA 링크는 반드시 이 URL만 사용할 것: '+inputUrl+'\n':'')
     +'포함 요소: '+tags.join(', ')+'\n'
+    +'\n✍️ 글쓰기 톤 & 스타일 (반드시 적용):\n'
+    +'- 실제로 써본 사람이 지인한테 솔직하게 추천하는 말투\n'
+    +'- 딱딱한 설명문 금지 — "~합니다" 보다 "~하더라고요", "~거든요", "~잖아요" 자연스러운 구어체\n'
+    +'- 공감 유도: "혹시 이런 적 없으세요?", "저만 그런 거 아니죠?", "다들 한 번쯤은 겪어봤을 거예요"\n'
+    +'- 개인 경험처럼 서술: "처음엔 저도 몰랐는데", "써보기 전까지는 몰랐어요", "솔직히 반신반의했거든요"\n'
+    +'- 짧은 문장과 긴 문장 섞기 — 단조롭지 않게\n'
+    +'- 리듬감 있는 마무리: "진짜예요.", "이거 하나면 끝.", "두 번 말하면 입 아프죠."\n'
+    +'- AI가 쓴 것처럼 보이는 표현 절대 금지: "~할 수 있습니다", "최적의 선택", "탁월한 성능", "혁신적인"\n'
+    +'- 가끔 독자에게 직접 말 걸기: "한번 생각해보세요", "근데 있잖아요", "잠깐, 이거 중요해요"\n'
+    +'\n✅ 이모지 활용 규칙 (반드시 적용):\n'
+    +'- 소제목마다 관련 이모지 1개 필수\n'
+    +'- 구매 결정 체크포인트: ✅ 🔥 ⚠️ 💡 💰 🎯 👉 ⭐ 📌 사용\n'
+    +'- 중요 수치/혜택 앞에 📌 또는 ✅ 사용\n'
+    +'- 문장 중간 표정/감정 표현: 😤 😮 😍 🥲 😊 🤔 😱 등 적극 활용\n'
+    +'- 행동/상황 묘사: 🛒 📦 🚀 ⏰ 🙌 💪 👀 🤯 등 문장에 자연스럽게 삽입\n'
+    +'- 단락 마무리 문장에 감정 이모지로 마침\n'
+    +'- 전체 본문에서 이모지 없는 문단이 2개 이상 연속으로 나오면 안 됨\n'
+    +'- 단순 장식은 금지 — 문맥에 맞는 이모지만\n'
+    +'\n🎨 글자 색상 강조 규칙 (반드시 적용):\n'
+    +'- 가격·수치·기간 등 숫자 강조 → [[r:텍스트]] (빨강)\n'
+    +'- 핵심 키워드·제품 특징·장점 → [[b:텍스트]] (파랑)\n'
+    +'- 구매 포인트·결론·행동 유도 문구 → [[p:텍스트]] (보라)\n'
+    +'- 예시: "가격은 [[r:6만 원대]]인데 성능은 [[b:풀 스테인리스 내솥]]에 [[b:70가지 모드]]까지, [[p:이거 하나면 진짜 끝이에요.]]"\n'
+    +'- 한 문장에 색상 마커는 최대 2개\n'
+    +'- 모든 단락에 최소 1개 이상 색상 마커 사용\n'
     +(validImages.length?'\n첨부 이미지 '+validImages.length+'장을 분석하여 [📸 사진] 배치 설명에 반영하라.\n':'')
     +'\n⚠️ 절대 중간에 끊지 마라. JSON이 완전히 닫힐 때까지 출력을 멈추지 마라.\n'
     +'반드시 완성된 JSON만 출력:\n'
@@ -508,31 +533,95 @@ async function uploadImagesToImgBB() {
   return urlMap;
 }
 
+// ── 마크다운 테이블 → HTML 변환 ──────────────────────────────
+function convertMarkdownTable(lines) {
+  var rows = lines.filter(function(l) { return l.trim().startsWith('|'); });
+  if (rows.length < 2) return null;
+
+  var dataRows = rows.filter(function(l) { return !/^\s*\|[\s:\-|]+\|\s*$/.test(l); });
+  if (!dataRows.length) return null;
+
+  // 네이버 호환 — border 속성 + 최소 인라인 스타일만 사용
+  var html = '<table border="1" style="width:100%;border-collapse:collapse;margin:20px 0">';
+
+  dataRows.forEach(function(row, ri) {
+    var cells = row.split('|').map(function(c){return c.trim();}).filter(function(c){return c!=='';});
+    html += '<tr>';
+    cells.forEach(function(c, ci) {
+      if (ri === 0) {
+        // 헤더 행
+        html += '<th style="padding:10px 12px;background:#f1f5f9;font-weight:700;font-size:13px;text-align:center;border:1px solid #d1d5db">'+c+'</th>';
+      } else {
+        // 데이터 행 — 첫 번째 열 좌측 정렬
+        var align = ci === 0 ? 'left' : 'center';
+        var fw    = ci === 0 ? 'font-weight:700;' : '';
+        html += '<td style="padding:10px 12px;font-size:13px;text-align:'+align+';'+fw+'border:1px solid #d1d5db">'+c+'</td>';
+      }
+    });
+    html += '</tr>';
+  });
+
+  html += '</table>';
+  return html;
+}
+
+// ── 색상 마커 → HTML span 변환 ───────────────────────────────
+function applyColorMarkers(text) {
+  return text
+    .replace(/\[\[r:([^\]]+)\]\]/g, '<span style="color:#e53e3e;font-weight:600">$1</span>')
+    .replace(/\[\[b:([^\]]+)\]\]/g, '<span style="color:#2b6cb0;font-weight:600">$1</span>')
+    .replace(/\[\[p:([^\]]+)\]\]/g, '<span style="color:#6366f1;font-weight:600">$1</span>');
+}
+
 function insertUrlsIntoBody(body, urlMap) {
   var seqIdx = 0;
   var EMOJI_HEADING = /^([\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|✅|⚠️|💡|🔥|🛒|👉|💰|📌|🎯|⭐|🙌|💬|📦)/u;
+
   var processed = body.replace(/\[📸\s*(\d*)[^\]]*\]/g, function(m, num) {
     var idx = num ? parseInt(num)-1 : seqIdx++;
     var url = urlMap[idx];
     if (!url) return '\x01';
     return '\x00<img src="'+url+'" style="max-width:100%;border-radius:10px;margin:30px 0;display:block" alt="제품이미지"/>\x00';
   });
+
   return processed.split('\x00').map(function(chunk) {
     if (chunk.startsWith('<img')) return chunk;
-    return chunk.replace(/\x01/g,'').trim().split(/\n{1,}/).reduce(function(acc, line) {
-      var t = line.trim();
-      if (!t) { acc.push('<div style="height:14px"></div>'); return acc; }
-      if (EMOJI_HEADING.test(t)) {
-        acc.push('<p style="margin:30px 0 16px 0;line-height:1.8;font-size:24px;font-weight:bold">'+t+'</p>');
+
+    var lines  = chunk.replace(/\x01/g,'').split(/\n/);
+    var result = [];
+    var i      = 0;
+
+    while (i < lines.length) {
+      var line = lines[i].trim();
+
+      // 마크다운 테이블 감지 — 현재 줄과 다음 줄이 | 로 시작하면 테이블 수집
+      if (line.startsWith('|') && i + 1 < lines.length && lines[i+1].trim().startsWith('|')) {
+        var tableLines = [];
+        while (i < lines.length && lines[i].trim().startsWith('|')) {
+          tableLines.push(lines[i]);
+          i++;
+        }
+        var tableHtml = convertMarkdownTable(tableLines);
+        if (tableHtml) { result.push(tableHtml); continue; }
+      }
+
+      if (!line) { result.push('<div style="height:14px"></div>'); i++; continue; }
+
+      if (EMOJI_HEADING.test(line)) {
+        result.push('<p style="margin:28px 0 12px 0;line-height:1.8;font-size:16px;font-weight:800;color:#1e293b">'+applyColorMarkers(line)+'</p>');
       } else {
-        if (acc.length && acc[acc.length-1].startsWith('<p style="margin:0')) {
-          acc[acc.length-1] = acc[acc.length-1].replace(/<\/p>$/, '<br>'+t+'</p>');
+        var last = result[result.length-1];
+        var colored = applyColorMarkers(line);
+        if (last && last.startsWith('<p style="margin:0')) {
+          result[result.length-1] = last.replace(/<\/p>$/, '<br>'+colored+'</p>');
         } else {
-          acc.push('<p style="margin:0 0 16px 0;line-height:1.9;font-size:19px">'+t+'</p>');
+          result.push('<p style="margin:0 0 14px 0;line-height:1.9;font-size:16px;font-weight:400;color:#000000">'+colored+'</p>');
         }
       }
-      return acc;
-    }, []).join('');
+      i++;
+    }
+
+    return result.join('');
   }).join('');
 }
 
