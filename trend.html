@@ -21,6 +21,7 @@
   --blog:#0891b2;--blog-lt:#ecfeff;
   --hold:#94a3b8;--hold-lt:#f8fafc;
   --compare:#a78bfa;--compare-lt:#f5f3ff;
+  --blue:#0ea5e9;--blue-lt:#f0f9ff;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--txt);font-family:'Noto Sans KR',sans-serif;font-size:13px}
@@ -44,6 +45,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
 .mode-tab:hover{color:var(--pri)}
 .mode-tab.active{color:var(--pri);border-bottom-color:var(--pri)}
 .mode-bdg{background:#10b981;color:#fff;font-size:9px;padding:1px 6px;border-radius:10px;margin-left:5px;vertical-align:middle}
+.mode-bdg-new{background:#f59e0b;color:#fff;font-size:9px;padding:1px 6px;border-radius:10px;margin-left:5px;vertical-align:middle}
 .ctrl-wrap{background:var(--surf);border-bottom:1px solid var(--bdr);padding:11px 24px;flex-shrink:0}
 .ctrl-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .ctrl-lbl{font-size:10px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:1px;white-space:nowrap;flex-shrink:0}
@@ -105,6 +107,12 @@ th{padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--f
 .sp-bar{width:5px;border-radius:1px;min-height:2px}
 .conf-dots{display:inline-flex;gap:2px;vertical-align:middle}
 .conf-d{width:6px;height:6px;border-radius:50%}
+/* 블루오션 카드 */
+.bo-card{border-radius:10px;padding:10px 14px;margin-bottom:10px;border:1.5px solid}
+.bo-fire{background:#fff7ed;border-color:#f97316;color:#c2410c}
+.bo-ok{background:#f0fdf4;border-color:#22c55e;color:#15803d}
+.bo-warn{background:#fefce8;border-color:#eab308;color:#854d0e}
+.bo-red{background:#fff1f2;border-color:#f43f5e;color:#be123c}
 @keyframes spin{to{transform:rotate(360deg)}}
 .ld-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;background:rgba(240,244,255,.88);z-index:20}
 .spinner{width:30px;height:30px;border:3px solid var(--bdr);border-top:3px solid var(--pri);border-radius:50%;animation:spin .8s linear infinite}
@@ -161,15 +169,17 @@ th{padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--f
       <div class="s-card"><div class="s-lbl">전체 후보</div><div class="s-val" id="sc-total" style="color:var(--pri)">–</div><div class="s-sub">탐색 결과</div></div>
       <div class="s-card"><div class="s-lbl">🔥 급상승</div><div class="s-val" id="sc-rising" style="color:var(--rising)">–</div><div class="s-sub" id="sc-rising-sub">–</div></div>
       <div class="s-card"><div class="s-lbl">🏆 A등급</div><div class="s-val" id="sc-agrade" style="color:var(--ga)">–</div><div class="s-sub">고신뢰 추천</div></div>
-      <div class="s-card"><div class="s-lbl">🛒 쇼핑 강세</div><div class="s-val" id="sc-shop" style="color:var(--shorts)">–</div><div class="s-sub">쇼핑 소스 多</div></div>
+      <div class="s-card"><div class="s-lbl">🌊 블루오션</div><div class="s-val" id="sc-blue" style="color:#0ea5e9">–</div><div class="s-sub" id="sc-blue-sub">지수 2이상</div></div>
       <div class="s-card"><div class="s-lbl">📊 평균 점수</div><div class="s-val" id="sc-avg" style="color:var(--stable)">–</div><div class="s-sub">100점 만점</div></div>
       <div class="s-card"><div class="s-lbl">⚠️ 데이터 부족</div><div class="s-val" id="sc-low" style="color:var(--faint)">–</div><div class="s-sub">신뢰도 low</div></div>
     </div>
   </div>
 
+  <!-- ★ 모드탭: multi 추가 -->
   <div class="mode-bar">
     <div class="mode-tab active" onclick="switchMode('category')">📦 카테고리 자동탐색 <span class="mode-bdg">추천</span></div>
     <div class="mode-tab" onclick="switchMode('seed')">🌱 시드 키워드 확장</div>
+    <div class="mode-tab" onclick="switchMode('multi')">🌐 블루오션 탐색 <span class="mode-bdg-new">NEW</span></div>
   </div>
 
   <div class="ctrl-wrap">
@@ -204,6 +214,16 @@ th{padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--f
         <button class="c-btn"    data-depth="2" onclick="onDepth(this)">2단계</button>
       </div>
     </div>
+    <!-- ★ 멀티소스 컨트롤 -->
+    <div id="ctrl-multi" style="display:none;flex-direction:column;gap:8px">
+      <div class="ctrl-row">
+        <span class="ctrl-lbl">수집 소스</span>
+        <span style="font-size:11px;color:var(--muted);background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:4px 12px">
+          📺 YouTube &nbsp;·&nbsp; 🛒 쿠팡 &nbsp;·&nbsp; 🎵 틱톡 &nbsp;·&nbsp; 📸 인스타 &nbsp;·&nbsp; 🌍 구글 해외 &nbsp;·&nbsp; 🤖 GROQ 분석
+        </span>
+        <span style="font-size:11px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:4px 10px">⏱ 약 30~40초 소요</span>
+      </div>
+    </div>
   </div>
 
   <div class="flt-bar">
@@ -215,14 +235,16 @@ th{padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--f
     <button class="f-btn"    data-f="falling"   onclick="onFilter(this,'falling')">📉 하락</button>
     <div class="sep"></div>
     <span class="ctrl-lbl">등급/소스</span>
-    <button class="f-btn" data-f="grade_a"   onclick="onFilter(this,'grade_a')">🏆 A등급</button>
-    <button class="f-btn" data-f="shopping"  onclick="onFilter(this,'shopping')">🛒 쇼핑 강세</button>
-    <button class="f-btn" data-f="blog_cafe" onclick="onFilter(this,'blog_cafe')">📝 블로그/카페</button>
-    <button class="f-btn" data-f="high_conf" onclick="onFilter(this,'high_conf')">✅ 신뢰도 high</button>
+    <button class="f-btn" data-f="grade_a"    onclick="onFilter(this,'grade_a')">🏆 A등급</button>
+    <button class="f-btn" data-f="blue_ocean" onclick="onFilter(this,'blue_ocean')">🌊 블루오션</button>
+    <button class="f-btn" data-f="shopping"   onclick="onFilter(this,'shopping')">🛒 쇼핑 강세</button>
+    <button class="f-btn" data-f="blog_cafe"  onclick="onFilter(this,'blog_cafe')">📝 블로그/카페</button>
+    <button class="f-btn" data-f="high_conf"  onclick="onFilter(this,'high_conf')">✅ 신뢰도 high</button>
     <div class="sep"></div>
     <span class="ctrl-lbl">정렬</span>
     <select class="sort-sel" onchange="onSort(this.value)">
       <option value="score">점수순</option>
+      <option value="blue">블루오션순</option>
       <option value="count">데이터수</option>
       <option value="name">이름순</option>
     </select>
@@ -257,21 +279,21 @@ th{padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--f
           <div id="empty-st" class="empty-box">
             <div style="font-size:40px">🔍</div>
             <div>탐색 모드를 선택하고 시작하세요</div>
-            <div style="font-size:11px;color:#c4cad4">카테고리 자동탐색 · 시드 키워드 확장</div>
+            <div style="font-size:11px;color:#c4cad4">카테고리 자동탐색 · 시드 키워드 확장 · 블루오션 탐색</div>
           </div>
           <table id="result-tbl" style="display:none">
             <thead><tr>
-              <th style="width:16%">제품/키워드</th>
+              <th style="width:15%">제품/키워드</th>
               <th style="width:6%">점수</th>
               <th style="width:5%">등급</th>
-              <th style="width:9%">트렌드</th>
+              <th style="width:8%">블루오션</th>
+              <th style="width:8%">단계</th>
+              <th style="width:8%">트렌드</th>
               <th style="width:7%">신뢰도</th>
-              <th style="width:7%">흐름</th>
+              <th style="width:6%">흐름</th>
               <th style="width:7%">급상승률</th>
-              <th style="width:7%">가속도</th>
-              <th style="width:7%">유지력</th>
-              <th style="width:9%">소스</th>
-              <th style="width:14%">바로가기</th>
+              <th style="width:8%">소스</th>
+              <th style="width:12%">바로가기</th>
             </tr></thead>
             <tbody id="result-body"></tbody>
           </table>
@@ -291,18 +313,22 @@ var GRADE_C={A:'var(--ga)',B:'var(--gb)',C:'var(--gc)'};
 var GRADE_BG={A:'var(--ga-lt)',B:'var(--gb-lt)',C:'var(--gc-lt)'};
 var ACT_C={shorts:'var(--shorts)',blog:'var(--blog)',hold:'var(--hold)',compare:'var(--compare)'};
 var ACT_BG={shorts:'var(--shorts-lt)',blog:'var(--blog-lt)',hold:'var(--hold-lt)',compare:'var(--compare-lt)'};
-var SCORE_MAX={shopping:15, blog:20, news:10, trend:5, surge:30, accel:25, earlyBird:20, commercial:15, insight:20};
-var SRC_LBL={shopping:'🛒쇼핑',blog:'📝블로그',news:'📰뉴스',cafe:'☕카페',trend:'📈트렌드',surge:'🚀급상승',commercial:'💰상업성',insight:'🔥쇼핑인사이트'};
+var SCORE_MAX={shopping:15,blog:20,news:10,trend:5,surge:30,accel:25,earlyBird:20,commercial:15,insight:20};
+var SRC_LBL={shopping:'🛒쇼핑',blog:'📝블로그',news:'📰뉴스',cafe:'☕카페',trend:'📈트렌드',surge:'🚀급상승',commercial:'💰상업성',insight:'🔥인사이트',accel:'⚡가속도',earlyBird:'🎯선점'};
+var SRC_COLOR={youtube:'#ef4444',youtube_shorts:'#f97316',coupang:'#eab308',tiktok:'#000',instagram:'#ec4899',google_kr:'#4285f4',google_overseas:'#0f9d58',shopping:'#f59e0b',blog:'#0891b2',news:'#6366f1',cafe:'#10b981'};
+var SRC_EMOJI={youtube:'📺',youtube_shorts:'📱',coupang:'🛒',tiktok:'🎵',instagram:'📸',google_kr:'🔍',google_overseas:'🌍',shopping:'🛒',blog:'📝',news:'📰',cafe:'☕'};
+
 var FILTERS={
-  all:function(c){return true;},
-  rising:function(c){return c&&c.trend&&c.trend.status==='rising';},
-  stable:function(c){return c&&c.trend&&c.trend.status==='stable';},
-  new:function(c){return c&&c.trend&&c.trend.status==='new';},
-  falling:function(c){return c&&c.trend&&c.trend.status==='falling';},
-  grade_a:function(c){return c&&c.score&&c.score.grade==='A';},
-  shopping:function(c){return c&&Array.isArray(c.sources)&&c.sources.indexOf('shopping')>-1;},
-  blog_cafe:function(c){return c&&Array.isArray(c.sources)&&c.sources.some(function(s){return s==='blog'||s==='cafe';});},
-  high_conf:function(c){return c&&c.score&&c.score.confidence==='high';}
+  all:        function(c){return true;},
+  rising:     function(c){return c&&c.trend&&c.trend.status==='rising';},
+  stable:     function(c){return c&&c.trend&&c.trend.status==='stable';},
+  new:        function(c){return c&&c.trend&&c.trend.status==='new';},
+  falling:    function(c){return c&&c.trend&&c.trend.status==='falling';},
+  grade_a:    function(c){return c&&c.score&&c.score.grade==='A';},
+  blue_ocean: function(c){return c&&c.blueOcean&&c.blueOcean.score>=2;},
+  shopping:   function(c){return c&&Array.isArray(c.sources)&&c.sources.indexOf('shopping')>-1;},
+  blog_cafe:  function(c){return c&&Array.isArray(c.sources)&&c.sources.some(function(s){return s==='blog'||s==='cafe';});},
+  high_conf:  function(c){return c&&c.score&&c.score.confidence==='high';}
 };
 
 var S={
@@ -320,6 +346,20 @@ function trendBdg(s){return bdg(TREND_LBL[s]||'–',TREND_C[s]||'var(--unk)',TRE
 function gradeBdg(g){return bdg(g||'–',GRADE_C[g]||'var(--gc)',GRADE_BG[g]||'var(--gc-lt)');}
 function confHtml(conf){var m={low:1,medium:2,high:3},lvl=m[conf]||0,dots='';for(var i=1;i<=3;i++)dots+='<span class="conf-d" style="background:'+(i<=lvl?'var(--rising)':'var(--bdr)')+'"></span>';return '<span class="conf-dots">'+dots+'</span> <span style="font-size:10px;color:var(--faint)">'+(conf||'–')+'</span>';}
 function sparkHtml(count,status){if(!count)return '<span style="color:var(--faint);font-size:10px">–</span>';var c=status==='rising'?'var(--rising)':status==='falling'?'var(--falling)':'var(--stable)',bars='';for(var i=0;i<7;i++){var r=status==='rising'?0.3+(i/6)*0.7:status==='falling'?1-(i/6)*0.5:0.4+Math.sin(i)*0.1+0.3;bars+='<div class="sp-bar" style="height:'+Math.max(3,Math.round(r*18))+'px;background:'+c+'"></div>';}return '<div class="spark">'+bars+'</div>';}
+
+// ★ 블루오션 뱃지
+function blueOceanBdg(bo){
+  if(!bo) return '<span style="color:var(--faint);font-size:10px">–</span>';
+  var s=bo.score, cls=s>=5?'bo-fire':s>=2?'bo-ok':s>=1?'bo-warn':'bo-red';
+  return '<span class="bdg '+cls+'" style="font-size:12px;font-weight:900">'+bo.emoji+' '+s+'</span>';
+}
+
+// ★ 단계 뱃지
+function phaseBdg(phase){
+  if(!phase) return '<span style="color:var(--faint);font-size:10px">–</span>';
+  var c=phase.phase==='태동기'?'#10b981':phase.phase==='성장기'?'#6366f1':phase.phase==='성숙기'?'#f59e0b':'#94a3b8';
+  return '<span style="font-size:11px;font-weight:700;color:'+c+'">'+phase.emoji+' '+phase.phase+'</span>';
+}
 
 function velocityHtml(c,field,type){
   if(!c.velocity) return '<span style="color:var(--faint);font-size:10px">–</span>';
@@ -374,10 +414,29 @@ function apiFetch(url){
   return fetch(url,{signal:ctrl.signal}).then(function(r){clearTimeout(t);return r.json().then(function(d){if(!r.ok)throw new Error('['+r.status+'] '+(d.detail||d.error||'서버 오류'));if(d.error)throw new Error(d.error);return d;});}).catch(function(e){clearTimeout(t);if(e.name==='AbortError')throw new Error('요청 시간 초과');throw e;});
 }
 
-function runMode(){if(S.loading)return;showErr(null);S.selected=null;if(S.mode==='category')runCategory();else runSeed();}
+// ★ runMode: multi 분기 추가
+function runMode(){
+  if(S.loading)return;
+  showErr(null); S.selected=null;
+  if(S.mode==='multi') runMulti();
+  else if(S.mode==='category') runCategory();
+  else runSeed();
+}
+
 function runCategory(){var lbl=S.catId==='all'?'전체 카테고리 탐색 중... (최대 55초 소요)':'카테고리 인기 키워드 수집 중... ('+(CAT_NAMES[S.catId]||'')+')';setLoading(true,lbl);apiFetch('/api/auto-discover?mode=category&categoryId='+S.catId+'&period='+S.period).then(function(d){handleResult(d);if(d.fromCache)showToast('📦 캐시 데이터 ('+(d.cacheAge||'')+') — 5분마다 갱신');}).catch(function(e){showErr(e.message);}).finally(function(){setLoading(false);});}
 function runSeed(){var kw=document.getElementById('seed-input').value.trim();if(!kw){showErr('시드 키워드를 입력해주세요');return;}S.seedKw=kw;setLoading(true,'"'+kw+'" 연관 키워드 확장 중...');apiFetch('/api/auto-discover?mode=seed&keyword='+encodeURIComponent(kw)+'&period='+S.period).then(function(d){handleResult(d);}).catch(function(e){showErr(e.message);}).finally(function(){setLoading(false);});}
+
+// ★ 신규: 멀티소스 탐색
+function runMulti(){
+  setLoading(true,'YouTube · 쿠팡 · 틱톡 · 구글 교차분석 중... (30~40초)');
+  apiFetch('/api/auto-discover?mode=multi&period='+S.period)
+    .then(function(d){ handleResult(d); })
+    .catch(function(e){ showErr(e.message); })
+    .finally(function(){ setLoading(false); });
+}
+
 function runQuickSearch(){var kw=document.getElementById('qs-input').value.trim();if(!kw){document.getElementById('qs-input').focus();return;}switchMode('seed');document.getElementById('seed-input').value=kw;S.seedKw=kw;setLoading(true,'"'+kw+'" 검색 중...');apiFetch('/api/auto-discover?mode=seed&keyword='+encodeURIComponent(kw)+'&period='+S.period).then(function(d){handleResult(d);}).catch(function(e){showErr(e.message);}).finally(function(){setLoading(false);});}
+
 function handleResult(data){
   showErr(null);
   if(!data||!Array.isArray(data.candidates)) throw new Error('응답 형식 오류');
@@ -387,14 +446,23 @@ function handleResult(data){
   S.lastUpdated = data.updatedAt||new Date().toISOString();
   try{
     sessionStorage.setItem('realpick-trend-search-state', JSON.stringify({
-      candidates: S.candidates, clusters: S.clusters,
-      catId: S.catId, mode: S.mode, period: S.period,
-      sortBy: S.sortBy, apiStatus: S.apiStatus, updatedAt: S.lastUpdated
+      candidates:S.candidates, clusters:S.clusters,
+      catId:S.catId, mode:S.mode, period:S.period,
+      sortBy:S.sortBy, apiStatus:S.apiStatus, updatedAt:S.lastUpdated
     }));
   }catch(e){}
   applySort(); renderAll();
 }
-function applySort(){var fn=FILTERS[S.filterStatus]||FILTERS.all,list=S.candidates.filter(fn);if(S.sortBy==='score')list.sort(function(a,b){return n((b.score||{}).totalScore)-n((a.score||{}).totalScore);});else if(S.sortBy==='count')list.sort(function(a,b){return n(b.count)-n(a.count);});else list.sort(function(a,b){return(a.name||'').localeCompare(b.name||'');});S.filtered=list;}
+
+function applySort(){
+  var fn=FILTERS[S.filterStatus]||FILTERS.all,list=S.candidates.filter(fn);
+  if(S.sortBy==='score')       list.sort(function(a,b){return n((b.score||{}).totalScore)-n((a.score||{}).totalScore);});
+  else if(S.sortBy==='blue')   list.sort(function(a,b){return n(b.blueOcean&&b.blueOcean.score)-n(a.blueOcean&&a.blueOcean.score);});
+  else if(S.sortBy==='count')  list.sort(function(a,b){return n(b.count)-n(a.count);});
+  else list.sort(function(a,b){return(a.name||'').localeCompare(b.name||'');});
+  S.filtered=list;
+}
+
 function renderAll(){renderCards();renderTable();renderDetail();renderMeta();renderApiBar();renderClusters();}
 
 function renderClusters(){
@@ -425,13 +493,21 @@ function clusterMemberClick(name){for(var i=0;i<S.filtered.length;i++){if(S.filt
 function renderCards(){
   var cs=Array.isArray(S.candidates)?S.candidates:[];
   function set(id,v){var el=document.getElementById(id);if(el)el.textContent=v;}
-  if(!cs.length){['sc-total','sc-rising','sc-agrade','sc-shop','sc-avg','sc-low'].forEach(function(id){set(id,'–');});set('sc-rising-sub','–');return;}
+  if(!cs.length){
+    ['sc-total','sc-rising','sc-agrade','sc-blue','sc-avg','sc-low'].forEach(function(id){set(id,'–');});
+    set('sc-rising-sub','–'); set('sc-blue-sub','지수 2이상'); return;
+  }
   var rising=cs.filter(function(c){return c&&c.trend&&c.trend.status==='rising';}),
       aGrade=cs.filter(function(c){return c&&c.score&&c.score.grade==='A';}),
-      shop=cs.filter(function(c){return c&&Array.isArray(c.sources)&&c.sources.indexOf('shopping')>-1;}),
+      blue=cs.filter(function(c){return c&&c.blueOcean&&c.blueOcean.score>=2;}),
       low=cs.filter(function(c){return c&&c.score&&c.score.confidence==='low';}),
       avg=cs.length?Math.round(cs.reduce(function(s,c){return s+n(c&&c.score&&c.score.totalScore);},0)/cs.length):0;
-  set('sc-total',cs.length);set('sc-rising',rising.length);set('sc-rising-sub',(rising[0]&&rising[0].name)||'–');set('sc-agrade',aGrade.length);set('sc-shop',shop.length);set('sc-avg',avg);set('sc-low',low.length);
+  var topBlue=blue.sort(function(a,b){return n(b.blueOcean.score)-n(a.blueOcean.score);})[0];
+  set('sc-total',cs.length);
+  set('sc-rising',rising.length); set('sc-rising-sub',(rising[0]&&rising[0].name)||'–');
+  set('sc-agrade',aGrade.length);
+  set('sc-blue',blue.length); set('sc-blue-sub',(topBlue&&topBlue.name)||'–');
+  set('sc-avg',avg); set('sc-low',low.length);
 }
 
 function renderTable(){
@@ -442,29 +518,31 @@ function renderTable(){
     if(!c)return'';
     var sc=c.score||{},tr=c.trend||{},gc=GRADE_C[sc.grade]||'var(--gc)',isSel=S.selected&&S.selected.id===c.id,isFav=S.favorites.has(c.id);
     var row='<tr class="r-row'+(isSel?' sel':'')+'" onclick="selItem('+i+')">'
-      +'<td style="padding:9px 12px"><div style="font-weight:700;font-size:13px">'+(isFav?'⭐ ':'')+(c.name||'–')+'</div></td>'
+      +'<td style="padding:9px 12px">'
+        +'<div style="font-weight:700;font-size:13px">'+(isFav?'⭐ ':'')+(c.name||'–')+'</div>'
+        +(c.peakHours?'<div style="font-size:10px;color:#f97316;margin-top:2px">⏱ '+c.peakHours+'시간 내 피크</div>':'')
+      +'</td>'
       +'<td style="padding:9px 12px;font-weight:900;font-size:15px;color:'+gc+'">'+Math.round(n(sc.totalScore))+'</td>'
       +'<td style="padding:9px 12px">'+gradeBdg(sc.grade)+'</td>'
+      +'<td style="padding:9px 12px">'+blueOceanBdg(c.blueOcean)+'</td>'
+      +'<td style="padding:9px 12px">'+phaseBdg(c.phase)+'</td>'
       +'<td style="padding:9px 12px">'+trendBdg(tr.status)+'</td>'
       +'<td style="padding:9px 12px">'+confHtml(sc.confidence)+'</td>'
       +'<td style="padding:9px 12px">'+sparkHtml(c.count,tr.status)+'</td>'
       +'<td style="padding:9px 12px">'+velocityHtml(c,'surgeRate','surge')+'</td>'
-      +'<td style="padding:9px 12px">'+velocityHtml(c,'accel','accel')+'</td>'
-      +'<td style="padding:9px 12px">'+velocityHtml(c,'durability','dur')+'</td>'
       +'<td style="padding:9px 12px">'
         +(c.sources||[]).map(function(s){
-          var sc={shopping:'#f59e0b',blog:'#0891b2',news:'#6366f1',cafe:'#10b981'};
-          var sl={shopping:'🛒쇼핑',blog:'📝블로그',news:'📰뉴스',cafe:'☕카페'};
-          return '<span style="background:'+(sc[s]||'#94a3b8')+'18;color:'+(sc[s]||'#94a3b8')+';border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;margin-right:2px">'+(sl[s]||s)+'</span>';
+          var col=SRC_COLOR[s]||'#94a3b8', em=SRC_EMOJI[s]||s;
+          return '<span style="background:'+col+'18;color:'+col+';border-radius:5px;padding:2px 6px;font-size:10px;font-weight:700;margin-right:2px">'+em+'</span>';
         }).join('')
-        +(c.insightLabel?'<div style="font-size:10px;color:#6366f1;margin-top:3px;font-weight:700">'+c.insightLabel+'</div>':'')
+        +(c.insightLabel?'<div style="font-size:10px;color:#6366f1;margin-top:2px;font-weight:700">'+c.insightLabel+'</div>':'')
       +'</td>'
       +'<td style="padding:9px 12px;vertical-align:middle">'
         +'<div style="display:flex;align-items:center;gap:4px">'
-          +'<button onclick="event.stopPropagation();goHot(\''+c.name+'\')" style="display:inline-flex;align-items:center;gap:3px;padding:4px 9px;background:#fef2f2;border:1.5px solid #fecaca;border-radius:7px;font-size:11px;font-weight:700;color:#ef4444;cursor:pointer;white-space:nowrap">🔥 지금뜨는제품</button>'
+          +'<button onclick="event.stopPropagation();goHot(\''+c.name+'\')" style="display:inline-flex;align-items:center;gap:3px;padding:4px 9px;background:#fef2f2;border:1.5px solid #fecaca;border-radius:7px;font-size:11px;font-weight:700;color:#ef4444;cursor:pointer;white-space:nowrap">🔥</button>'
           +'<div style="position:relative">'
             +'<button onclick="event.stopPropagation();toggleMoreMenu(\'more_'+i+'\')" style="display:inline-flex;align-items:center;gap:2px;padding:4px 9px;background:#fff;border:1.5px solid var(--bdr);border-radius:7px;font-size:11px;font-weight:700;color:#475569;cursor:pointer">더보기 ›</button>'
-            +'<div id="more_'+i+'" onclick="event.stopPropagation()" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:#fff;border:1.5px solid var(--bdr);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:200;min-width:160px;padding:5px">'
+            +'<div id="more_'+i+'" onclick="event.stopPropagation()" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:#fff;border:1.5px solid var(--bdr);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:200;min-width:160px;padding:5px">'
               +'<button class="more-menu-item" onclick="event.stopPropagation();qlFetch(\'shop\',\''+c.name+'\','+i+')" style="display:flex;align-items:center;gap:7px;padding:7px 10px;width:100%;background:transparent;border:none;border-radius:7px;font-size:12px;font-weight:600;color:#475569;cursor:pointer;white-space:nowrap">🛒 네이버 쇼핑</button>'
               +'<button class="more-menu-item" onclick="event.stopPropagation();qlFetch(\'blog\',\''+c.name+'\','+i+')" style="display:flex;align-items:center;gap:7px;padding:7px 10px;width:100%;background:transparent;border:none;border-radius:7px;font-size:12px;font-weight:600;color:#475569;cursor:pointer;white-space:nowrap">📝 네이버 블로그</button>'
               +'<a href="https://www.coupang.com/np/search?q='+encodeURIComponent(c.name)+'" target="_blank" rel="noopener" class="more-menu-item" style="display:flex;align-items:center;gap:7px;padding:7px 10px;border-radius:7px;text-decoration:none;font-size:12px;font-weight:600;color:#475569;white-space:nowrap">🟡 쿠팡</a>'
@@ -482,8 +560,8 @@ function renderTable(){
         +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
         +'<span style="font-size:10px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.8px;margin-right:4px">바로가기</span>'
         +'<button onclick="event.stopPropagation();goHot(\''+c.name+'\')" style="display:inline-flex;align-items:center;gap:3px;padding:4px 10px;background:#fef2f2;border:1.5px solid #fecaca;border-radius:7px;font-size:12px;font-weight:700;color:#ef4444;cursor:pointer">🔥 지금뜨는제품</button>'
-        +'<button class="ql-fetch-btn" onclick="event.stopPropagation();qlFetch(\'shop\',\''+c.name+'\','+i+',true)" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:#fff;border:1.5px solid var(--bdr);border-radius:7px;font-size:12px;font-weight:600;color:#475569;cursor:pointer">🛒 네이버 쇼핑</button>'
-        +'<button class="ql-fetch-btn" onclick="event.stopPropagation();qlFetch(\'blog\',\''+c.name+'\','+i+',true)" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:#fff;border:1.5px solid var(--bdr);border-radius:7px;font-size:12px;font-weight:600;color:#475569;cursor:pointer">📝 네이버 블로그</button>'
+        +'<button onclick="event.stopPropagation();qlFetch(\'shop\',\''+c.name+'\','+i+',true)" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:#fff;border:1.5px solid var(--bdr);border-radius:7px;font-size:12px;font-weight:600;color:#475569;cursor:pointer">🛒 네이버 쇼핑</button>'
+        +'<button onclick="event.stopPropagation();qlFetch(\'blog\',\''+c.name+'\','+i+',true)" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:#fff;border:1.5px solid var(--bdr);border-radius:7px;font-size:12px;font-weight:600;color:#475569;cursor:pointer">📝 네이버 블로그</button>'
         +'<a href="https://www.coupang.com/np/search?q='+encodeURIComponent(c.name)+'" target="_blank" rel="noopener" class="ql-btn">🟡 쿠팡</a>'
         +'<a href="https://www.youtube.com/results?search_query='+encodeURIComponent(c.name+' 추천')+'" target="_blank" rel="noopener" class="ql-btn">▶️ 유튜브</a>'
         +'<a href="https://www.tiktok.com/search?q='+encodeURIComponent(c.name)+'" target="_blank" rel="noopener" class="ql-btn">🎵 틱톡</a>'
@@ -554,10 +632,7 @@ function qlFetch(type,name,idx,inline){
   }
 }
 
-function goHot(kw){
-  sessionStorage.setItem('hot-auto-kw',kw);
-  location.href='/hot.html';
-}
+function goHot(kw){sessionStorage.setItem('hot-auto-kw',kw);location.href='/hot.html';}
 
 function renderDetail(){
   var panel=document.getElementById('dp-body'),c=S.selected;
@@ -570,15 +645,51 @@ function renderDetail(){
   var dHtml=delta===null?'<span style="color:var(--faint);font-size:11px">첫 조회</span>':delta>0?'<span style="color:var(--rising);font-size:11px;font-weight:700">▲ '+delta+'위 상승</span>':delta<0?'<span style="color:var(--falling);font-size:11px;font-weight:700">▼ '+Math.abs(delta)+'위 하락</span>':'<span style="color:var(--faint);font-size:11px">── 유지</span>';
   var histBars='';for(var hi=0;hi<rh.length;hi++){var rr=rh[hi],bh=Math.max(4,Math.round((1-(rr-1)/total)*28)),isL=hi===rh.length-1;histBars+='<div style="width:10px;height:'+bh+'px;background:'+(isL?gc:'#c7d2fe')+';border-radius:2px 2px 0 0;display:inline-block;margin-right:2px"></div>';}
   var warns=[];
-  if(sc.confidence==='low')warns.push('수집 데이터 부족 — 결과 신뢰도 낮음');
-  if(n(sc.totalScore)<20)warns.push('점수 20점 미만 — 관심도 낮은 제품');
-  if(tr.status==='falling')warns.push('하락 추세 — 콘텐츠 제작 시 시장 축소 가능성 고려');
+  if(sc.confidence==='low') warns.push('수집 데이터 부족 — 결과 신뢰도 낮음');
+  if(n(sc.totalScore)<20)   warns.push('점수 20점 미만 — 관심도 낮은 제품');
+  if(tr.status==='falling')  warns.push('하락 추세 — 콘텐츠 제작 시 시장 축소 가능성 고려');
   var dirMap={shorts:'📱 YouTube Shorts 소재로 즉시 활용',blog:'📝 블로그 리뷰/비교 포스팅 추천',hold:'⏸ 추이 관망 후 재판단',compare:'🔄 유사 제품과 비교 분석 후 선택'};
   var bars='',bdKeys=Object.keys(bd);
   for(var bi=0;bi<bdKeys.length;bi++){var k=bdKeys[bi],v=bd[k],mx=SCORE_MAX[k]||25,p2=Math.round((n(v)/mx)*100);bars+='<div class="bar-item"><div class="bar-lrow"><span style="color:var(--muted)">'+(SRC_LBL[k]||k)+'</span><span style="font-weight:700">'+n(v)+'/'+mx+'</span></div><div class="bar-track"><div class="bar-fill" style="width:'+p2+'%"></div></div></div>';}
   var isFav=S.favorites.has(c.id);
+  var bo=c.blueOcean, ph=c.phase;
+
+  // ★ 블루오션 + GROQ 분석 섹션
+  var boSection='';
+  if(bo){
+    var boClass=bo.score>=5?'bo-fire':bo.score>=2?'bo-ok':bo.score>=1?'bo-warn':'bo-red';
+    boSection='<div class="dp-sec">'
+      +'<div class="dp-sec-lbl">🌊 블루오션 분석</div>'
+      +'<div class="bo-card '+boClass+'">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
+          +'<span style="font-size:20px;font-weight:900">'+bo.emoji+' '+bo.score+'</span>'
+          +'<span style="font-size:12px;font-weight:700">'+bo.label+'</span>'
+        +'</div>'
+        +(ph?'<div style="font-size:11px;font-weight:700;margin-bottom:4px">'+ph.emoji+' '+ph.phase+' — 피크까지 '+ph.peakHours+'시간 · '+ph.urgency+'</div>':'')
+        +(c.blogCount!==undefined?'<div style="font-size:10px;opacity:.8">블로그 '+n(c.blogCount).toLocaleString()+'개 · 카페 '+n(c.cafeCount).toLocaleString()+'건</div>':'')
+      +'</div>'
+      +(c.blogAngle?'<div class="dp-box" style="margin-top:6px;color:#0891b2;font-weight:700">✍️ 블로그 각도: '+c.blogAngle+'</div>':'')
+    +'</div>';
+  }
+
+  // ★ GROQ 분석 결과
+  var groqSection='';
+  if(c.groqReason){
+    groqSection='<div class="dp-sec">'
+      +'<div class="dp-sec-lbl">🤖 GROQ 분석</div>'
+      +'<div class="dp-box" style="color:#1e293b;line-height:1.7">'
+        +(c.groqReason?'<div><b>이유:</b> '+c.groqReason+'</div>':'')
+        +(c.coupangRankChange&&c.coupangRankChange>0?'<div style="color:#f59e0b;font-weight:700;margin-top:4px">🛒 쿠팡 '+c.coupangRankChange+'단계 급등</div>':'')
+        +(c.hasOverseas?'<div style="color:#10b981;font-weight:700;margin-top:4px">🌍 해외 선행 신호 감지됨</div>':'')
+      +'</div>'
+    +'</div>';
+  }
+
   panel.innerHTML='<div style="padding:14px 16px">'
     +'<div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:6px"><div class="dp-name" style="flex:1">'+(c.name||'')+'</div>'+gradeBdg(sc.grade)+'</div>'
+    +(c.peakHours?'<div style="font-size:11px;font-weight:700;color:#f97316;margin-bottom:8px;background:#fff7ed;border-radius:6px;padding:5px 10px">⏱ '+c.peakHours+'시간 내 피크 예상</div>':'')
+    +boSection
+    +groqSection
     +'<div class="pos-wrap"><div style="text-align:center;min-width:44px"><div style="font-size:26px;font-weight:900;color:'+gc+'">'+curRank+'</div><div style="font-size:10px;color:var(--faint)">/ '+total+'위</div><div style="margin-top:4px">'+dHtml+'</div></div><div style="flex:1;padding-left:10px"><div style="font-size:10px;color:var(--faint);margin-bottom:4px;text-transform:uppercase;letter-spacing:.8px">순위 히스토리</div><div class="pos-hist">'+(histBars||'<span style="font-size:10px;color:var(--faint)">기록 없음</span>')+'</div><div class="rank-track" style="margin-top:6px"><div class="rank-fill" style="width:'+pct+'%;background:'+gc+'"></div></div><div style="font-size:9px;color:var(--faint);margin-top:2px">상위 '+Math.max(1,100-pct+1)+'%</div></div></div>'
     +'<div class="dp-sec"><div class="dp-sec-lbl">📌 추천 이유</div><div class="dp-box" style="color:#1e293b;font-weight:600;line-height:1.8">'
       +(c.reason?c.reason.split(' · ').map(function(r){return'<span style="display:inline-flex;align-items:center;gap:4px;background:#eff0ff;color:#4f46e5;border-radius:6px;padding:2px 9px;font-size:11px;font-weight:700;margin-right:4px;margin-bottom:4px">'+r+'</span>';}).join(''):'<span style="color:var(--faint)">데이터 수집 중</span>')
@@ -601,12 +712,22 @@ function renderMeta(){
   var el=document.getElementById('tbl-meta');if(!el)return;
   var cs=Array.isArray(S.candidates)?S.candidates:[];
   if(!cs.length){el.innerHTML='<span class="chip" style="color:var(--faint)">탐색 결과가 표시됩니다</span>';return;}
-  var mLbl={category:'카테고리·'+(CAT_NAMES[S.catId]||''),seed:'"'+S.seedKw+'" 확장'},
+  var mLbl={category:'카테고리·'+(CAT_NAMES[S.catId]||''),seed:'"'+S.seedKw+'" 확장',multi:'멀티소스 블루오션'},
       r=cs.filter(function(c){return c&&c.trend&&c.trend.status==='rising';}).length,
-      a=cs.filter(function(c){return c&&c.score&&c.score.grade==='A';}).length;
-  el.innerHTML='<span class="chip">🔍 '+(mLbl[S.mode]||'')+'</span><span class="chip">📦 '+cs.length+'개</span><span class="chip">🔥 급상승 '+r+'개</span><span class="chip">🏆 A등급 '+a+'개</span><span class="chip">⭐ 즐겨찾기 '+S.favorites.size+'</span>'+(S.lastUpdated?'<span class="chip" style="margin-left:auto;color:var(--faint)">🕐 '+fmtDate(S.lastUpdated)+'</span>':'');
+      a=cs.filter(function(c){return c&&c.score&&c.score.grade==='A';}).length,
+      b=cs.filter(function(c){return c&&c.blueOcean&&c.blueOcean.score>=2;}).length;
+  el.innerHTML='<span class="chip">🔍 '+(mLbl[S.mode]||'')+'</span><span class="chip">📦 '+cs.length+'개</span><span class="chip">🔥 급상승 '+r+'개</span><span class="chip">🏆 A등급 '+a+'개</span><span class="chip">🌊 블루오션 '+b+'개</span><span class="chip">⭐ 즐겨찾기 '+S.favorites.size+'</span>'+(S.lastUpdated?'<span class="chip" style="margin-left:auto;color:var(--faint)">🕐 '+fmtDate(S.lastUpdated)+'</span>':'');
 }
-function renderApiBar(){var el=document.getElementById('api-bar'),items=Object.keys(S.apiStatus).map(function(k){var v=S.apiStatus[k],ok=String(v).indexOf('성공')>-1||v==='fulfilled';return'<span><span class="api-dot" style="background:'+(ok?'#34d399':'#f43f5e')+'"></span>'+k+': '+v+'</span>';});el.innerHTML=items.length?items.join(''):'API 대기 중';}
+
+function renderApiBar(){
+  var el=document.getElementById('api-bar');
+  var items=Object.keys(S.apiStatus).map(function(k){
+    var v=S.apiStatus[k],ok=String(v).indexOf('성공')>-1||String(v).indexOf('개')>-1||v==='fulfilled';
+    return'<span><span class="api-dot" style="background:'+(ok?'#34d399':'#f43f5e')+'"></span>'+k+': '+v+'</span>';
+  });
+  el.innerHTML=items.length?items.join(''):'API 대기 중';
+}
+
 function doSave(id,type){var c=null;for(var i=0;i<S.candidates.length;i++){if(S.candidates[i].id===id){c=S.candidates[i];break;}}if(!c)return;if(!S.saved[type].some(function(x){return x.id===id;}))S.saved[type].push(c);showToast('"'+c.name+'" → '+(type==='shorts'?'📱 쇼츠':'📝 블로그')+' 저장됨');renderTable();}
 function doFav(id){if(S.favorites.has(id))S.favorites.delete(id);else S.favorites.add(id);renderTable();renderMeta();renderDetail();}
 function showToast(msg){var t=document.getElementById('_toast');if(!t){t=document.createElement('div');t.id='_toast';t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;transition:opacity .3s;pointer-events:none';document.body.appendChild(t);}t.textContent=msg;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(function(){t.style.opacity='0';},2000);}
@@ -614,7 +735,20 @@ function setLoading(on,msg){S.loading=on;document.getElementById('ld').style.dis
 function showErr(msg){document.getElementById('err-wrap').style.display=msg?'block':'none';if(msg)document.getElementById('err-msg').textContent=msg;}
 function onReset(){S.candidates=[];S.filtered=[];S.selected=null;S.apiStatus={};S.lastUpdated=null;showErr(null);document.getElementById('empty-st').style.display='flex';document.getElementById('result-tbl').style.display='none';renderDetail();renderMeta();renderApiBar();renderCards();}
 function selItem(i){S.selected=S.filtered[i]||null;if(S.selected){if(!RH[S.selected.id])RH[S.selected.id]=[];var rh=RH[S.selected.id];if(rh[rh.length-1]!==i+1)rh.push(i+1);if(rh.length>8)rh.shift();}renderTable();renderDetail();}
-function switchMode(m){S.mode=m;S.selected=null;document.querySelectorAll('.mode-tab').forEach(function(t,i){t.classList.toggle('active',['category','seed'][i]===m);});['ctrl-category','ctrl-seed'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display=id==='ctrl-'+m?'flex':'none';});onReset();}
+
+// ★ switchMode: multi 추가
+function switchMode(m){
+  S.mode=m; S.selected=null;
+  document.querySelectorAll('.mode-tab').forEach(function(t,i){
+    t.classList.toggle('active',['category','seed','multi'][i]===m);
+  });
+  ['ctrl-category','ctrl-seed','ctrl-multi'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el) el.style.display=id==='ctrl-'+m?'flex':'none';
+  });
+  onReset();
+}
+
 function onCat(el){document.querySelectorAll('[data-cat]').forEach(function(b){b.classList.remove('on');});el.classList.add('on');S.catId=el.dataset.cat;}
 function onPeriod(el){document.querySelectorAll('[data-period]').forEach(function(b){b.classList.remove('on');});el.classList.add('on');S.period=el.dataset.period;}
 function onDepth(el){document.querySelectorAll('[data-depth]').forEach(function(b){b.classList.remove('on');});el.classList.add('on');S.depth=Number(el.dataset.depth);}
@@ -622,57 +756,29 @@ function onFilter(el,val){document.querySelectorAll('[data-f]').forEach(function
 function onSort(val){S.sortBy=val;applySort();renderTable();}
 
 window.addEventListener('DOMContentLoaded', function(){
-  // ★ 로딩 상태 강제 초기화 — 버튼 disabled 방지
-  S.loading = false;
-  ['btn-auto','btn-qs'].forEach(function(id){
-    var b = document.getElementById(id);
-    if(b) b.disabled = false;
-  });
-
+  S.loading=false;
+  ['btn-auto','btn-qs'].forEach(function(id){var b=document.getElementById(id);if(b)b.disabled=false;});
   try{
-    var saved = sessionStorage.getItem('realpick-trend-search-state');
-    if(!saved) return;
-    var d = JSON.parse(saved);
-    if(!d||!Array.isArray(d.candidates)||!d.candidates.length) return;
-
-    S.catId        = d.catId     || S.catId;
-    S.mode         = d.mode      || S.mode;
-    S.period       = d.period    || S.period;
-    S.filterStatus = 'all';
-    S.sortBy       = d.sortBy    || 'score';
-    S.candidates   = d.candidates;
-    S.clusters     = d.clusters  || [];
-    S.apiStatus    = d.apiStatus || {};
-    S.lastUpdated  = d.updatedAt || '';
-
-    document.querySelectorAll('[data-cat]').forEach(function(b){ b.classList.toggle('on', b.dataset.cat===S.catId); });
-    document.querySelectorAll('[data-period]').forEach(function(b){ b.classList.toggle('on', b.dataset.period===S.period); });
-    document.querySelectorAll('[data-f]').forEach(function(b){ b.classList.toggle('on', b.dataset.f==='all'); });
-    document.querySelectorAll('.mode-tab').forEach(function(t,i){ t.classList.toggle('active', ['category','seed'][i]===S.mode); });
-    ['ctrl-category','ctrl-seed'].forEach(function(id){ var el=document.getElementById(id); if(el) el.style.display=id==='ctrl-'+S.mode?'flex':'none'; });
-
+    var saved=sessionStorage.getItem('realpick-trend-search-state');
+    if(!saved)return;
+    var d=JSON.parse(saved);
+    if(!d||!Array.isArray(d.candidates)||!d.candidates.length)return;
+    S.catId=d.catId||S.catId; S.mode=d.mode||S.mode; S.period=d.period||S.period;
+    S.filterStatus='all'; S.sortBy=d.sortBy||'score';
+    S.candidates=d.candidates; S.clusters=d.clusters||[]; S.apiStatus=d.apiStatus||{}; S.lastUpdated=d.updatedAt||'';
+    document.querySelectorAll('[data-cat]').forEach(function(b){b.classList.toggle('on',b.dataset.cat===S.catId);});
+    document.querySelectorAll('[data-period]').forEach(function(b){b.classList.toggle('on',b.dataset.period===S.period);});
+    document.querySelectorAll('[data-f]').forEach(function(b){b.classList.toggle('on',b.dataset.f==='all');});
+    document.querySelectorAll('.mode-tab').forEach(function(t,i){t.classList.toggle('active',['category','seed','multi'][i]===S.mode);});
+    ['ctrl-category','ctrl-seed','ctrl-multi'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display=id==='ctrl-'+S.mode?'flex':'none';});
     document.getElementById('empty-st').style.display='none';
     document.getElementById('result-tbl').style.display='table';
-
-    applySort();
-    if(!S.filtered.length){ S.filterStatus='all'; applySort(); }
-
-    // ★ 비동기 렌더링 — 브라우저 멈춤 방지
+    applySort(); if(!S.filtered.length){S.filterStatus='all';applySort();}
     setTimeout(function(){
-      renderCards();
-      renderMeta();
-      renderApiBar();
-      renderClusters();
-      setTimeout(function(){
-        renderTable();
-        renderDetail();
-        showToast('📦 이전 탐색 결과 복원됨');
-      }, 100);
-    }, 50);
-
-  }catch(e){
-    console.warn('[복원 실패]', e.message);
-  }
+      renderCards(); renderMeta(); renderApiBar(); renderClusters();
+      setTimeout(function(){renderTable();renderDetail();showToast('📦 이전 탐색 결과 복원됨');},100);
+    },50);
+  }catch(e){console.warn('[복원 실패]',e.message);}
 });
 </script>
 </body>
