@@ -14,6 +14,7 @@ function getCacheAll(p){ var c=CACHE_ALL[p]; return c&&c.data&&(Date.now()-c.ts<
 function setCacheAll(p,d){ CACHE_ALL[p]={data:d,ts:Date.now()}; }
 function getCacheCat(catId,p){ var k=catId+'_'+p; var c=CACHE_CAT[k]; return c&&c.data&&(Date.now()-c.ts<TTL)?c.data:null; }
 function setCacheCat(catId,p,d){ var k=catId+'_'+p; CACHE_CAT[k]={data:d,ts:Date.now()}; }
+function sleep(ms){ return new Promise(function(r){setTimeout(r,ms);}); }
 
 function checkEnv(){
   var miss=[];
@@ -48,249 +49,206 @@ function buildCandidate(kw, result, maxTotal, intentOverride, velocity, shopping
 }
 
 // ════════════════════════════════════════════════════════════
-// ★ 교차검증 시스템
+// 교차검증 시스템
 // ════════════════════════════════════════════════════════════
-
-// 1단계: 소스 카운팅
 function countVerifiedSources(c, naverResult, velocity){
-  var signals = [];
-
-  // 네이버 쇼핑 실수요
-  if(naverResult && naverResult.totalCount >= 100)     signals.push('naver_shop');
-  // 네이버 검색량 상승
-  if(velocity && velocity.surgeRate >= 10)             signals.push('naver_search');
-  // 쇼핑 클릭 상승
-  if(c.shoppingInsight && c.shoppingInsight.clickSurge >= 10) signals.push('naver_insight');
-  // 블로그 언급 (공급 아닌 수요 신호로도 활용)
-  if(c.cafeCount >= 50)                                signals.push('naver_cafe');
-  // YouTube
-  if(c._ytScore >= 20)                                 signals.push('youtube');
-  // 쿠팡 순위 상승
-  if(c.coupangRankChange >= 5)                         signals.push('coupang');
-  // SNS
-  if(c._snsScore >= 20)                                signals.push('sns');
-  // 해외 선행
-  if(c.hasOverseas)                                    signals.push('overseas');
-  // GROQ 감지 소스
-  (c.groqSignals||[]).forEach(function(s){
-    if(signals.indexOf(s)<0) signals.push(s);
-  });
-
+  var signals=[];
+  if(naverResult&&naverResult.totalCount>=100)              signals.push('naver_shop');
+  if(velocity&&velocity.surgeRate>=10)                      signals.push('naver_search');
+  if(c.shoppingInsight&&c.shoppingInsight.clickSurge>=10)  signals.push('naver_insight');
+  if(c.cafeCount>=50)                                       signals.push('naver_cafe');
+  if((c._ytScore||0)>=20)                                   signals.push('youtube');
+  if((c.coupangRankChange||0)>=5)                          signals.push('coupang');
+  if((c._snsScore||0)>=20)                                  signals.push('sns');
+  if(c.hasOverseas)                                         signals.push('overseas');
+  (c.groqSignals||[]).forEach(function(s){ if(signals.indexOf(s)<0) signals.push(s); });
   return signals;
 }
 
-// 2단계: 실수요 최소 기준 검사
 function checkMinDemand(c, naverResult){
-  var reasons = [];
-
-  // 상품 자체가 없으면 탈락
-  if(!naverResult || naverResult.totalCount < 50){
-    reasons.push('쇼핑 결과 부족('+((naverResult&&naverResult.totalCount)||0)+')');
-  }
-  // 블로그+카페 둘 다 0이면 탈락
-  if((c.blogCount||0) === 0 && (c.cafeCount||0) === 0){
-    reasons.push('블로그·카페 언급 없음');
-  }
-  // velocity 하락 중이면 탈락
-  if(c.velocity && c.velocity.surgeRate < -20){
-    reasons.push('검색량 하락 중('+c.velocity.surgeRate+'%)');
-  }
-
-  return reasons; // 빈 배열이면 통과
+  var reasons=[];
+  if(!naverResult||naverResult.totalCount<50)               reasons.push('쇼핑 결과 부족('+((naverResult&&naverResult.totalCount)||0)+')');
+  if((c.blogCount||0)===0&&(c.cafeCount||0)===0)            reasons.push('블로그·카페 언급 없음');
+  if(c.velocity&&c.velocity.surgeRate<-20)                  reasons.push('검색량 하락('+c.velocity.surgeRate+'%)');
+  return reasons;
 }
 
-// 3단계: 신뢰도 등급 부여
-function assignVerifyGrade(verifiedSources, failReasons, sourceCount){
-  // 최소 기준 미달
-  if(failReasons.length > 0){
-    return { grade:'UNVERIFIED', emoji:'⚠️', label:'검증 미달', color:'#94a3b8', failReasons:failReasons };
-  }
-  // 소스 3개 이상 + velocity 있음
-  if(sourceCount >= 3 && verifiedSources.indexOf('naver_search')>-1){
-    return { grade:'VERIFIED', emoji:'✅', label:'검증 완료', color:'#10b981', failReasons:[] };
-  }
-  // 소스 2개
-  if(sourceCount >= 2){
-    return { grade:'LIKELY', emoji:'🟡', label:'가능성 있음', color:'#f59e0b', failReasons:[] };
-  }
-  // 소스 1개
-  return { grade:'UNVERIFIED', emoji:'⚠️', label:'단일 소스', color:'#94a3b8', failReasons:[] };
+function assignVerifyGrade(verifiedSources, failReasons){
+  if(failReasons.length>0) return {grade:'UNVERIFIED',emoji:'⚠️',label:'검증 미달',color:'#94a3b8',failReasons:failReasons};
+  if(verifiedSources.length>=3&&verifiedSources.indexOf('naver_search')>-1) return {grade:'VERIFIED',emoji:'✅',label:'검증 완료',color:'#10b981',failReasons:[]};
+  if(verifiedSources.length>=2) return {grade:'LIKELY',emoji:'🟡',label:'가능성 있음',color:'#f59e0b',failReasons:[]};
+  return {grade:'UNVERIFIED',emoji:'⚠️',label:'단일 소스',color:'#94a3b8',failReasons:[]};
 }
 
-// 통합 교차검증 함수
 function crossVerify(c, naverResult, velocity){
-  var verifiedSources = countVerifiedSources(c, naverResult, velocity);
-  var failReasons     = checkMinDemand(c, naverResult);
-  var grade           = assignVerifyGrade(verifiedSources, failReasons, verifiedSources.length);
-
-  c.verify = {
-    grade:           grade.grade,
-    emoji:           grade.emoji,
-    label:           grade.label,
-    color:           grade.color,
-    sourceCount:     verifiedSources.length,
-    verifiedSources: verifiedSources,
-    failReasons:     grade.failReasons
-  };
-
-  // 검증 결과를 종합점수에 반영
-  if(grade.grade === 'VERIFIED')        c.score.totalScore = Math.min(100, c.score.totalScore + 15);
-  else if(grade.grade === 'UNVERIFIED') c.score.totalScore = Math.max(0,   c.score.totalScore - 20);
-
+  var vs    = countVerifiedSources(c, naverResult, velocity);
+  var fails = checkMinDemand(c, naverResult);
+  var grade = assignVerifyGrade(vs, fails);
+  c.verify  = {grade:grade.grade,emoji:grade.emoji,label:grade.label,color:grade.color,sourceCount:vs.length,verifiedSources:vs,failReasons:grade.failReasons};
+  if(grade.grade==='VERIFIED')        c.score.totalScore=Math.min(100,c.score.totalScore+15);
+  else if(grade.grade==='UNVERIFIED') c.score.totalScore=Math.max(0,  c.score.totalScore-20);
   return c;
 }
 
-// ── YouTube 매칭 헬퍼 ────────────────────────────────────────
-function ytMatchScore(productName, ytItems){
-  if(!ytItems||!ytItems.length||!productName) return 0;
-  var tokens = productName.split(/[\s\/\-]+/).filter(function(t){ return t.length>=2; });
-  if(!tokens.length) tokens = [productName.slice(0,4)];
-  var matchCount = 0;
-  ytItems.forEach(function(v){
-    var title = (v.title||'').toLowerCase();
-    var hit = tokens.some(function(t){ return title.indexOf(t.toLowerCase())>-1; });
-    if(hit) matchCount++;
+function sortByVerify(candidates){
+  var order={VERIFIED:0,LIKELY:1,UNVERIFIED:2};
+  return candidates.sort(function(a,b){
+    var ga=order[(a.verify&&a.verify.grade)||'UNVERIFIED'];
+    var gb=order[(b.verify&&b.verify.grade)||'UNVERIFIED'];
+    if(ga!==gb) return ga-gb;
+    return b.score.totalScore-a.score.totalScore;
   });
-  return Math.min(matchCount / 5 * 100, 100);
 }
 
-// ── SNS 매칭 헬퍼 ────────────────────────────────────────────
-function snsMatchScore(productName, tiktok, instagram){
-  if(!productName) return 0;
-  var tokens = productName.split(/[\s\/\-]+/).filter(function(t){ return t.length>=2; });
-  var ttHit = (tiktok||[]).filter(function(h){
-    return tokens.some(function(t){ return h.tag.indexOf(t)>-1 || t.indexOf(h.tag)>-1; });
-  }).length;
-  var igHit = (instagram||[]).filter(function(h){
-    return tokens.some(function(t){ return h.tag.indexOf(t)>-1 || t.indexOf(h.tag)>-1; });
-  }).length;
-  return Math.min((ttHit * 20 + igHit * 15), 100);
+// ── 헬퍼 ─────────────────────────────────────────────────────
+function ytMatchScore(name,ytItems){
+  if(!ytItems||!ytItems.length||!name) return 0;
+  var tokens=name.split(/[\s\/\-]+/).filter(function(t){return t.length>=2;});
+  if(!tokens.length) tokens=[name.slice(0,4)];
+  var cnt=0;
+  ytItems.forEach(function(v){ var t=(v.title||'').toLowerCase(); if(tokens.some(function(tk){return t.indexOf(tk.toLowerCase())>-1;})) cnt++; });
+  return Math.min(cnt/5*100,100);
 }
 
-// ── 실시간 키워드 풀 구성 ────────────────────────────────────
+function snsMatchScore(name,tiktok,instagram){
+  if(!name) return 0;
+  var tokens=name.split(/[\s\/\-]+/).filter(function(t){return t.length>=2;});
+  var tt=(tiktok||[]).filter(function(h){return tokens.some(function(t){return h.tag.indexOf(t)>-1||t.indexOf(h.tag)>-1;});}).length;
+  var ig=(instagram||[]).filter(function(h){return tokens.some(function(t){return h.tag.indexOf(t)>-1||t.indexOf(h.tag)>-1;});}).length;
+  return Math.min(tt*20+ig*15,100);
+}
+
+// ── 실시간 키워드 풀 ─────────────────────────────────────────
 async function buildKeywordPool(catId){
-  var fallback = CFG.CAT_SEEDS[catId] || CFG.CAT_SEEDS['50000003'];
-  var dynamic  = await FETCH.fetchCategoryTopKeywords(catId, fallback.slice(0,5));
-  var pool     = dynamic.slice();
-  fallback.forEach(function(kw){
-    if(pool.indexOf(kw)<0) pool.push(kw);
-  });
-  return { keywords: pool.slice(0,30), dynamicCount: dynamic.length };
+  var fallback=CFG.CAT_SEEDS[catId]||CFG.CAT_SEEDS['50000003'];
+  var dynamic=await FETCH.fetchCategoryTopKeywords(catId,fallback.slice(0,5));
+  var pool=dynamic.slice();
+  fallback.forEach(function(kw){if(pool.indexOf(kw)<0) pool.push(kw);});
+  return {keywords:pool.slice(0,30),dynamicCount:dynamic.length};
 }
 
-// ── 카테고리 탐색 ★ 교차검증 추가 ──────────────────────────
+// ════════════════════════════════════════════════════════════
+// 카테고리 탐색 파이프라인
+// ════════════════════════════════════════════════════════════
 async function discoverCategory(catId, period){
-  var pool = await buildKeywordPool(catId);
-  var kws  = pool.keywords;
-
-  var valid = await FETCH.batchShopSearch(kws);
-  var withItems = valid.filter(function(v){return v.result.items.length>0;});
-  valid = withItems.concat(valid.filter(function(v){return !v.result.items.length;}));
-  if(!valid.length) return {candidates:[], apiStatus:{search:'결과 없음'}};
-
-  var maxTotal = valid.reduce(function(m,v){return Math.max(m,v.result.totalCount);},0)||40;
-  var vMap={}, siMap={};
-  var top10 = valid.slice(0,20).sort(function(a,b){return b.result.totalCount-a.result.totalCount;}).slice(0,10);
-
-  for(var vi=0;vi<top10.length;vi++){
-    var v=top10[vi];
-    var r2=await Promise.all([FETCH.fetchVelocity(v.kw,period),FETCH.fetchShoppingInsight(v.kw,period)]);
-    vMap[v.kw]=r2[0]; siMap[v.kw]=r2[1];
-    if(vi<top10.length-1) await new Promise(function(r){setTimeout(r,200);});
+  var pipe={stage:'',log:[]};
+  function checkpoint(name,ok,detail){
+    pipe.stage=name;
+    pipe.log.push('['+name+'] '+(ok?'✅':'⚠️')+' '+(detail||''));
+    console.log('[category-pipe]',name,ok?'OK':'WARN',detail||'');
+    return ok;
   }
 
-  // 블로그·카페 수집 (상위 10개만)
-  var top10kws = top10.map(function(v){ return v.kw; });
-  var naverCounts = await NAVER_EXT.fetchNaverCountsBatch(top10kws);
-  var ncMap = {};
-  top10kws.forEach(function(kw,i){ ncMap[kw] = naverCounts[i]||{blogCount:0,cafeCount:0,newsCount:0}; });
+  // ── STAGE 1: 키워드 풀 구성 ──────────────────────────────
+  var pool=await buildKeywordPool(catId);
+  checkpoint('키워드풀', pool.keywords.length>0, pool.dynamicCount+'개 실시간 + 고정');
 
-  var candidates = valid.map(function(v){
-    var c = buildCandidate(v.kw,v.result,maxTotal,null,vMap[v.kw]||null,siMap[v.kw]||null);
-    var nc = ncMap[v.kw]||{blogCount:0,cafeCount:0,newsCount:0};
-    c.blogCount  = nc.blogCount;
-    c.cafeCount  = nc.cafeCount;
-    c.newsCount  = nc.newsCount;
-    // 카테고리 탐색은 소스가 네이버만이라 ytScore/snsScore 0
-    c._ytScore   = 0;
-    c._snsScore  = 0;
-    c.groqSignals= [];
-    c.hasOverseas= false;
-    c.coupangRankChange = 0;
-    // ★ 교차검증
-    crossVerify(c, v.result, vMap[v.kw]||null);
+  // ── STAGE 2: 네이버 쇼핑 검색 ───────────────────────────
+  var valid=await FETCH.batchShopSearch(pool.keywords);
+  var withItems=valid.filter(function(v){return v.result.items.length>0;});
+  if(!checkpoint('쇼핑검색', withItems.length>0, withItems.length+'/'+pool.keywords.length)){
+    return {candidates:[],apiStatus:{error:'쇼핑 결과 없음'},pipeLog:pipe.log};
+  }
+  var maxTotal=withItems.reduce(function(m,v){return Math.max(m,v.result.totalCount);},0)||40;
+  var top10=withItems.slice(0,20).sort(function(a,b){return b.result.totalCount-a.result.totalCount;}).slice(0,10);
+  await sleep(300); // 네이버 API 간격
+
+  // ── STAGE 3: velocity + insight (순차, 딜레이 포함) ──────
+  var vMap={},siMap={};
+  for(var vi=0;vi<top10.length;vi++){
+    var v=top10[vi];
+    try{
+      vMap[v.kw]=await FETCH.fetchVelocity(v.kw,period);
+      await sleep(250);
+      siMap[v.kw]=await FETCH.fetchShoppingInsight(v.kw,period);
+      await sleep(250);
+    }catch(e){ console.error('[cat-velocity]',v.kw,e.message); }
+  }
+  var vCount=Object.values(vMap).filter(Boolean).length;
+  checkpoint('velocity+insight', vCount>0, vCount+'/'+top10.length+' 성공');
+  await sleep(500);
+
+  // ── STAGE 4: 블로그·카페·뉴스 (배치 순차) ───────────────
+  var top10kws=top10.map(function(v){return v.kw;});
+  var naverCounts=await NAVER_EXT.fetchNaverCountsBatch(top10kws);
+  var ncMap={};
+  top10kws.forEach(function(kw,i){ncMap[kw]=naverCounts[i]||{blogCount:0,cafeCount:0,newsCount:0};});
+  checkpoint('블로그/카페', naverCounts.some(function(nc){return nc.blogCount>0;}), '수집 완료');
+
+  // ── STAGE 5: 후보 구성 + 교차검증 ───────────────────────
+  var candidates=withItems.map(function(v){
+    var c=buildCandidate(v.kw,v.result,maxTotal,null,vMap[v.kw]||null,siMap[v.kw]||null);
+    var nc=ncMap[v.kw]||{blogCount:0,cafeCount:0,newsCount:0};
+    c.blogCount=nc.blogCount; c.cafeCount=nc.cafeCount; c.newsCount=nc.newsCount;
+    c._ytScore=0; c._snsScore=0; c.groqSignals=[]; c.hasOverseas=false; c.coupangRankChange=0;
+    crossVerify(c,v.result,vMap[v.kw]||null);
     delete c._ytScore; delete c._snsScore;
     return c;
   }).filter(function(c){return c.score.totalScore>0;});
 
-  // VERIFIED·LIKELY 우선 정렬, 그 안에서 점수순
-  candidates.sort(function(a,b){
-    var gradeOrder = {VERIFIED:0, LIKELY:1, UNVERIFIED:2};
-    var ga = gradeOrder[(a.verify&&a.verify.grade)||'UNVERIFIED'];
-    var gb = gradeOrder[(b.verify&&b.verify.grade)||'UNVERIFIED'];
-    if(ga !== gb) return ga-gb;
-    return b.score.totalScore - a.score.totalScore;
-  });
-
-  var verified = candidates.filter(function(c){return c.verify&&c.verify.grade==='VERIFIED';}).length;
-  var likely   = candidates.filter(function(c){return c.verify&&c.verify.grade==='LIKELY';}).length;
+  sortByVerify(candidates);
+  var verified=candidates.filter(function(c){return c.verify&&c.verify.grade==='VERIFIED';}).length;
+  checkpoint('교차검증', verified>0, '✅'+verified+'/🟡'+(candidates.filter(function(c){return c.verify&&c.verify.grade==='LIKELY';}).length)+'/⚠️'+(candidates.length-verified));
 
   return {
-    candidates: candidates.slice(0,10),
-    apiStatus: {
-      search:   withItems.length+'/'+kws.length+' 성공',
-      dynamic:  pool.dynamicCount+'개 실시간 키워드',
-      verified: '✅ '+verified+' / 🟡 '+likely+' / ⚠️ '+(candidates.length-verified-likely)
+    candidates:candidates.slice(0,10),
+    apiStatus:{
+      search:  withItems.length+'/'+pool.keywords.length+' 성공',
+      dynamic: pool.dynamicCount+'개 실시간',
+      verified:'✅'+verified+' 검증',
+      pipeline:pipe.log.join(' → ')
     }
   };
 }
 
-// ── 전체 카테고리 탐색 ───────────────────────────────────────
+// ════════════════════════════════════════════════════════════
+// 전체 카테고리 탐색 파이프라인
+// ════════════════════════════════════════════════════════════
 async function discoverAll(period){
   var tasks=[];
-  var poolResults = await Promise.allSettled(
-    CFG.CAT_ORDER.map(function(catId){ return buildKeywordPool(catId); })
-  );
-  CFG.CAT_ORDER.forEach(function(catId, idx){
-    var pool = poolResults[idx].status==='fulfilled'
-      ? poolResults[idx].value
-      : { keywords: (CFG.CAT_SEEDS[catId]||[]).slice(0,3), dynamicCount:0 };
-    pool.keywords.slice(0,5).forEach(function(kw){ tasks.push({catId:catId,kw:kw}); });
+  var poolResults=await Promise.allSettled(CFG.CAT_ORDER.map(function(catId){return buildKeywordPool(catId);}));
+  CFG.CAT_ORDER.forEach(function(catId,idx){
+    var pool=poolResults[idx].status==='fulfilled'?poolResults[idx].value:{keywords:(CFG.CAT_SEEDS[catId]||[]).slice(0,3),dynamicCount:0};
+    pool.keywords.slice(0,5).forEach(function(kw){tasks.push({catId:catId,kw:kw});});
   });
+  await sleep(300);
 
-  var BATCH=10, pool=[], completed=[], failed=[];
+  var BATCH=10,pool=[],completed=[],failed=[];
   for(var i=0;i<tasks.length;i+=BATCH){
     var chunk=tasks.slice(i,i+BATCH);
     var settled=await Promise.allSettled(chunk.map(function(t){return FETCH.shopSearch(t.kw,null);}));
     settled.forEach(function(r,j){
-      var t=chunk[j], result=r.status==='fulfilled'?r.value:{items:[],totalCount:0};
+      var t=chunk[j],result=r.status==='fulfilled'?r.value:{items:[],totalCount:0};
       if(result.items.length>0){
         pool.push({catId:t.catId,kw:t.kw,result:result});
         if(completed.indexOf(CFG.CAT_NAMES[t.catId]||t.catId)<0) completed.push(CFG.CAT_NAMES[t.catId]||t.catId);
-      } else {
+      }else{
         if(failed.indexOf(CFG.CAT_NAMES[t.catId]||t.catId)<0) failed.push(CFG.CAT_NAMES[t.catId]||t.catId);
       }
     });
-    if(i+BATCH<tasks.length) await new Promise(function(r){setTimeout(r,200);});
+    if(i+BATCH<tasks.length) await sleep(300);
   }
-
   if(!pool.length) return {candidates:[],apiStatus:{completed:'0',failed:'전체 실패'},processLog:{completed:[],failed:[]}};
+  await sleep(500);
 
   var maxTotal=pool.reduce(function(m,v){return Math.max(m,v.result.totalCount);},0)||40;
   var vMap={},siMap={};
   var top10pool=pool.slice().sort(function(a,b){return b.result.totalCount-a.result.totalCount;}).slice(0,10);
   for(var pi=0;pi<top10pool.length;pi++){
     var pv=top10pool[pi];
-    var pres=await Promise.all([FETCH.fetchVelocity(pv.kw,period),FETCH.fetchShoppingInsight(pv.kw,period)]);
-    vMap[pv.kw]=pres[0]; siMap[pv.kw]=pres[1];
-    if(pi<top10pool.length-1) await new Promise(function(r){setTimeout(r,200);});
+    try{
+      vMap[pv.kw]=await FETCH.fetchVelocity(pv.kw,period);
+      await sleep(250);
+      siMap[pv.kw]=await FETCH.fetchShoppingInsight(pv.kw,period);
+      await sleep(250);
+    }catch(e){console.error('[all-velocity]',pv.kw,e.message);}
   }
+  await sleep(500);
 
-  // 블로그·카페 (top10만)
-  var top10kws2 = top10pool.map(function(v){ return v.kw; });
-  var nc10 = await NAVER_EXT.fetchNaverCountsBatch(top10kws2);
+  var top10kws2=top10pool.map(function(v){return v.kw;});
+  var nc10=await NAVER_EXT.fetchNaverCountsBatch(top10kws2);
   var ncMap2={};
-  top10kws2.forEach(function(kw,i){ ncMap2[kw]=nc10[i]||{blogCount:0,cafeCount:0,newsCount:0}; });
+  top10kws2.forEach(function(kw,i){ncMap2[kw]=nc10[i]||{blogCount:0,cafeCount:0,newsCount:0};});
 
   var candidates=pool.map(function(v){
     var c=buildCandidate(v.kw,v.result,maxTotal,null,vMap[v.kw]||null,siMap[v.kw]||null);
@@ -298,29 +256,26 @@ async function discoverAll(period){
     var nc=ncMap2[v.kw]||{blogCount:0,cafeCount:0,newsCount:0};
     c.blogCount=nc.blogCount; c.cafeCount=nc.cafeCount; c.newsCount=nc.newsCount;
     c._ytScore=0; c._snsScore=0; c.groqSignals=[]; c.hasOverseas=false; c.coupangRankChange=0;
-    crossVerify(c, v.result, vMap[v.kw]||null);
+    crossVerify(c,v.result,vMap[v.kw]||null);
     delete c._ytScore; delete c._snsScore;
     return c;
   });
-
-  candidates.sort(function(a,b){
-    var gradeOrder={VERIFIED:0,LIKELY:1,UNVERIFIED:2};
-    var ga=gradeOrder[(a.verify&&a.verify.grade)||'UNVERIFIED'];
-    var gb=gradeOrder[(b.verify&&b.verify.grade)||'UNVERIFIED'];
-    if(ga!==gb) return ga-gb;
-    return b.score.totalScore-a.score.totalScore;
-  });
+  sortByVerify(candidates);
 
   return {
-    candidates:  candidates.slice(0,10),
-    apiStatus:   {completed:completed.length+'/'+CFG.CAT_ORDER.length+' 카테고리', failed:failed.length?failed.join(', '):'없음'},
-    processLog:  {completed:completed, failed:failed}
+    candidates:candidates.slice(0,10),
+    apiStatus:{completed:completed.length+'/'+CFG.CAT_ORDER.length+' 카테고리',failed:failed.length?failed.join(', '):'없음'},
+    processLog:{completed:completed,failed:failed}
   };
 }
 
-// ── 시드 키워드 확장 ─────────────────────────────────────────
+// ════════════════════════════════════════════════════════════
+// 시드 키워드 파이프라인
+// ════════════════════════════════════════════════════════════
 async function discoverSeed(seedKw, period){
   var STOP=new Set(['이','가','을','를','의','에','는','은','도','와','과','세트','상품','제품','판매']);
+
+  // STAGE 1: 시드 키워드 확장
   var list=ANALYZE.expandIntentKeywords(seedKw);
   var r1=await FETCH.shopSearch(seedKw,null).catch(function(){return {items:[],totalCount:0};});
   var freq={};
@@ -328,9 +283,12 @@ async function discoverSeed(seedKw, period){
     FETCH.cleanText(i.title||'').split(/\s+/).filter(function(w){return w.length>1&&!STOP.has(w)&&w!==seedKw;}).forEach(function(w){freq[w]=(freq[w]||0)+1;});
   });
   Object.entries(freq).sort(function(a,b){return b[1]-a[1];}).slice(0,3).forEach(function(e){list.push({kw:e[0],intent:'none'});});
-  var seen={}, unique=[];
+  var seen={},unique=[];
   list.forEach(function(item){if(!seen[item.kw]){seen[item.kw]=true;unique.push(item);}});
   unique=unique.slice(0,12);
+  await sleep(300);
+
+  // STAGE 2: 쇼핑 검색
   var res=await Promise.allSettled(unique.map(function(item){return FETCH.shopSearch(item.kw,null);}));
   var valid=[];
   for(var i=0;i<unique.length;i++){
@@ -339,47 +297,57 @@ async function discoverSeed(seedKw, period){
   }
   if(!valid.length) return {candidates:[],apiStatus:{search:'결과 없음'}};
   var maxTotal=valid.reduce(function(m,v){return Math.max(m,v.result.totalCount);},0)||40;
+  await sleep(300);
+
+  // STAGE 3: velocity + insight (순차)
   var vMap={},siMap={};
   var top10seed=valid.slice().sort(function(a,b){return b.result.totalCount-a.result.totalCount;}).slice(0,10);
   for(var si2=0;si2<top10seed.length;si2++){
     var sv=top10seed[si2];
-    var sres=await Promise.all([FETCH.fetchVelocity(sv.kw,period),FETCH.fetchShoppingInsight(sv.kw,period)]);
-    vMap[sv.kw]=sres[0]; siMap[sv.kw]=sres[1];
-    if(si2<top10seed.length-1) await new Promise(function(r){setTimeout(r,200);});
+    try{
+      vMap[sv.kw]=await FETCH.fetchVelocity(sv.kw,period);
+      await sleep(250);
+      siMap[sv.kw]=await FETCH.fetchShoppingInsight(sv.kw,period);
+      await sleep(250);
+    }catch(e){console.error('[seed-velocity]',sv.kw,e.message);}
   }
+  await sleep(500);
 
-  // 블로그·카페
-  var seedKws = valid.map(function(v){ return v.kw; });
-  var seedNc  = await NAVER_EXT.fetchNaverCountsBatch(seedKws);
+  // STAGE 4: 블로그·카페·뉴스 (배치 순차)
+  var seedKws=valid.map(function(v){return v.kw;});
+  var seedNc=await NAVER_EXT.fetchNaverCountsBatch(seedKws);
   var seedNcMap={};
-  seedKws.forEach(function(kw,i){ seedNcMap[kw]=seedNc[i]||{blogCount:0,cafeCount:0,newsCount:0}; });
+  seedKws.forEach(function(kw,i){seedNcMap[kw]=seedNc[i]||{blogCount:0,cafeCount:0,newsCount:0};});
 
+  // STAGE 5: 후보 구성 + 교차검증
   var candidates=valid.map(function(v){
     var c=buildCandidate(v.kw,v.result,maxTotal,v.intent,vMap[v.kw]||null,siMap[v.kw]||null);
     var nc=seedNcMap[v.kw]||{blogCount:0,cafeCount:0,newsCount:0};
     c.blogCount=nc.blogCount; c.cafeCount=nc.cafeCount; c.newsCount=nc.newsCount;
     c._ytScore=0; c._snsScore=0; c.groqSignals=[]; c.hasOverseas=false; c.coupangRankChange=0;
-    crossVerify(c, v.result, vMap[v.kw]||null);
+    crossVerify(c,v.result,vMap[v.kw]||null);
     delete c._ytScore; delete c._snsScore;
     return c;
   });
-
-  candidates.sort(function(a,b){
-    var gradeOrder={VERIFIED:0,LIKELY:1,UNVERIFIED:2};
-    var ga=gradeOrder[(a.verify&&a.verify.grade)||'UNVERIFIED'];
-    var gb=gradeOrder[(b.verify&&b.verify.grade)||'UNVERIFIED'];
-    if(ga!==gb) return ga-gb;
-    return b.score.totalScore-a.score.totalScore;
-  });
+  sortByVerify(candidates);
 
   return {candidates:candidates.slice(0,10),apiStatus:{search:valid.length+'/'+unique.length+' 성공'}};
 }
 
-// ── 멀티소스 블루오션 탐색 ★ 교차검증 강화 ──────────────────
+// ════════════════════════════════════════════════════════════
+// 멀티소스 블루오션 파이프라인
+// ════════════════════════════════════════════════════════════
 async function discoverMulti(period){
   var apiStatus={};
+  var pipe=[];
+  function log(stage,ok,detail){
+    pipe.push('['+stage+'] '+(ok?'✅':'⚠️')+' '+(detail||''));
+    console.log('[multi-pipe]',stage,ok?'OK':'WARN',detail||'');
+  }
 
-  var fetched = await Promise.allSettled([
+  // ── STAGE 1: 외부 소스 수집 (병렬 — 서로 다른 서버라 OK) ─
+  log('STAGE1','start','외부 소스 병렬 수집 시작');
+  var fetched=await Promise.allSettled([
     MULTI.fetchYoutubeTrending(),
     MULTI.fetchYoutubeShorts(),
     MULTI.fetchCoupangBest(),
@@ -388,124 +356,138 @@ async function discoverMulti(period){
     MULTI.fetchTikTokTrends(),
     MULTI.fetchInstagramTrends()
   ]);
-  var youtube   = fetched[0].status==='fulfilled' ? fetched[0].value : [];
-  var shorts    = fetched[1].status==='fulfilled' ? fetched[1].value : [];
-  var coupang   = fetched[2].status==='fulfilled' ? fetched[2].value : [];
-  var googleKr  = fetched[3].status==='fulfilled' ? fetched[3].value : [];
-  var googleOs  = fetched[4].status==='fulfilled' ? fetched[4].value : [];
-  var tiktok    = fetched[5].status==='fulfilled' ? fetched[5].value : [];
-  var instagram = fetched[6].status==='fulfilled' ? fetched[6].value : [];
-  var allYt     = youtube.concat(shorts);
+  var youtube   =fetched[0].status==='fulfilled'?fetched[0].value:[];
+  var shorts    =fetched[1].status==='fulfilled'?fetched[1].value:[];
+  var coupang   =fetched[2].status==='fulfilled'?fetched[2].value:[];
+  var googleKr  =fetched[3].status==='fulfilled'?fetched[3].value:[];
+  var googleOs  =fetched[4].status==='fulfilled'?fetched[4].value:[];
+  var tiktok    =fetched[5].status==='fulfilled'?fetched[5].value:[];
+  var instagram =fetched[6].status==='fulfilled'?fetched[6].value:[];
+  var allYt=youtube.concat(shorts);
+  var sourceCount=[allYt.length,coupang.length,tiktok.length,instagram.length,googleKr.length+googleOs.length].filter(function(n){return n>0;}).length;
 
-  apiStatus.youtube   = allYt.length+'개';
-  apiStatus.coupang   = coupang.length+'개 (급등 '+coupang.filter(function(p){return p.rankChange>=10;}).length+'개)';
-  apiStatus.tiktok    = tiktok.length+'개';
-  apiStatus.instagram = instagram.length+'개';
-  apiStatus.google    = (googleKr.length+googleOs.length)+'개';
+  apiStatus.youtube=allYt.length+'개';
+  apiStatus.coupang=coupang.length+'개';
+  apiStatus.tiktok=tiktok.length+'개';
+  apiStatus.instagram=instagram.length+'개';
+  apiStatus.google=(googleKr.length+googleOs.length)+'개';
 
-  var extracted = await GROQ.extractTrendingProducts({
-    youtube:youtube, shorts:shorts, coupang:coupang,
-    tiktok:tiktok, instagram:instagram,
-    googleKr:googleKr, googleOs:googleOs, naver:[]
-  }).catch(function(){ return []; });
+  // ★ 체크포인트: 소스 2개 미만이면 중단
+  if(!log('STAGE1', sourceCount>=2, sourceCount+'개 소스 확보') && sourceCount<2){
+    return {candidates:[],apiStatus:Object.assign(apiStatus,{error:'소스 부족 ('+sourceCount+'개)'}),pipeLog:pipe};
+  }
 
-  apiStatus.groq = extracted.length ? extracted.length+'개 추출' : '실패/키 없음';
-  if(!extracted.length) return {candidates:[], apiStatus:apiStatus};
+  // ── STAGE 2: GROQ 제품 추출 ──────────────────────────────
+  await sleep(200); // 외부 API → GROQ 간격
+  var extracted=await GROQ.extractTrendingProducts({
+    youtube:youtube,shorts:shorts,coupang:coupang,
+    tiktok:tiktok,instagram:instagram,
+    googleKr:googleKr,googleOs:googleOs,naver:[]
+  }).catch(function(){return [];});
 
-  var naverResults = await Promise.allSettled(
-    extracted.map(function(e){ return FETCH.shopSearch(e.name, null); })
+  // ★ 체크포인트: 5개 미만이면 중단
+  if(extracted.length<5){
+    log('STAGE2',false,'추출 부족 ('+extracted.length+'개)');
+    return {candidates:[],apiStatus:Object.assign(apiStatus,{error:'GROQ 추출 부족 ('+extracted.length+'개)'}),pipeLog:pipe};
+  }
+  log('STAGE2',true,extracted.length+'개 추출');
+  apiStatus.groq=extracted.length+'개 추출';
+
+  // ── STAGE 3: 네이버 쇼핑 검증 (병렬 — 쇼핑은 레이트 리밋 없음) ─
+  await sleep(300);
+  var naverResults=await Promise.allSettled(
+    extracted.map(function(e){return FETCH.shopSearch(e.name,null);})
   );
+  var shopCount=naverResults.filter(function(r){return r.status==='fulfilled'&&r.value.items.length>0;}).length;
+
+  // ★ 체크포인트: 상품 확인된 게 3개 미만이면 중단
+  if(shopCount<3){
+    log('STAGE3',false,'실제 상품 부족 ('+shopCount+'개)');
+    return {candidates:[],apiStatus:Object.assign(apiStatus,{error:'쇼핑 검증 실패 ('+shopCount+'개)'}),pipeLog:pipe};
+  }
+  log('STAGE3',true,shopCount+'/'+extracted.length+' 상품 확인');
+  apiStatus['쇼핑검증']=shopCount+'/'+extracted.length;
+
   var maxTotal=0;
-  naverResults.forEach(function(r){ if(r.status==='fulfilled') maxTotal=Math.max(maxTotal, r.value.totalCount); });
+  naverResults.forEach(function(r){if(r.status==='fulfilled') maxTotal=Math.max(maxTotal,r.value.totalCount);});
   if(!maxTotal) maxTotal=40;
 
-  var kwList      = extracted.map(function(e){ return e.name; });
-  var naverCounts = await NAVER_EXT.fetchNaverCountsBatch(kwList);
-  apiStatus['블로그/카페'] = naverCounts.filter(function(nc){ return nc.blogCount>0; }).length+'개 수집';
+  // ── STAGE 4: 블로그·카페·뉴스 (순차 배치 — 레이트 리밋 대응) ─
+  await sleep(500); // 쇼핑 → 블로그 API 간격
+  var kwList=extracted.map(function(e){return e.name;});
+  var naverCounts=await NAVER_EXT.fetchNaverCountsBatch(kwList);
+  log('STAGE4',true,'블로그/카페/뉴스 수집 완료');
+  apiStatus['블로그/카페']=naverCounts.filter(function(nc){return nc.blogCount>0;}).length+'개 수집';
 
-  // 후보 구성
+  // ── STAGE 5: 후보 구성 ───────────────────────────────────
   var candidates=[];
-  for(var i=0; i<extracted.length; i++){
-    var e  = extracted[i];
-    var nr = naverResults[i].status==='fulfilled' ? naverResults[i].value : {items:[],totalCount:0};
-    var nc = naverCounts[i] || {blogCount:0, cafeCount:0, newsCount:0};
+  for(var i=0;i<extracted.length;i++){
+    var e=extracted[i];
+    var nr=naverResults[i].status==='fulfilled'?naverResults[i].value:{items:[],totalCount:0};
+    var nc=naverCounts[i]||{blogCount:0,cafeCount:0,newsCount:0};
     if(!nr.items.length) continue;
-
-    var c = buildCandidate(e.name, nr, maxTotal, null, null, null);
-    c.groqScore     = e.score      || 0;
-    c.groqSignals   = e.signals    || [];
-    c.groqReason    = e.reason     || '';
-    c.groqBlogAngle = e.blogAngle  || '';
-    c.groqPhase     = e.phase      || '';
-    c.groqPeakHours = e.peakHours  || 72;
-    c.hasOverseas   = e.hasOverseas|| false;
-    c.blogCount     = nc.blogCount;
-    c.cafeCount     = nc.cafeCount;
-    c.newsCount     = nc.newsCount;
-    c._ytScore      = ytMatchScore(e.name, allYt);
-    c._snsScore     = snsMatchScore(e.name, tiktok, instagram);
-    var cpItem = coupang.find(function(p){ return p.name.indexOf(c.name.slice(0,4))>-1; });
-    c.coupangRank       = cpItem ? cpItem.rank      : null;
-    c.coupangRankChange = cpItem ? cpItem.rankChange : 0;
+    var c=buildCandidate(e.name,nr,maxTotal,null,null,null);
+    c.groqScore=e.score||0; c.groqSignals=e.signals||[]; c.groqReason=e.reason||'';
+    c.groqBlogAngle=e.blogAngle||''; c.groqPeakHours=e.peakHours||72; c.hasOverseas=e.hasOverseas||false;
+    c.blogCount=nc.blogCount; c.cafeCount=nc.cafeCount; c.newsCount=nc.newsCount;
+    c._ytScore=ytMatchScore(e.name,allYt);
+    c._snsScore=snsMatchScore(e.name,tiktok,instagram);
+    var cpItem=coupang.find(function(p){return p.name.indexOf(c.name.slice(0,4))>-1;});
+    c.coupangRank=cpItem?cpItem.rank:null;
+    c.coupangRankChange=cpItem?cpItem.rankChange:0;
     candidates.push(c);
   }
+  log('STAGE5',true,candidates.length+'개 후보 구성');
 
-  // velocity + insight 순차 수집
-  var top5 = candidates.slice(0,5);
-  for(var vi=0; vi<top5.length; vi++){
-    var cv = top5[vi];
+  // ── STAGE 6: velocity + insight (순차 — 레이트 리밋 대응) ─
+  await sleep(500); // 블로그 → velocity API 간격
+  var top5=candidates.slice(0,5);
+  for(var vi=0;vi<top5.length;vi++){
+    var cv=top5[vi];
     try{
-      var vel = await FETCH.fetchVelocity(cv.name, period);
-      await new Promise(function(r){setTimeout(r,200);});
-      var si  = await FETCH.fetchShoppingInsight(cv.name, period);
-      if(vel||si){
-        cv.velocity        = vel;
-        cv.velocityLabel   = SCORE.velocityLabel(vel);
-        cv.shoppingInsight = si;
-        var nr2 = naverResults.find(function(r,j){ return extracted[j]&&extracted[j].name===cv.name&&r.status==='fulfilled'; });
-        var res2 = nr2 ? nr2.value : {items:cv.sampleItems||[],totalCount:cv.totalCount||0};
-        var ns = SCORE.calcScore(res2, maxTotal, vel, cv.commercial, si);
-        cv.score        = ns;
-        cv.insightLabel = ns.insightLabel;
+      cv.velocity=await FETCH.fetchVelocity(cv.name,period);
+      await sleep(300);
+      cv.shoppingInsight=await FETCH.fetchShoppingInsight(cv.name,period);
+      await sleep(300);
+      if(cv.velocity||cv.shoppingInsight){
+        cv.velocityLabel=SCORE.velocityLabel(cv.velocity);
+        var nr2=naverResults.find(function(r,j){return extracted[j]&&extracted[j].name===cv.name&&r.status==='fulfilled';});
+        var res2=nr2?nr2.value:{items:cv.sampleItems||[],totalCount:cv.totalCount||0};
+        var ns=SCORE.calcScore(res2,maxTotal,cv.velocity,cv.commercial,cv.shoppingInsight);
+        cv.score=ns; cv.insightLabel=ns.insightLabel;
       }
-    }catch(e2){ console.error('[velocity/insight]', cv.name, e2.message); }
-    if(vi < top5.length-1) await new Promise(function(r){setTimeout(r,300);});
+    }catch(e2){console.error('[velocity/insight]',cv.name,e2.message);}
   }
+  var velCount=top5.filter(function(c){return c.velocity;}).length;
+  log('STAGE6',velCount>0,'velocity '+velCount+'/'+top5.length);
 
-  // ★ 교차검증 + 블루오션 계산
+  // ── STAGE 7: 교차검증 + 블루오션 점수 ───────────────────
   candidates.forEach(function(c){
-    var vel = c.velocity||{};
+    var vel=c.velocity||{};
+    var nr=naverResults.find(function(r,j){return extracted[j]&&extracted[j].name===c.name&&r.status==='fulfilled';});
 
-    // 교차검증 (velocity 수집 후 실행)
-    var nr = naverResults.find(function(r,j){ return extracted[j]&&extracted[j].name===c.name&&r.status==='fulfilled'; });
-    crossVerify(c, nr?nr.value:null, vel.surgeRate!==undefined?vel:null);
+    // 교차검증
+    crossVerify(c,nr?nr.value:null,vel.surgeRate!==undefined?vel:null);
 
-    var boData = {
-      searchSurge:  vel.surgeRate      || 0,
-      ytScore:      c._ytScore         || 0,
-      coupangSurge: c.coupangRankChange|| 0,
-      snsScore:     c._snsScore        || 0,
-      hasOverseas:  c.hasOverseas      || false,
-      blogCount:    c.blogCount        || 0
-    };
-    c.blueOcean = BLUE.calcBlueOcean(boData);
-    c.phase     = BLUE.detectPhase({
-      searchSurge: vel.surgeRate||0,
-      blogCount:   c.blogCount||0,
-      cafeCount:   c.cafeCount||0,
-      newsCount:   c.newsCount||0,
-      ytSurge:     c._ytScore||0,
-      snsSurge:    c._snsScore||0
+    // 블루오션
+    c.blueOcean=BLUE.calcBlueOcean({
+      searchSurge:vel.surgeRate||0, ytScore:c._ytScore||0,
+      coupangSurge:c.coupangRankChange||0, snsScore:c._snsScore||0,
+      hasOverseas:c.hasOverseas||false, blogCount:c.blogCount||0
+    });
+    c.phase=BLUE.detectPhase({
+      searchSurge:vel.surgeRate||0, blogCount:c.blogCount||0,
+      cafeCount:c.cafeCount||0, newsCount:c.newsCount||0,
+      ytSurge:c._ytScore||0, snsSurge:c._snsScore||0
     });
 
-    // GROQ 보너스는 VERIFIED일 때만 full 적용
-    var groqBonus = Math.round((c.groqScore||0)/100*15);
-    if(c.verify && c.verify.grade === 'UNVERIFIED') groqBonus = 0;
-    c.score.totalScore = Math.min(100, c.score.totalScore + groqBonus);
+    // GROQ 보너스: UNVERIFIED면 적용 안 함
+    var groqBonus=Math.round((c.groqScore||0)/100*15);
+    if(c.verify&&c.verify.grade==='UNVERIFIED') groqBonus=0;
+    c.score.totalScore=Math.min(100,c.score.totalScore+groqBonus);
 
-    if(c.groqSignals&&c.groqSignals.length){
-      c.sources = c.sources.concat(c.groqSignals.filter(function(s){ return c.sources.indexOf(s)<0; }));
-    }
+    if(c.groqSignals&&c.groqSignals.length)
+      c.sources=c.sources.concat(c.groqSignals.filter(function(s){return c.sources.indexOf(s)<0;}));
 
     var r=[];
     if(c.verify) r.push(c.verify.emoji+' '+c.verify.label+' ('+c.verify.sourceCount+'개 소스)');
@@ -514,37 +496,42 @@ async function discoverMulti(period){
     if(c.phase) r.push(c.phase.emoji+' '+c.phase.phase);
     if(c.hasOverseas) r.push('🌍 해외 선행 신호');
     if(c.coupangRankChange>=10) r.push('🛒 쿠팡 '+c.coupangRankChange+'단계 급등');
-    if(r.length) c.reason = r.join(' · ')+(c.groqReason?' — '+c.groqReason:'');
-    if(c.groqBlogAngle) c.blogAngle  = c.groqBlogAngle;
-    if(c.groqPeakHours) c.peakHours = c.groqPeakHours;
+    if(r.length) c.reason=r.join(' · ')+(c.groqReason?' — '+c.groqReason:'');
+    if(c.groqBlogAngle) c.blogAngle=c.groqBlogAngle;
+    if(c.groqPeakHours) c.peakHours=c.groqPeakHours;
     delete c._ytScore; delete c._snsScore;
   });
 
-  // VERIFIED 우선 정렬
+  // VERIFIED 우선 정렬 → 그 안에서 블루오션순
   candidates.sort(function(a,b){
-    var gradeOrder={VERIFIED:0, LIKELY:1, UNVERIFIED:2};
-    var ga=gradeOrder[(a.verify&&a.verify.grade)||'UNVERIFIED'];
-    var gb=gradeOrder[(b.verify&&b.verify.grade)||'UNVERIFIED'];
+    var order={VERIFIED:0,LIKELY:1,UNVERIFIED:2};
+    var ga=order[(a.verify&&a.verify.grade)||'UNVERIFIED'];
+    var gb=order[(b.verify&&b.verify.grade)||'UNVERIFIED'];
     if(ga!==gb) return ga-gb;
     var boDiff=(b.blueOcean&&b.blueOcean.score||0)-(a.blueOcean&&a.blueOcean.score||0);
     if(Math.abs(boDiff)>0.5) return boDiff;
     return b.score.totalScore-a.score.totalScore;
   });
 
-  var verified = candidates.filter(function(c){return c.verify&&c.verify.grade==='VERIFIED';}).length;
-  var likely   = candidates.filter(function(c){return c.verify&&c.verify.grade==='LIKELY';}).length;
-  apiStatus.검증결과 = '✅ '+verified+' / 🟡 '+likely+' / ⚠️ '+(candidates.length-verified-likely);
-  apiStatus.naver = candidates.length+'개 검증';
+  var verified=candidates.filter(function(c){return c.verify&&c.verify.grade==='VERIFIED';}).length;
+  var likely=candidates.filter(function(c){return c.verify&&c.verify.grade==='LIKELY';}).length;
+  log('STAGE7',verified>0,'✅'+verified+'/🟡'+likely+'/⚠️'+(candidates.length-verified-likely));
 
-  return { candidates:candidates.slice(0,10), apiStatus:apiStatus };
+  apiStatus['검증결과']='✅'+verified+' / 🟡'+likely+' / ⚠️'+(candidates.length-verified-likely);
+  apiStatus.pipeline=pipe.join(' | ');
+  apiStatus.naver=candidates.length+'개 최종';
+
+  return {candidates:candidates.slice(0,10),apiStatus:apiStatus};
 }
 
-// ── 핸들러 ───────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════
+// 핸들러
+// ════════════════════════════════════════════════════════════
 module.exports = async function(req, res){
   res.setHeader('Access-Control-Allow-Origin','*');
   res.setHeader('Access-Control-Allow-Methods','GET,OPTIONS');
   if(req.method==='OPTIONS') return res.status(200).end();
-  try{ checkEnv(); }catch(e){ return res.status(500).json({error:e.message}); }
+  try{checkEnv();}catch(e){return res.status(500).json({error:e.message});}
 
   var mode=req.query.mode||'category', period=req.query.period||'week';
 
@@ -581,6 +568,6 @@ module.exports = async function(req, res){
     return res.status(400).json({error:'알 수 없는 mode'});
   }catch(e){
     console.error('[auto-discover]',e.message);
-    return res.status(500).json({error:'탐색 중 오류가 발생했습니다.', detail:e.message});
+    return res.status(500).json({error:'탐색 중 오류가 발생했습니다.',detail:e.message});
   }
 };
