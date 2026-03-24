@@ -24,7 +24,7 @@ module.exports = async function handler(req, res) {
   const alreadyHasDNA = prompt.includes('FIXED CHARACTER');
   const fullPrompt = alreadyHasDNA
     ? prompt
-    : `${CHARACTER_DNA}\n\nSCENE DESCRIPTION:\n${prompt}\n\nCRITICAL RULES:\n- The woman described above MUST be the main subject\n- Do NOT generate any male characters as the protagonist\n- Photorealistic, 4K, cinematic lighting\n- All background people are East Asian Korean appearance`;
+    : `${CHARACTER_DNA}\n\nSCENE DESCRIPTION:\n${prompt}\n\nCRITICAL RULES:\n- The woman described above MUST be the main subject\n- Do NOT generate any male characters as the protagonist\n- Photorealistic, 4K, cinematic lighting\n- All background people are East Asian Korean appearance\n- NO TEXT, NO LETTERS, NO CAPTIONS, NO SUBTITLES, NO WATERMARKS anywhere in the image\n- Pure visual scene only, absolutely no written characters of any language`;
 
   // parts 구성 — 제품 원본 이미지 있으면 첫 번째 파트로 추가
   const parts = [];
