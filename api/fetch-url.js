@@ -142,58 +142,40 @@ async function fetchCoupang(originalUrl, finalUrl) {
     const m = finalUrl.match(/[?&]contentkeyword=([^&]+)/);
     if (m && m[1]) keyword = decodeURIComponent(m[1]).trim();
 
-    // (2) contentkeyword 없으면 itemId로 네이버 쇼핑 검색
+    // (2) itemId로 네이버 웹검색 → 제품명 추출
     if (!keyword && itemId) {
-      console.log('[fetchCoupang] itemId로 네이버 쇼핑 검색:', itemId);
       try {
         const r = await fetch(
-          `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(itemId)}&display=3&sort=sim`,
-          {
-            headers: {
-              'X-Naver-Client-Id':     process.env.NAVER_CLIENT_ID,
-              'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET
-            },
-            signal: AbortSignal.timeout(6000)
-          }
+          `https://openapi.naver.com/v1/search/webkr.json?query=${encodeURIComponent('쿠팡 ' + itemId)}&display=5`,
+          { headers: { 'X-Naver-Client-Id': process.env.NAVER_CLIENT_ID, 'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET }, signal: AbortSignal.timeout(6000) }
         );
         if (r.ok) {
-          const d  = await r.json();
-          const ni = (d.items || [])[0];
-          if (ni && ni.title) {
-            keyword = ni.title.replace(/<[^>]+>/g, '').replace(/\s*[\|\-].*$/, '').trim();
-            console.log('[fetchCoupang] 네이버 keyword:', keyword);
+          const d = await r.json();
+          const hit = (d.items || []).find(i => i.link && i.link.includes('coupang.com')) || (d.items || [])[0];
+          if (hit && hit.title) {
+            keyword = hit.title.replace(/<[^>]+>/g,'').replace(/쿠팡.*$/i,'').replace(/\s*[\|\-].*$/,'').trim();
+            console.log('[fetchCoupang] webkr(itemId) keyword:', keyword);
           }
         }
-      } catch(e) {
-        console.warn('[fetchCoupang] 네이버 검색 실패:', e.message);
-      }
+      } catch(e) { console.warn('[fetchCoupang] webkr(itemId) 실패:', e.message); }
     }
 
-    // (3) 그래도 없으면 productId로 네이버 쇼핑 검색
+    // (3) productId로 네이버 웹검색 → 제품명 추출
     if (!keyword && productId) {
-      console.log('[fetchCoupang] productId로 네이버 쇼핑 검색:', productId);
       try {
         const r = await fetch(
-          `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(productId)}&display=3&sort=sim`,
-          {
-            headers: {
-              'X-Naver-Client-Id':     process.env.NAVER_CLIENT_ID,
-              'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET
-            },
-            signal: AbortSignal.timeout(6000)
-          }
+          `https://openapi.naver.com/v1/search/webkr.json?query=${encodeURIComponent('쿠팡 ' + productId)}&display=5`,
+          { headers: { 'X-Naver-Client-Id': process.env.NAVER_CLIENT_ID, 'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET }, signal: AbortSignal.timeout(6000) }
         );
         if (r.ok) {
-          const d  = await r.json();
-          const ni = (d.items || [])[0];
-          if (ni && ni.title) {
-            keyword = ni.title.replace(/<[^>]+>/g, '').replace(/\s*[\|\-].*$/, '').trim();
-            console.log('[fetchCoupang] productId 네이버 keyword:', keyword);
+          const d = await r.json();
+          const hit = (d.items || []).find(i => i.link && i.link.includes('coupang.com')) || (d.items || [])[0];
+          if (hit && hit.title) {
+            keyword = hit.title.replace(/<[^>]+>/g,'').replace(/쿠팡.*$/i,'').replace(/\s*[\|\-].*$/,'').trim();
+            console.log('[fetchCoupang] webkr(productId) keyword:', keyword);
           }
         }
-      } catch(e) {
-        console.warn('[fetchCoupang] productId 네이버 검색 실패:', e.message);
-      }
+      } catch(e) { console.warn('[fetchCoupang] webkr(productId) 실패:', e.message); }
     }
 
     console.log('[fetchCoupang] productId:', productId, '| itemId:', itemId, '| keyword:', keyword || '(없음)');
