@@ -1,6 +1,7 @@
-// fetchCoupang 함수 전체를 아래로 교체
+// api/fetch-url.js
+// POST /api/fetch-url  { url }
 
-async function fetchCoupang(originalUrl, finalUrl) {
+module.exports = async function handler(req, res) {
   try {
     const parsed       = new URL(finalUrl);
     const parts        = parsed.pathname.split('/').filter(Boolean);
