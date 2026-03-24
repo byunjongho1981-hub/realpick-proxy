@@ -276,11 +276,11 @@ td{padding:10px 12px;vertical-align:middle}
       <div class="sum-card"><div class="sum-card-val" id="sc-c" style="color:var(--warn)">–</div><div class="sum-card-lbl">🧪 실험형 후보</div></div>
     </div>
 
-    <!-- ★ 결과 탭 (표1·표2·표3) -->
+    <!-- ★ 결과 탭 (표1·표2·표3·구조화추천) -->
     <div class="result-tabs">
       <div class="result-tab active" onclick="switchResultTab('candidates')">📊 후보 목록 (표1·표2)</div>
-      <!-- ★ [13] 표3 탭 -->
       <div class="result-tab" onclick="switchResultTab('priority')">🚀 실행 우선순위 (표3)</div>
+      <div class="result-tab" onclick="switchResultTab('structured')">🤖 Gemini 구조화 추천</div>
     </div>
 
     <!-- 표1+표2: 후보 목록 -->
@@ -312,8 +312,11 @@ td{padding:10px 12px;vertical-align:middle}
             <th>24h</th>
             <th onclick="setSortField('recentRise')">지속/상승</th>
             <th onclick="setSortField('buyIntent')">구매의도</th>
+            <th onclick="setSortField('datalabTrend')">데이터랩추세</th>
             <th onclick="setSortField('shoppingInterest')">쇼핑관심</th>
             <th onclick="setSortField('youtubeViral')">유튜브</th>
+            <th onclick="setSortField('productFit')">제품전환적합성</th>
+            <th onclick="setSortField('trustBonus')">종합설명신뢰</th>
             <th>콘텐츠</th>
             <th>한줄 판단</th>
           </tr></thead>
@@ -344,6 +347,11 @@ td{padding:10px 12px;vertical-align:middle}
       </div>
     </div>
 
+    <!-- ★ [10] Gemini 구조화 추천 패널 -->
+    <div id="section-structured" class="result-section">
+      <div id="structured-content" style="padding:4px 0"></div>
+    </div>
+
   </div><!-- /result-wrap -->
 </div>
 
@@ -352,7 +360,7 @@ var S = {
   data7d:null, data24h:null,
   results:[], currentGroup:'all', sortField:'finalScore',
   selectedIdx:null, loading:false, excludeList:[],
-  filterOpen:true, actionPriority:[],
+  filterOpen:true, actionPriority:[], structuredRecs:null,
 };
 
 // ════════════════════════════════════════════════════════════
@@ -501,13 +509,15 @@ async function startAnalysis(){
 
     S.results          = candidates;
     S.actionPriority   = data.actionPriority || [];
+    S.structuredRecs   = data.structuredRecs  || null;
 
     renderApiBar(data.apiStatus||{});
     renderSummaryCards(data);
     renderGuide(data.guide);
-    renderExcluded(data.excluded||[], data.excludeReasons||{});  // ★
+    renderExcluded(data.excluded||[], data.excludeReasons||{});
     renderTable();
-    renderPriorityTable();  // ★ 표3
+    renderPriorityTable();
+    renderStructuredRecs();  // ★
 
     if(data.summary&&data.summary.overallTrend) showToast('📊 '+data.summary.overallTrend);
     document.getElementById('result-wrap').className='result-wrap show';
@@ -642,8 +652,11 @@ function renderTable(){
       +'<td style="text-align:center">'+(c.kw24h&&c.kw24h.exists?'<span style="color:var(--rising);font-weight:700">✓</span>':'<span style="color:var(--faint)">–</span>')+'</td>'
       +'<td><div style="font-size:10px;color:var(--faint)">지속 '+Math.round(sc.persistence||0)+'</div>'+miniBar(sc.persistence||0)+'<div style="font-size:10px;color:var(--faint);margin-top:2px">상승 '+Math.round(sc.recentRise||0)+'</div></td>'
       +'<td>'+Math.round(sc.buyIntent||0)+miniBar(sc.buyIntent||0)+'</td>'
+      +'<td>'+Math.round(sc.datalabTrend||0)+miniBar(sc.datalabTrend||0)+'</td>'
       +'<td>'+Math.round(sc.shoppingInterest||0)+miniBar(sc.shoppingInterest||0)+'</td>'
       +'<td>'+Math.round(sc.youtubeViral||0)+miniBar(sc.youtubeViral||0)+'</td>'
+      +'<td>'+Math.round(sc.productFit||0)+miniBar(sc.productFit||0)+'</td>'
+      +'<td>'+Math.round(sc.trustBonus||0)+miniBar(sc.trustBonus||0)+'</td>'
       +'<td style="font-size:11px">'
         +(c.isShortsCompatible?'<div style="color:var(--rising)">📱 쇼츠</div>':'')
         +(c.isBlogCompatible  ?'<div style="color:var(--pri)">📝 블로그</div>':'')
@@ -665,12 +678,58 @@ function switchGroup(g){
   renderTable();
 }
 
-// ★ 결과 탭 전환
+// ★ [10] Gemini 구조화 추천 렌더링
+function renderStructuredRecs(){
+  var el=document.getElementById('structured-content');
+  var rec=S.structuredRecs;
+  if(!rec){ el.innerHTML='<div class="empty-box"><div class="icon">🤖</div><div>Gemini 구조화 추천 데이터가 없습니다</div></div>'; return; }
+
+  var actionsHtml='';
+  if(rec.immediateActions&&rec.immediateActions.length){
+    actionsHtml='<div style="background:var(--surf);border:1px solid var(--bdr);border-radius:12px;overflow:hidden;margin-bottom:16px"><table style="width:100%;border-collapse:collapse;min-width:700px">'
+      +'<thead><tr style="background:#f8fafc">'
+      +'<th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--faint);border-bottom:1px solid var(--bdr)">우선순위</th>'
+      +'<th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--faint);border-bottom:1px solid var(--bdr)">제품</th>'
+      +'<th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--faint);border-bottom:1px solid var(--bdr)">콘텐츠 유형</th>'
+      +'<th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--faint);border-bottom:1px solid var(--bdr)">콘텐츠 각도</th>'
+      +'<th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--faint);border-bottom:1px solid var(--bdr)">수익화</th>'
+      +'<th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--faint);border-bottom:1px solid var(--bdr)">긴급도</th>'
+      +'<th style="padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--faint);border-bottom:1px solid var(--bdr)">난이도</th>'
+      +'</tr></thead><tbody>'
+      +rec.immediateActions.map(function(a){
+        var uc=a.urgency==='즉시'?'#ef4444':a.urgency==='이번주'?'#f59e0b':'#94a3b8';
+        var dc=a.estimatedDifficulty==='low'?'#10b981':a.estimatedDifficulty==='medium'?'#f59e0b':'#ef4444';
+        var ct=a.contentType==='both'?'📱+📝 쇼츠+블로그':a.contentType==='shorts'?'📱 쇼츠':'📝 블로그';
+        return '<tr style="border-bottom:1px solid #f8fafc">'
+          +'<td style="padding:10px 12px;text-align:center;font-size:18px;font-weight:900;color:'+uc+'">'+a.priority+'</td>'
+          +'<td style="padding:10px 12px;font-weight:700">'+a.productName+'</td>'
+          +'<td style="padding:10px 12px;font-size:12px">'+ct+'</td>'
+          +'<td style="padding:10px 12px;font-size:11px;color:#475569;max-width:180px;line-height:1.5">'+a.contentAngle+'</td>'
+          +'<td style="padding:10px 12px;font-size:11px;color:#475569">'+a.monetization+'</td>'
+          +'<td style="padding:10px 12px"><span style="font-size:11px;font-weight:700;color:'+uc+'">'+a.urgency+'</span></td>'
+          +'<td style="padding:10px 12px"><span style="font-size:11px;font-weight:700;color:'+dc+'">'+a.estimatedDifficulty+'</span></td>'
+        +'</tr>';
+      }).join('')
+      +'</tbody></table></div>';
+  }
+
+  el.innerHTML=
+    '<div style="background:#1e293b;border-radius:12px;padding:16px 20px;margin-bottom:16px;color:#fff">'
+      +'<div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🤖 Gemini 종합 분석</div>'
+      +'<p style="font-size:13px;line-height:1.8;color:#e2e8f0">'+(rec.executiveSummary||'–')+'</p>'
+    +'</div>'
+    +(actionsHtml?'<div style="font-size:12px;font-weight:700;color:var(--txt);margin-bottom:8px">📋 즉시 실행 액션 플랜</div>'+actionsHtml:'')
+    +(rec.overallStrategy?'<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:14px 16px;margin-bottom:12px"><div style="font-size:10px;font-weight:700;color:#166534;text-transform:uppercase;margin-bottom:6px">🎯 전체 전략</div><p style="font-size:12px;line-height:1.8;color:#15803d">'+rec.overallStrategy+'</p></div>':'')
+    +(rec.watchList&&rec.watchList.length?'<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;margin-bottom:8px"><div style="font-size:10px;font-weight:700;color:#92400e;text-transform:uppercase;margin-bottom:6px">👀 관망 추천</div><div style="display:flex;gap:6px;flex-wrap:wrap">'+rec.watchList.map(function(p){return '<span style="background:#fff;border:1px solid #fde68a;border-radius:6px;padding:3px 10px;font-size:12px;color:#92400e">'+p+'</span>';}).join('')+'</div></div>':'')
+    +(rec.avoidList&&rec.avoidList.length?'<div style="background:#fff1f2;border:1px solid #fecaca;border-radius:10px;padding:12px 16px"><div style="font-size:10px;font-weight:700;color:#9f1239;text-transform:uppercase;margin-bottom:6px">⛔ 회피 추천</div><div style="display:flex;gap:6px;flex-wrap:wrap">'+rec.avoidList.map(function(p){return '<span style="background:#fff;border:1px solid #fecaca;border-radius:6px;padding:3px 10px;font-size:12px;color:#9f1239">'+p+'</span>';}).join('')+'</div></div>':'');
+}
+
 function switchResultTab(tab){
   document.querySelectorAll('.result-tab').forEach(function(t){ t.classList.remove('active'); });
   document.querySelectorAll('.result-section').forEach(function(s){ s.classList.remove('show'); });
-  var tabIdx=tab==='candidates'?0:1;
-  document.querySelectorAll('.result-tab')[tabIdx].classList.add('active');
+  var tabs=['candidates','priority','structured'];
+  var idx=tabs.indexOf(tab);
+  if(idx>=0) document.querySelectorAll('.result-tab')[idx].classList.add('active');
   document.getElementById('section-'+tab).classList.add('show');
 }
 
