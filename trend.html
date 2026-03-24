@@ -763,22 +763,46 @@ window.addEventListener('DOMContentLoaded', function(){
     if(!saved)return;
     var d=JSON.parse(saved);
     if(!d||!Array.isArray(d.candidates)||!d.candidates.length)return;
-    S.catId=d.catId||S.catId; S.mode=d.mode||S.mode; S.period=d.period||S.period;
+
+    // ★ multi 모드로 저장된 세션은 복원 건너뜀 (GROQ 결과는 재탐색 필요)
+    if(d.mode==='multi'){sessionStorage.removeItem('realpick-trend-search-state');return;}
+
+    S.catId=d.catId||S.catId; S.mode=d.mode||'category'; S.period=d.period||S.period;
     S.filterStatus='all'; S.sortBy=d.sortBy||'score';
-    S.candidates=d.candidates; S.clusters=d.clusters||[]; S.apiStatus=d.apiStatus||{}; S.lastUpdated=d.updatedAt||'';
+    // ★ 최대 10개로 제한 — 대용량 복원 멈춤 방지
+    S.candidates=d.candidates.slice(0,10); S.clusters=d.clusters||[]; S.apiStatus=d.apiStatus||{}; S.lastUpdated=d.updatedAt||'';
+
     document.querySelectorAll('[data-cat]').forEach(function(b){b.classList.toggle('on',b.dataset.cat===S.catId);});
     document.querySelectorAll('[data-period]').forEach(function(b){b.classList.toggle('on',b.dataset.period===S.period);});
     document.querySelectorAll('[data-f]').forEach(function(b){b.classList.toggle('on',b.dataset.f==='all');});
     document.querySelectorAll('.mode-tab').forEach(function(t,i){t.classList.toggle('active',['category','seed','multi'][i]===S.mode);});
-    ['ctrl-category','ctrl-seed','ctrl-multi'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display=id==='ctrl-'+S.mode?'flex':'none';});
+    // ★ null 체크 추가
+    ['ctrl-category','ctrl-seed','ctrl-multi'].forEach(function(id){
+      var el=document.getElementById(id);
+      if(el) el.style.display=id==='ctrl-'+S.mode?'flex':'none';
+    });
+
     document.getElementById('empty-st').style.display='none';
     document.getElementById('result-tbl').style.display='table';
     applySort(); if(!S.filtered.length){S.filterStatus='all';applySort();}
+
+    // ★ 렌더링을 3단계로 분산 — 브라우저 멈춤 방지
     setTimeout(function(){
-      renderCards(); renderMeta(); renderApiBar(); renderClusters();
-      setTimeout(function(){renderTable();renderDetail();showToast('📦 이전 탐색 결과 복원됨');},100);
+      renderCards(); renderMeta(); renderApiBar();
+      setTimeout(function(){
+        renderClusters();
+        setTimeout(function(){
+          try{ renderTable(); renderDetail(); showToast('📦 이전 탐색 결과 복원됨'); }
+          catch(e){ console.warn('[renderTable 실패]',e.message); onReset(); }
+        },80);
+      },50);
     },50);
-  }catch(e){console.warn('[복원 실패]',e.message);}
+
+  }catch(e){
+    console.warn('[복원 실패]',e.message);
+    // ★ 복원 실패 시 sessionStorage 초기화
+    sessionStorage.removeItem('realpick-trend-search-state');
+  }
 });
 </script>
 </body>
