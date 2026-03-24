@@ -610,13 +610,7 @@ function insertUrlsIntoBody(body, urlMap) {
       if (EMOJI_HEADING.test(line)) {
         result.push('<p style="margin:28px 0 12px 0;line-height:1.8;font-size:16px;font-weight:800;color:#1e293b">'+applyColorMarkers(line)+'</p>');
       } else {
-        var last = result[result.length-1];
-        var colored = applyColorMarkers(line);
-        if (last && last.startsWith('<p style="margin:0')) {
-          result[result.length-1] = last.replace(/<\/p>$/, '<br>'+colored+'</p>');
-        } else {
-          result.push('<p style="margin:0 0 14px 0;line-height:1.9;font-size:16px;font-weight:400;color:#000000">'+colored+'</p>');
-        }
+        result.push('<p style="margin:0 0 14px 0;line-height:1.9;font-size:16px;font-weight:400;color:#000000">'+applyColorMarkers(line)+'</p>');
       }
       i++;
     }
