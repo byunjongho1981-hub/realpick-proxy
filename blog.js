@@ -21,11 +21,18 @@ function renderSlots() {
         +'<img src="'+src+'" alt="슬롯'+(i+1)+'"/>'
         +'<button class="img-slot-del" onclick="event.stopPropagation();clearSlot('+i+')">✕</button>'
         +'</div>'
+        +'<div style="display:flex;gap:4px">'
         +'<button id="regen-slot-'+i+'" onclick="regenSlotImage('+i+')"'
-        +' style="width:100%;padding:4px 0;background:var(--pri-lt);border:1px solid var(--pri-bdr);border-radius:6px;font-size:10px;font-weight:700;color:var(--pri);cursor:pointer;transition:all .15s"'
+        +' style="flex:1;padding:4px 0;background:var(--pri-lt);border:1px solid var(--pri-bdr);border-radius:6px;font-size:10px;font-weight:700;color:var(--pri);cursor:pointer;transition:all .15s"'
         +' onmouseover="this.style.background=\'var(--pri)\';this.style.color=\'#fff\'"'
         +' onmouseout="this.style.background=\'var(--pri-lt)\';this.style.color=\'var(--pri)\'">'
         +'↺ 재작성</button>'
+        +'<button onclick="saveSlotImage('+i+')"'
+        +' style="flex:1;padding:4px 0;background:var(--green-lt);border:1px solid #a7f3d0;border-radius:6px;font-size:10px;font-weight:700;color:var(--green);cursor:pointer;transition:all .15s"'
+        +' onmouseover="this.style.background=\'var(--green)\';this.style.color=\'#fff\'"'
+        +' onmouseout="this.style.background=\'var(--green-lt)\';this.style.color=\'var(--green)\'">'
+        +'⬇ 저장</button>'
+        +'</div>'
         +'</div>';
     }
     return '<div style="display:flex;flex-direction:column;gap:4px">'
@@ -745,6 +752,17 @@ var IMG_CHARACTER_DNA = [
   '- Same skin tone in every image',
   '- Do NOT age her, alter her face shape, or change any feature'
 ].join('\n');
+
+function saveSlotImage(idx) {
+  var img = S_IMAGES[idx];
+  if (!img || !img.data) { showToast('⚠️ 저장할 이미지가 없어요'); return; }
+  var ext = (img.mimeType || 'image/png').split('/')[1] || 'png';
+  var a = document.createElement('a');
+  a.href = 'data:'+img.mimeType+';base64,'+img.data;
+  a.download = 'realpick_slot'+(idx+1)+'.'+ext;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  showToast('⬇ 슬롯 '+(idx+1)+' 이미지 저장됨');
+}
 
 function showImgAutoBtn() {
   var wrap = document.getElementById('img-auto-wrap');
