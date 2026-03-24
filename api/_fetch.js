@@ -56,7 +56,6 @@ function isClean(t){
 function safeNum(v){ var n=Number(v); return isNaN(n)?0:n; }
 function sleep(ms){ return new Promise(function(r){setTimeout(r,ms);}); }
 
-// ── 날짜 헬퍼 ────────────────────────────────────────────────
 function fmtDate(d){
   var pad=function(n){return String(n).padStart(2,'0');};
   return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
@@ -65,7 +64,7 @@ function agoDate(n){
   var d=new Date(); d.setDate(d.getDate()-n); return d;
 }
 
-// ── 배치 쇼핑 검색 ────────────────────────────────────────────
+// ── 배치 쇼핑 검색 ───────────────────────────────────────────
 async function batchShopSearch(keywords){
   var BATCH=10, results=[];
   for(var i=0; i<keywords.length; i+=BATCH){
@@ -96,7 +95,57 @@ function shopSearch(keyword, catId){
   }).catch(function(){return {items:[],totalCount:0};});
 }
 
-// ── 검색어트렌드 (기존 유지) ─────────────────────────────────
+// ── 카테고리 실시간 인기 키워드 추출 ★ 신규 ─────────────────
+// 프로브 키워드로 쇼핑 검색 → 상품 제목 파싱 → 빈도 높은 키워드 반환
+var KW_STOP = new Set([
+  '이','가','을','를','의','에','는','은','도','와','과','로','으로',
+  '세트','상품','제품','판매','구매','무료','배송','할인','특가','행사',
+  '브랜드','정품','국내','해외','직구','공식','정식','당일','빠른',
+  '남성','여성','아동','남자','여자','유아','어린이','성인',
+  '블랙','화이트','그레이','네이비','베이지','핑크','그린','레드','블루',
+  'black','white','gray','navy','red','blue','pink','green',
+  'cm','mm','ml','kg','g','l','호','개','세','번','가지','단계',
+  '최신','신상','인기','추천','best','new','hot','sale',
+  '2023','2024','2025','1개','2개','3개','4개','5개'
+]);
+
+async function fetchCategoryTopKeywords(catId, probeSeeds){
+  // 프로브: 카테고리당 대표 시드 5개만 사용 (API 절약)
+  var probes = (probeSeeds||[]).slice(0,5);
+  if(!probes.length) return [];
+
+  try{
+    var batchResult = await batchShopSearch(probes);
+    var freq = {};
+
+    batchResult.forEach(function(r){
+      (r.result.items||[]).forEach(function(item){
+        cleanText(item.title||'').split(/\s+/).forEach(function(w){
+          w = w.replace(/[^가-힣a-zA-Z0-9]/g,'').trim();
+          // 2~8자, 한글 또는 영문 포함, 불용어 제외
+          if(w.length<2 || w.length>8) return;
+          if(!/[가-힣a-zA-Z]/.test(w)) return;
+          if(KW_STOP.has(w)) return;
+          if(/^\d+$/.test(w)) return;
+          freq[w] = (freq[w]||0) + 1;
+        });
+      });
+    });
+
+    // 빈도 3회 이상만 유효 키워드로 처리
+    var keywords = Object.keys(freq)
+      .filter(function(w){ return freq[w] >= 3; })
+      .sort(function(a,b){ return freq[b]-freq[a]; })
+      .slice(0, 25);
+
+    return keywords;
+  }catch(e){
+    console.error('[dynamic-keywords]', catId, e.message);
+    return [];
+  }
+}
+
+// ── 검색어트렌드 ─────────────────────────────────────────────
 function fetchVelocity(keyword, period){
   var totalDays = period==='today'?4 : period==='month'?60 : 14;
   var timeUnit  = period==='month'?'week':'date';
@@ -108,10 +157,7 @@ function fetchVelocity(keyword, period){
   };
   return httpPost('/v1/datalab/search', body)
     .then(function(d){
-      if(d.errorCode){
-        console.error('[velocity error]', keyword, d.errorCode, d.errorMessage);
-        return null;
-      }
+      if(d.errorCode){ console.error('[velocity error]', keyword, d.errorCode, d.errorMessage); return null; }
       var pts=((d.results||[])[0]||{}).data||[];
       if(pts.length<4) return null;
       var h=Math.floor(pts.length/2), prev=pts.slice(0,h), curr=pts.slice(h);
@@ -123,55 +169,46 @@ function fetchVelocity(keyword, period){
       var all=avg(pts), dur=Math.round((pts.filter(function(p){return safeNum(p.ratio)>=all;}).length/pts.length)*100);
       return {surgeRate:surge, accel:accel, durability:dur};
     })
-    .catch(function(e){
-      console.error('[velocity catch]', keyword, e.message);
-      return null;
-    });
+    .catch(function(e){ console.error('[velocity catch]', keyword, e.message); return null; });
 }
 
-// ── 쇼핑인사이트 클릭트렌드 ──────────────────────────────────
-// ── 쇼핑인사이트: 키워드→카테고리ID 매핑 후 호출 ─────────────
+// ── 쇼핑인사이트 키워드별 클릭트렌드 ────────────────────────
 var _kwCatMap = null;
 function getKwCatMap(){
   if(_kwCatMap) return _kwCatMap;
   _kwCatMap = {};
-  try {
+  try{
     var CFG2 = require('./_config');
     Object.keys(CFG2.CAT_SEEDS||{}).forEach(function(catId){
       (CFG2.CAT_SEEDS[catId]||[]).forEach(function(kw){
         if(!_kwCatMap[kw]) _kwCatMap[kw] = catId;
       });
     });
-  } catch(e) {}
+  }catch(e){}
   return _kwCatMap;
 }
 
 function fetchShoppingInsight(keyword, period){
   var totalDays = period==='today'?4 : period==='month'?60 : 14;
   var timeUnit  = period==='month'?'week':'date';
-
-  // 키워드에 해당하는 카테고리 ID 찾기
   var kwMap = getKwCatMap();
-  var catId = kwMap[keyword] || '50000003'; // 없으면 디지털/가전 기본값
+  var catId = kwMap[keyword] || '50000003';
 
   var body={
     startDate: fmtDate(agoDate(totalDays+1)),
     endDate:   fmtDate(agoDate(1)),
     timeUnit:  timeUnit,
-    category:  [{name: keyword, param: [catId]}],
+    category:  catId,
+    keyword:   [{name: keyword, param: [keyword]}],
     device:    '',
     gender:    '',
     ages:      []
   };
 
-  return httpPost('/v1/datalab/shopping/categories', body)
+  return httpPost('/v1/datalab/shopping/category/keywords', body)
     .then(function(d){
-      if(d.errorCode){
-        console.error('[insight error]', keyword, catId, d.errorCode, d.errorMessage);
-        return null;
-      }
+      if(d.errorCode){ console.error('[insight error]', keyword, catId, d.errorCode, d.errorMessage); return null; }
       var pts=((d.results||[])[0]||{}).data||[];
-      console.log('[insight]', keyword, 'catId:', catId, 'pts:', pts.length);
       if(pts.length<4) return null;
       var h=Math.floor(pts.length/2), prev=pts.slice(0,h), curr=pts.slice(h);
       var avg=function(a){return a.reduce(function(s,p){return s+safeNum(p.ratio);},0)/(a.length||1);};
@@ -191,16 +228,14 @@ function fetchShoppingInsight(keyword, period){
         shopTrend: clickSurge>=30?'hot':clickSurge>=10?'rising':clickSurge>=-10?'stable':'falling'
       };
     })
-    .catch(function(e){
-      console.error('[insight catch]', keyword, e.message);
-      return null;
-    });
+    .catch(function(e){ console.error('[insight catch]', keyword, e.message); return null; });
 }
 
 module.exports = {
-  shopSearch:           shopSearch,
-  batchShopSearch:      batchShopSearch,
-  fetchVelocity:        fetchVelocity,
-  fetchShoppingInsight: fetchShoppingInsight,  // ★ 신규 export
-  cleanText:            cleanText
+  shopSearch,
+  batchShopSearch,
+  fetchVelocity,
+  fetchShoppingInsight,
+  fetchCategoryTopKeywords,
+  cleanText
 };
