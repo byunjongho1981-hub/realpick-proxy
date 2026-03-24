@@ -244,12 +244,19 @@ btnGen.addEventListener('click', async () => {
 
   // Step 1: HuggingFace BLIP — image captioning (무료, API키 불필요)
   try {
+    // Base64 → Blob 변환 후 raw binary 전송
+    const byteStr = atob(imgB64);
+    const ab = new ArrayBuffer(byteStr.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteStr.length; i++) ia[i] = byteStr.charCodeAt(i);
+    const blob = new Blob([ab], { type: imgFile.type || 'image/jpeg' });
+
     const hfRes = await fetch(
       'https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large',
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ inputs: imgB64 })
+        headers: { 'Content-Type': imgFile.type || 'image/jpeg' },
+        body: blob
       }
     );
     if (!hfRes.ok) {
