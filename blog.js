@@ -15,16 +15,26 @@ function renderSlots() {
     var img = S_IMAGES[i];
     if (img) {
       var src = img.data ? 'data:'+img.mimeType+';base64,'+img.data : (img.url||'');
-      return '<div class="img-slot filled" id="slot-'+i+'" onclick="focusSlot('+i+')">'
+      return '<div style="display:flex;flex-direction:column;gap:4px">'
+        +'<div class="img-slot filled" id="slot-'+i+'" onclick="focusSlot('+i+')">'
         +'<div class="img-slot-num">'+(i+1)+'</div>'
         +'<img src="'+src+'" alt="슬롯'+(i+1)+'"/>'
         +'<button class="img-slot-del" onclick="event.stopPropagation();clearSlot('+i+')">✕</button>'
+        +'</div>'
+        +'<button id="regen-slot-'+i+'" onclick="regenSlotImage('+i+')"'
+        +' style="width:100%;padding:4px 0;background:var(--pri-lt);border:1px solid var(--pri-bdr);border-radius:6px;font-size:10px;font-weight:700;color:var(--pri);cursor:pointer;transition:all .15s"'
+        +' onmouseover="this.style.background=\'var(--pri)\';this.style.color=\'#fff\'"'
+        +' onmouseout="this.style.background=\'var(--pri-lt)\';this.style.color=\'var(--pri)\'">'
+        +'↺ 재작성</button>'
         +'</div>';
     }
-    return '<div class="img-slot" id="slot-'+i+'" onclick="openSlot('+i+')" onpaste="pasteSlot(event,'+i+')">'
+    return '<div style="display:flex;flex-direction:column;gap:4px">'
+      +'<div class="img-slot" id="slot-'+i+'" onclick="openSlot('+i+')" onpaste="pasteSlot(event,'+i+')">'
       +'<div style="font-size:20px">➕</div>'
       +'<div class="img-slot-label">'+label+'</div>'
       +'<div class="img-slot-paste">클릭 or Ctrl+V</div>'
+      +'</div>'
+      +'<div style="height:24px"></div>'
       +'</div>';
   }).join('');
 }
@@ -651,17 +661,85 @@ function showApiSetup(){showToast('💡 네이버/티스토리 API 연동은 OAu
 // ★ 이미지 자동 생성 시스템
 // ══════════════════════════════════════════════════════════════
 var IMG_CHARACTER_DNA = [
-  'FIXED CHARACTER (must appear identical in every image):',
-  '- Korean woman, age 28-32, slim athletic build',
-  '- Face: soft oval face, natural double eyelids, slightly high cheekbones, small lips',
-  '- Hair: straight black hair, shoulder-length, loosely pulled back, few strands on forehead',
-  '- Skin: fair porcelain skin, light natural makeup only',
-  '- SAME woman in every scene. Do NOT change her appearance.'
+  'CRITICAL: This exact woman must appear in every image — same face, same hair, same body. No variation allowed.',
+  'CHARACTER SPECIFICATION:',
+  '- Korean woman, exactly age 29, slim build, height 165cm',
+  '- Face: soft oval face shape, natural double eyelids (not dramatic), slightly defined cheekbones, small lips with pale pink natural color, straight nose, no dimples',
+  '- Eyes: dark brown almond-shaped eyes, thin natural eyebrows',
+  '- Hair: straight jet-black hair, shoulder-length bob cut, tucked behind ears, no bangs, clean and simple',
+  '- Skin: very fair porcelain skin tone (#F5E6D8), zero blemishes, minimal natural makeup only',
+  '- Body: slim but not skinny, natural posture',
+  'CONSISTENCY RULES:',
+  '- Her face MUST look identical across all scenes',
+  '- Same hair style and color in every image',
+  '- Same skin tone in every image',
+  '- Do NOT age her, alter her face shape, or change any feature'
 ].join('\n');
 
 function showImgAutoBtn() {
   var wrap = document.getElementById('img-auto-wrap');
   if (wrap) wrap.style.display = 'block';
+}
+
+// ── 슬롯 개별 재작성 ─────────────────────────────────────────
+async function regenSlotImage(slotIdx) {
+  if (!S.generated) { showToast('⚠️ 먼저 블로그 글을 생성해주세요'); return; }
+
+  var btn = document.getElementById('regen-slot-'+slotIdx);
+  var slot = document.getElementById('slot-'+slotIdx);
+  if (btn) { btn.disabled=true; btn.textContent='생성 중...'; }
+  if (slot) slot.style.opacity = '0.5';
+
+  var body     = document.getElementById('body-textarea').value;
+  var prodName = S.product ? S.product.name : '제품';
+  var sceneNum = slotIdx + 1;
+
+  // 해당 슬롯의 본문 컨텍스트 추출
+  var scenes   = extractScenesFromBody(body);
+  var scene    = scenes.find(function(s){ return s.slot === sceneNum; })
+              || { slot: sceneNum, context: '' };
+
+  var camera   = SCENE_CAMERA[sceneNum] || '';
+  var situation = (scene.slot !== 2 && scene.context && scene.context.length > 20)
+    ? scene.context
+    : buildScenePrompt(scene, prodName);
+
+  var fullPrompt = IMG_CHARACTER_DNA
+    + '\n\nSCENE CAMERA DIRECTION: ' + camera
+    + '\n\nSCENE CONTENT:\n' + situation
+    + '\n\nPRODUCT: ' + prodName
+    + '\n\nIMAGE RULES: Photorealistic, 4K, cinematic. Korean setting.'
+    + ' NO TEXT, NO LETTERS, NO CAPTIONS anywhere in the image.'
+    + (S_PROD_REF
+        ? ' PRODUCT CONSISTENCY: Reference image shows the EXACT product.'
+        + ' Reproduce same color, shape, design. Do NOT change the product.'
+        + (sceneNum === 2 ? ' Product-only shot, no people.' : '')
+        : '');
+
+  var payload = { prompt: fullPrompt };
+  if (S_PROD_REF) { payload.imageBase64=S_PROD_REF.data; payload.imageMimeType=S_PROD_REF.mimeType; }
+
+  var ctrl = new AbortController();
+  var timeout = setTimeout(function(){ ctrl.abort(); }, 55000);
+
+  try {
+    var res = await fetch('/api/generate-image', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload), signal: ctrl.signal
+    });
+    clearTimeout(timeout);
+    var data = await res.json();
+    if (!res.ok || !data.base64) throw new Error(data.error || '생성 실패');
+    S_IMAGES[slotIdx] = { data: data.base64, mimeType: data.mimeType };
+    renderSlots();
+    saveDraft();
+    showToast('✅ 슬롯 '+sceneNum+' 재작성 완료');
+  } catch(e) {
+    clearTimeout(timeout);
+    if (slot) slot.style.opacity = '1';
+    if (btn) { btn.disabled=false; btn.textContent='↺ 재작성'; }
+    showToast('⚠️ 슬롯 '+sceneNum+' 재작성 실패: '+(e.name==='AbortError'?'시간 초과':e.message));
+  }
 }
 
 function extractScenesFromBody(body) {
@@ -683,28 +761,25 @@ function extractScenesFromBody(body) {
 
 // 씬별 카메라 구도만 고정 — 내용은 항상 본문 컨텍스트 우선
 var SCENE_CAMERA = {
-  1: 'CLOSE-UP portrait. Tight frame on face and upper body. Shallow depth of field.',
-  2: 'PRODUCT DETAIL shot. Close-up of the product itself, sharp focus, studio or natural lighting.',
-  3: 'FULL BODY shot. Wide frame showing entire figure in Korean indoor or retail setting.',
-  4: 'DYNAMIC ACTION shot. Low angle, slight motion, subject moving naturally.',
-  5: 'SEATED MEDIUM shot. Subject sitting, warm interior bokeh background.',
-  6: 'WIDE LIFESTYLE shot. Expansive background, subject relaxed, Seoul urban or cafe setting.'
+  1: 'CLOSE-UP portrait. Tight frame on face and upper body only. Shallow depth of field. Subject looking slightly to the side.',
+  2: 'PRODUCT ONLY shot. NO PEOPLE. The product laid flat or displayed alone on clean white or light grey surface. Top-down or 45-degree angle. Sharp studio lighting. Macro detail visible.',
+  3: 'FULL BODY shot. Full figure visible head to toe. Korean indoor setting, bright natural light.',
+  4: 'DYNAMIC shot. Low camera angle looking slightly upward. Subject in natural motion. Bokeh street background.',
+  5: 'SEATED MEDIUM shot. Waist-up. Subject sitting naturally, warm indoor bokeh background.',
+  6: 'WIDE LIFESTYLE shot. Full figure in expansive modern Korean urban or café environment. Relaxed, natural posture.'
 };
 
 function buildScenePrompt(scene, prodName) {
   var camera = SCENE_CAMERA[scene.slot] || '';
   // 컨텍스트가 있으면 내용으로, 없으면 슬롯별 기본 상황
-  var situation = scene.context && scene.context.length > 20
-    ? scene.context
-    : [
-        'Korean woman in a relatable daily frustration moment related to "'+prodName+'"',
-        '"'+prodName+'" product displayed clearly showing its key features',
-        'Korean woman encountering "'+prodName+'" with curiosity and interest',
-        'Korean woman actively using "'+prodName+'" in a natural daily situation',
-        'Korean woman reacting with satisfaction after using "'+prodName+'"',
-        'Korean woman enjoying life with "'+prodName+'" in an aspirational setting'
-      ][scene.slot - 1] || '"'+prodName+'" lifestyle scene';
-  return camera + ' ' + situation + ' Photorealistic 4K cinematic. Korean setting.';
+  var situation = [
+    'Korean woman in a relatable daily frustration moment related to "'+prodName+'"',
+    '"'+prodName+'" product displayed alone, no people, clean background',  // 씬2 인물 없음
+    'Korean woman encountering "'+prodName+'" with curiosity and interest',
+    'Korean woman actively using "'+prodName+'" in a natural daily situation',
+    'Korean woman reacting with satisfaction and delight after using "'+prodName+'"',
+    'Korean woman enjoying life with "'+prodName+'" in an aspirational setting'
+  ][scene.slot - 1] || '"'+prodName+'" lifestyle scene';
 }
 
 async function generateImagesFromBody() {
@@ -731,10 +806,16 @@ async function generateImagesFromBody() {
     // 항상 buildScenePrompt 통해 구도+컨텍스트 조합
     var sceneDesc = buildScenePrompt(scene, prodName);
     var fullPrompt = IMG_CHARACTER_DNA
-      +'\n\nSCENE CONTEXT:\n'+sceneDesc
-      +'\n\nPRODUCT: '+prodName
-      +'\n\nCRITICAL: Photorealistic, 4K, cinematic. Korean setting. Same woman as DNA above. NO TEXT, NO LETTERS, NO CAPTIONS, NO SUBTITLES anywhere in the image. Pure visual scene only.'
-      +(S_PROD_REF ? '\nThe reference image shows the EXACT product. Reproduce its color, shape, branding faithfully. Do NOT alter the product appearance.' : '');
+      + '\n\nSCENE CAMERA DIRECTION: ' + (SCENE_CAMERA[scene.slot] || '')
+      + '\n\nSCENE CONTENT:\n' + situation
+      + '\n\nPRODUCT: ' + prodName
+      + '\n\nIMAGE RULES: Photorealistic, 4K, cinematic. Korean setting.'
+      + ' NO TEXT, NO LETTERS, NO CAPTIONS anywhere in the image.'
+      + (S_PROD_REF
+          ? ' PRODUCT CONSISTENCY: The reference image shows the EXACT product.'
+          + ' Every scene must show this EXACT product — same color, same shape, same design. Do NOT change the product.'
+          + (scene.slot === 2 ? ' This is a product-only shot, no people.' : '')
+          : '');
 
     var payload = { prompt: fullPrompt };
     if (S_PROD_REF) { payload.imageBase64=S_PROD_REF.data; payload.imageMimeType=S_PROD_REF.mimeType; }
