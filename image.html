@@ -69,8 +69,8 @@
     .btn-regen:hover{background:#e2e8f0}
 
     /* 전체화면 미리보기 */
-    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:999;display:none;align-items:center;justify-content:center;cursor:zoom-out}
-    .modal-overlay.show{display:flex}
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:999;display:none;align-items:center;justify-content:center;cursor:zoom-out;pointer-events:none}
+    .modal-overlay.show{display:flex;pointer-events:all}
     .modal-img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,.6)}
     .modal-info{position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;text-align:center;max-width:600px;line-height:1.6}
     .modal-close{position:fixed;top:20px;right:24px;color:#fff;font-size:28px;cursor:pointer;background:rgba(0,0,0,.4);border:none;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center}
@@ -108,23 +108,23 @@
         style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;outline:none;font-family:inherit"/>
     </div>
 
-    <!-- Hidden file input (outside upload box) -->
+    <!-- Hidden file input -->
     <input type="file" id="fileInput" accept="image/*" style="display:none"/>
 
     <!-- Upload Box -->
     <div class="upload-box" id="uploadBox">
-      <div id="uploadTrigger" class="upload-trigger">
+      <label for="fileInput" id="uploadTrigger" class="upload-trigger" style="display:block;cursor:pointer">
         <div class="upload-icon">🖼️</div>
         <div class="upload-title">제품 원본 이미지를 업로드하세요</div>
         <div class="upload-sub">JPG, PNG, WEBP 지원</div>
         <div class="upload-btn">파일 선택</div>
-      </div>
+      </label>
       <div id="previewArea" class="preview-area" style="display:none">
         <img id="previewImg" class="preview-img" src="" alt=""/>
         <div class="preview-info">
           <div class="p-name" id="previewName"></div>
           <div class="p-sub">이미지 분석 준비 완료 ✅</div>
-          <button class="btn-reset" id="btnReset">✕ 다시 선택</button>
+          <button class="btn-reset" id="btnReset" type="button">✕ 다시 선택</button>
         </div>
       </div>
     </div>
@@ -270,9 +270,6 @@ async function regenSlot(p) {
   return document.getElementById('manualProductName').value.trim();
 }
 
-// 클릭 → 파일 선택창
-uploadTrigger.addEventListener('click', () => fileInput.click());
-
 // 드래그 앤 드롭
 uploadBox.addEventListener('dragover', e => { e.preventDefault(); uploadBox.classList.add('drag'); });
 uploadBox.addEventListener('dragleave', () => uploadBox.classList.remove('drag'));
@@ -288,7 +285,9 @@ fileInput.addEventListener('change', () => {
 });
 
 // 다시 선택
-btnReset.addEventListener('click', () => {
+btnReset.addEventListener('click', e => {
+  e.preventDefault();
+  e.stopPropagation();
   fileInput.value = '';
   imgFile = imgB64 = null;
   uploadTrigger.style.display = 'block';
