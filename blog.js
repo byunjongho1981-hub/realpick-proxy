@@ -654,7 +654,7 @@ async function copySelected(type){
   }
   var text='';
   if(type==='title') text=S.titles[S.selectedTitle]||'';
-  else if(type==='hashtag') text=S.hashtags.map(function(h){return '#'+h.replace(/^#/,'');}).join(' ');
+  else if(type==='hashtag') text=S.hashtags.map(function(h){return h.replace(/^#/,'');}).join('\n');
   else if(type==='thumb'){var t=S.thumb;text=(t.badge||'')+'\n'+(t.main||'')+'\n'+(t.sub||'');}
   copyText(text); showToast('✓ 복사됨');
 }
