@@ -364,7 +364,13 @@ async function regenSlot(p) {
   try {
     const r = await fetch('/api/generate-image', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ prompt: p.prompt+', seed:'+Math.floor(Math.random()*99999) })
+      body: JSON.stringify({
+        prompt: p.prompt,
+        productImg: imgB64 || null,
+        productMime: imgFile ? imgFile.type : 'image/jpeg',
+        charImg: charB64 || null,
+        charMime: charFile ? charFile.type : 'image/jpeg'
+      })
     });
     const d = await r.json();
     if (!r.ok || !d.base64) throw new Error(d.error||'이미지 없음');
@@ -453,7 +459,13 @@ btnGen.addEventListener('click', async () => {
         const timeout = setTimeout(() => controller.abort(), 55000);
         const r = await fetch('/api/generate-image', {
           method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ prompt: p.prompt+', high quality, commercial product photography, seed:'+Math.floor(Math.random()*99999) }),
+          body: JSON.stringify({
+            prompt: p.prompt,
+            productImg: imgB64 || null,
+            productMime: imgFile ? imgFile.type : 'image/jpeg',
+            charImg: charB64 || null,
+            charMime: charFile ? charFile.type : 'image/jpeg'
+          }),
           signal: controller.signal
         });
         clearTimeout(timeout);
