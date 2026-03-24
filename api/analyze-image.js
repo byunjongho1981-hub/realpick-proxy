@@ -29,7 +29,34 @@ module.exports = async function handler(req, res) {
 ${productName ? `Product name: ${productName}\n` : ''}
 Analyze the provided product image and design 6 purchase-motivating scenes following the EXACT structure below.
 
-SCENE STRUCTURE (fixed, do not change):
+[PRODUCT CONSISTENCY — TOP PRIORITY]
+- ALL 6 scenes must feature the EXACT SAME product as shown in the input image
+- Do NOT change the product's shape, structure, color, proportion, or design in any scene
+- Do NOT reinterpret, redesign, or substitute with a similar product
+- Do NOT generate a different brand, model, or variant
+- The product must remain the IDENTICAL object across all scenes
+
+[WHAT YOU CAN CHANGE PER SCENE]
+- Camera angle (front, side, close-up)
+- Lighting and atmosphere
+- Background and environment
+- People, hands, and situational context
+
+[STRICTLY FORBIDDEN]
+- Changing product color
+- Altering product structure or shape
+- Making the product look like it has different functionality
+- Compositing a different product
+- Cartoon, 3D exaggeration, or heavy stylization
+
+[PROMPT RULE — PRODUCT LOCK]
+Every prompt_en that includes the product MUST contain:
+"same product as input image, identical design, identical color, no modification, no substitution"
+
+The most important goal is NOT variety of scenes — it is PRODUCT IDENTITY CONSISTENCY.
+If the product changes between scenes, the entire task is considered a failure.
+
+
 1. problem — Show the discomfort/pain when NOT having this product. Human emotion must be visible.
 2. failure — Show someone trying the old/existing method and struggling. Frustration, inefficiency, wasted time.
 3. solution — Product appears as THE answer. Clean, trustworthy, premium. Must feel like a revelation, not just a product shot.
