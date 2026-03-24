@@ -65,7 +65,8 @@
     .slot-footer{padding:10px 16px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px}
     .prompt-text{font-size:10px;color:#94a3b8;line-height:1.5;flex:1;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
     .btn-dl{padding:5px 12px;background:#6366f1;color:#fff;font-size:11px;font-weight:700;border:none;border-radius:8px;cursor:pointer}
-    .btn-dl:disabled{background:#e2e8f0;color:#94a3b8;cursor:not-allowed}
+    .btn-regen{padding:5px 10px;background:#f1f5f9;color:#64748b;font-size:11px;font-weight:700;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer}
+    .btn-regen:hover{background:#e2e8f0}
 
     .error-box{background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:16px 20px;color:#dc2626;font-size:13px;margin-bottom:20px;display:none}
     .error-box.show{display:block}
@@ -215,7 +216,45 @@ function clearProductName() {
   document.getElementById('manualProductName').value = '';
 }
 
-function getProductName() {
+async function regenSlot(p) {
+  const card = document.getElementById('card' + p.slot);
+  const imgWrap = card.querySelector('.img-wrap');
+  const dlEl = document.getElementById('dl' + p.slot);
+  const regenEl = document.getElementById('regen' + p.slot);
+  regenEl.disabled = true;
+  regenEl.textContent = '...';
+  imgWrap.innerHTML = '<div class="img-placeholder"><div class="spinner"></div></div>';
+  try {
+    const r = await fetch('/api/generate-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: p.prompt + ', high quality, commercial product photography, seed:' + Math.floor(Math.random()*99999) })
+    });
+    const d = await r.json();
+    if (!r.ok || !d.base64) throw new Error(d.error || '이미지 없음');
+    const src = `data:${d.mimeType};base64,${d.base64}`;
+    const img = new Image();
+    img.onload = () => {
+      imgWrap.innerHTML = ''; imgWrap.appendChild(img);
+      dlEl.disabled = false;
+      dlEl.onclick = () => { const a = document.createElement('a'); a.href=src; a.download=`realpick_${p.slot}_${p.name}.png`; document.body.appendChild(a); a.click(); document.body.removeChild(a); };
+      // sessionStorage 업데이트
+      try {
+        const saved = JSON.parse(sessionStorage.getItem('image-result')||'[]');
+        const idx = saved.findIndex(c => c.slot === p.slot);
+        if (idx >= 0) saved[idx].src = src;
+        sessionStorage.setItem('image-result', JSON.stringify(saved));
+      } catch(e) {}
+    };
+    img.src = src;
+  } catch(e) {
+    imgWrap.innerHTML = `<div class="img-placeholder"><div style="font-size:20px">⚠️</div><div style="font-size:11px;color:#94a3b8">${e.message}</div></div>`;
+  }
+  regenEl.disabled = false;
+  regenEl.textContent = '↺';
+}
+
+
   return document.getElementById('manualProductName').value.trim();
 }
 
