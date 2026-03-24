@@ -25,72 +25,88 @@ module.exports = async function handler(req, res) {
         contents: [{
           parts: [
             { inline_data: { mime_type: mediaType || 'image/jpeg', data: imageBase64 } },
-            { text: `You are a shopping conversion image planning expert and AI prompt design specialist.
-${productName ? `Product name: ${productName}\n` : ''}
-Analyze the provided product image and design 6 purchase-motivating scenes following the EXACT structure below.
+            { text: `You are a professional product image analyst and e-commerce prompt engineer specializing in ALL product categories.
 
-[PRODUCT CONSISTENCY — TOP PRIORITY]
-- ALL 6 scenes must feature the EXACT SAME product as shown in the input image
-- Do NOT change the product's shape, structure, color, proportion, or design in any scene
-- Do NOT reinterpret, redesign, or substitute with a similar product
-- Do NOT generate a different brand, model, or variant
-- The product must remain the IDENTICAL object across all scenes
+TASK: Analyze the product image with extreme precision, then generate 6 purchase-motivating scene prompts. The product must remain 100% identical across all scenes.
 
-[WHAT YOU CAN CHANGE PER SCENE]
-- Camera angle (front, side, close-up)
-- Lighting and atmosphere
-- Background and environment
-- People, hands, and situational context
+═══════════════════════════════════
+STEP 1 — PRODUCT CATEGORY DETECTION
+═══════════════════════════════════
+First, identify the product category:
+- fashion/clothing → character wears the product
+- beauty/cosmetics → character applies or holds the product
+- food/beverage → character consumes or prepares with the product
+- home appliance/electronics → character uses the product in home/office
+- sports/outdoor → character uses the product in activity setting
+- furniture/interior → product shown in living space
+- baby/kids → parent and child use the product
+- pet → pet owner uses the product with pet
+- other → infer appropriate usage context
 
-[STRICTLY FORBIDDEN]
-- Changing product color
-- Altering product structure or shape
-- Making the product look like it has different functionality
-- Compositing a different product
-- Cartoon, 3D exaggeration, or heavy stylization
+Then extract EVERY visual detail:
+PRODUCT_ID (one locked description):
+- Exact product type
+- Exact color(s) with descriptive names (e.g. "matte black", "rose gold", "ivory white")
+- Shape, size, form factor
+- Key visible features, textures, materials
+- Any text, logo, brand visible
+- Accessories or parts included in the image
 
-[PROMPT RULE — PRODUCT LOCK]
-Every prompt_en that includes the product MUST contain:
-"same product as input image, identical design, identical color, no modification, no substitution"
+This PRODUCT_ID must appear VERBATIM in every scene prompt that shows the product.
 
-The most important goal is NOT variety of scenes — it is PRODUCT IDENTITY CONSISTENCY.
-If the product changes between scenes, the entire task is considered a failure.
+═══════════════════════════════════
+STEP 2 — CHARACTER DEFINITION
+═══════════════════════════════════
+Based on the product category, define the most appropriate character:
+- Fashion/beauty: Korean woman, mid-20s, shoulder-length straight black hair, slim, natural makeup
+- Tech/appliance: Korean person, 30s, professional appearance, black hair
+- Sports: Korean person, active build, athletic wear, black hair
+- Baby: Korean mother, late-20s, warm expression, black hair
+- Pet: Korean person, casual style, black hair
+- Food: Korean person in casual home setting, black hair
+- Default: Korean person, appropriate for product context, black hair
 
+CHARACTER_ID must appear VERBATIM in every scene that includes a person.
 
-1. problem — Show the discomfort/pain when NOT having this product. Human emotion must be visible.
-2. failure — Show someone trying the old/existing method and struggling. Frustration, inefficiency, wasted time.
-3. solution — Product appears as THE answer. Clean, trustworthy, premium. Must feel like a revelation, not just a product shot.
-4. usage — Actual usage scene. Hands, posture, flow must be intuitive. Keep it simple and natural.
-5. result — Clear before/after improvement. Realistic, not exaggerated. Show the actual change.
-6. lifestyle — Life after the problem is solved. Satisfaction, comfort, confidence, ease. Focus on the transformed state, not the product.
+═══════════════════════════════════
+STEP 3 — SCENE STRUCTURE BY CATEGORY
+═══════════════════════════════════
+SCENE ROLES (universal — adapt context to the product category):
+1. problem: Person experiencing the pain/inconvenience this product solves — NO product shown
+2. failure: Person trying an inferior/old solution that doesn't work — NO product shown
+3. solution: Product hero shot — PRODUCT_ID clean and prominent, no person needed
+4. usage: CHARACTER_ID using/wearing/interacting with PRODUCT_ID naturally
+5. result: Clear improvement shown — CHARACTER_ID with PRODUCT_ID, transformation visible
+6. lifestyle: CHARACTER_ID thriving in daily life — confidence, satisfaction, ease
 
-PROMPT RULES:
-- prompt_en must be in English
-- Base style: photorealistic, premium, realistic human expression, 4K, cinematic lighting
-- All 6 scenes must share consistent color tone, lighting, and mood
-- At least 3 scenes must include a person or hands
-- All human figures must be East Asian (Korean appearance): natural skin tone, black hair, realistic Korean facial features
-- Avoid Western or ambiguous ethnicity in any person or hands shown
-- Focus on real-life environments
-- Never repeat the same product-only shot
-- Each scene must serve a clearly different role
+PROMPT FORMULA per scene:
+[SCENE CONTEXT relevant to product category] + [CHARACTER_ID if person] + [PRODUCT_ID if product] + [STYLE LOCK]
+
+STYLE LOCK (append to EVERY prompt):
+"photorealistic, 4K resolution, cinematic soft lighting, Korean aesthetic, realistic human expression, no cartoon, no illustration, no 3D rendering"
+
+CRITICAL RULES:
+- Adapt ALL 6 scenes to match the actual product category — NEVER assume it is clothing
+- When product appears: copy PRODUCT_ID verbatim
+- When person appears: copy CHARACTER_ID verbatim
+- NEVER change product color, shape, design between scenes
+- NEVER show a different product
+- All people: East Asian, Korean appearance, black hair
+
+${productName ? `Product name hint: ${productName}` : ''}
 
 Return ONLY valid JSON, no markdown, no preamble:
 {
-  "product_analysis": {
-    "category": "",
-    "use_case": "",
-    "pain_point": "",
-    "desired_outcome": "",
-    "visual_style": "photorealistic, premium, cohesive"
-  },
+  "product_category": "",
+  "product_id": "",
+  "character_id": "",
   "scenes": [
-    {"step":1,"role":"problem","short_copy":"","visual_focus":"","prompt_en":"","negative_notes":""},
-    {"step":2,"role":"failure","short_copy":"","visual_focus":"","prompt_en":"","negative_notes":""},
-    {"step":3,"role":"solution","short_copy":"","visual_focus":"","prompt_en":"","negative_notes":""},
-    {"step":4,"role":"usage","short_copy":"","visual_focus":"","prompt_en":"","negative_notes":""},
-    {"step":5,"role":"result","short_copy":"","visual_focus":"","prompt_en":"","negative_notes":""},
-    {"step":6,"role":"lifestyle","short_copy":"","visual_focus":"","prompt_en":"","negative_notes":""}
+    {"step":1,"role":"problem","short_copy":"","prompt_en":""},
+    {"step":2,"role":"failure","short_copy":"","prompt_en":""},
+    {"step":3,"role":"solution","short_copy":"","prompt_en":""},
+    {"step":4,"role":"usage","short_copy":"","prompt_en":""},
+    {"step":5,"role":"result","short_copy":"","prompt_en":""},
+    {"step":6,"role":"lifestyle","short_copy":"","prompt_en":""}
   ]
 }` }
           ]
