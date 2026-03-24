@@ -133,48 +133,73 @@ async function fetchCoupang(originalUrl, finalUrl) {
     const itemId       = parsed.searchParams.get('itemId') || '';
     const vendorItemId = parsed.searchParams.get('vendorItemId') || '';
 
-    // (1) contentkeyword만 사용 — 없으면 no_keyword
-    let keyword = '';
-    const m = finalUrl.match(/[?&]contentkeyword=([^&]+)/);
-    if (m) keyword = decodeURIComponent(m[1]).trim();
-
     let fixedUrl = productId ? `https://www.coupang.com/vp/products/${productId}` : finalUrl;
     if (productId && itemId && vendorItemId) fixedUrl += `?itemId=${itemId}&vendorItemId=${vendorItemId}`;
     else if (productId && itemId)            fixedUrl += `?itemId=${itemId}`;
 
-    console.log('[fetchCoupang] productId:', productId, '| itemId:', itemId, '| keyword:', keyword || '(없음)');
+    // (1) contentkeyword 추출
+    let keyword = '';
+    const m = finalUrl.match(/[?&]contentkeyword=([^&]+)/);
+    if (m && m[1]) keyword = decodeURIComponent(m[1]).trim();
 
-    // keyword 없으면 no_keyword 반환 — API 호출 금지
-    if (!keyword) {
-      return {
-        productName  : productId ? '쿠팡 상품 ' + productId : '쿠팡 상품',
-        price        : 0,
-        category     : '쿠팡',
-        brand        : '',
-        platform     : '쿠팡',
-        originalUrl,
-        finalUrl,
-        fixedUrl,
-        productId    : productId || '',
-        itemId       : itemId || '',
-        vendorItemId : vendorItemId || '',
-        keyword      : '',
-        status       : 'no_keyword',
-        message      : 'keyword 없음 — 제품명을 직접 입력해주세요.',
-        priceGrade   : 'B',
-        features     : [],
-        pros         : [],
-        cons         : [],
-        targetUser   : '',
-        hookScene    : '',
-        reviewSummary: '',
-        imageUrl     : ''
-      };
+    // (2) contentkeyword 없으면 itemId로 네이버 쇼핑 검색
+    if (!keyword && itemId) {
+      console.log('[fetchCoupang] itemId로 네이버 쇼핑 검색:', itemId);
+      try {
+        const r = await fetch(
+          `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(itemId)}&display=3&sort=sim`,
+          {
+            headers: {
+              'X-Naver-Client-Id':     process.env.NAVER_CLIENT_ID,
+              'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET
+            },
+            signal: AbortSignal.timeout(6000)
+          }
+        );
+        if (r.ok) {
+          const d  = await r.json();
+          const ni = (d.items || [])[0];
+          if (ni && ni.title) {
+            keyword = ni.title.replace(/<[^>]+>/g, '').replace(/\s*[\|\-].*$/, '').trim();
+            console.log('[fetchCoupang] 네이버 keyword:', keyword);
+          }
+        }
+      } catch(e) {
+        console.warn('[fetchCoupang] 네이버 검색 실패:', e.message);
+      }
     }
 
-    // keyword 있으면 정상 반환
+    // (3) 그래도 없으면 productId로 네이버 쇼핑 검색
+    if (!keyword && productId) {
+      console.log('[fetchCoupang] productId로 네이버 쇼핑 검색:', productId);
+      try {
+        const r = await fetch(
+          `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(productId)}&display=3&sort=sim`,
+          {
+            headers: {
+              'X-Naver-Client-Id':     process.env.NAVER_CLIENT_ID,
+              'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET
+            },
+            signal: AbortSignal.timeout(6000)
+          }
+        );
+        if (r.ok) {
+          const d  = await r.json();
+          const ni = (d.items || [])[0];
+          if (ni && ni.title) {
+            keyword = ni.title.replace(/<[^>]+>/g, '').replace(/\s*[\|\-].*$/, '').trim();
+            console.log('[fetchCoupang] productId 네이버 keyword:', keyword);
+          }
+        }
+      } catch(e) {
+        console.warn('[fetchCoupang] productId 네이버 검색 실패:', e.message);
+      }
+    }
+
+    console.log('[fetchCoupang] productId:', productId, '| itemId:', itemId, '| keyword:', keyword || '(없음)');
+
     return {
-      productName  : keyword,
+      productName  : keyword || (productId ? '쿠팡 상품 ' + productId : '쿠팡 상품'),
       price        : 0,
       category     : '쿠팡',
       brand        : '',
@@ -186,7 +211,7 @@ async function fetchCoupang(originalUrl, finalUrl) {
       itemId       : itemId || '',
       vendorItemId : vendorItemId || '',
       keyword,
-      status       : 'success',
+      status       : keyword ? 'success' : 'no_keyword',
       priceGrade   : 'B',
       features     : [],
       pros         : [],
