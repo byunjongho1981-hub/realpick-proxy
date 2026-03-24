@@ -22,7 +22,7 @@ module.exports = async function handler(req, res) {
         'x-goog-api-key': apiKey,
       },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
+        contents: [{ parts: [{ text: prompt + '\n\nIMPORTANT: Only depict elements that are explicitly described in the prompt. Do NOT add, invent, or imagine any extra components, accessories, or features not mentioned. All human figures must be East Asian (Korean appearance): natural skin tone, black hair, realistic Korean facial features. No Western or ambiguous ethnicity.' }] }],
         generationConfig: {
           responseModalities: ['TEXT', 'IMAGE']
         }
