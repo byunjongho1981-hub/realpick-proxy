@@ -23,8 +23,11 @@ function naverGet(path, params){
         clearTimeout(t);
         try{
           var d = JSON.parse(raw);
-          // ★ 에러 코드 체크
-          if(d.errorCode){ console.error('[naver-ext]', d.errorCode, d.errorMessage); resolve(null); return; }
+          if(d.errorCode){
+            console.error('[naver-ext]', d.errorCode, d.errorMessage);
+            resolve(null);
+            return;
+          }
           resolve(d);
         }catch(e){ resolve(null); }
       });
@@ -55,13 +58,14 @@ function fetchNewsCount(kw){
     .catch(function(e){ console.error('[news-count]', kw, e.message); return 0; });
 }
 
-// 단일 키워드: 3개 순차 수집 (딜레이 포함)
+// 단일 키워드: blog → cafe → news 순차 수집
+// ★ 딜레이 150ms → 300ms 강화
 async function fetchNaverCounts(kw){
   try{
     var blog = await fetchBlogCount(kw);
-    await sleep(150);
+    await sleep(300);
     var cafe = await fetchCafeCount(kw);
-    await sleep(150);
+    await sleep(300);
     var news = await fetchNewsCount(kw);
     return { blogCount:blog, cafeCount:cafe, newsCount:news };
   }catch(e){
@@ -70,18 +74,18 @@ async function fetchNaverCounts(kw){
   }
 }
 
-// ★ 배치 수집: 한 번에 3개씩, 배치 간 500ms 딜레이
+// ★ 배치 수집: 2개씩, 배치 간 1000ms 딜레이 (레이트 리밋 대응)
 async function fetchNaverCountsBatch(keywords){
-  var BATCH = 3;
+  var BATCH = 2; // 3→2로 줄임
   var results = [];
   for(var i=0; i<keywords.length; i+=BATCH){
     var chunk = keywords.slice(i, i+BATCH);
-    // 배치 내에서는 순차 처리 (API 레이트 리밋 방지)
     for(var j=0; j<chunk.length; j++){
       var r = await fetchNaverCounts(chunk[j]);
       results.push(r);
     }
-    if(i+BATCH < keywords.length) await sleep(500);
+    // ★ 배치 간 딜레이 500ms → 1000ms
+    if(i+BATCH < keywords.length) await sleep(1000);
   }
   return results;
 }
