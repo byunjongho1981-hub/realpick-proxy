@@ -4,6 +4,7 @@ var S_URL_INFO = null;
 var S_ACTIVE_SLOT = -1;
 
 var SLOT_LABELS = ['📸1 대표이미지','📸2 핵심구조','📸3 활용장면','📸4 세부디테일','📸5 구성품','📸6 CTA직전'];
+var BLOG_STATE_KEY = 'blog-state-draft';
 
 // ── 슬롯 렌더 ────────────────────────────────────────────────
 function renderSlots() {
@@ -82,20 +83,213 @@ document.addEventListener('paste', function(e) {
   pasteSlot(e, targetIdx);
 });
 
+// ── 제품 대표 이미지 핸들러 ──────────────────────────────────
+function handleProdImgFile(input) {
+  var file = input.files ? input.files[0] : input;
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    showProdImg(ev.target.result);
+    S_IMAGES[0] = { data: ev.target.result.split(',')[1], mimeType: file.type };
+    renderSlots();
+    showToast('📸 제품 이미지 등록됨 (슬롯 1 자동 연결)');
+    saveDraft();
+  };
+  reader.readAsDataURL(file);
+  if (input.value !== undefined) input.value = '';
+}
+
+function handleProdImgDrop(e) {
+  var file = e.dataTransfer.files[0];
+  if (!file || !file.type.startsWith('image/')) return;
+  handleProdImgFile(file);
+}
+
+function showProdImg(src) {
+  var ph = document.getElementById('prod-img-ph');
+  var prev = document.getElementById('prod-img-preview');
+  var del = document.getElementById('prod-img-del');
+  if (ph) ph.style.display = 'none';
+  if (prev) { prev.src = src; prev.style.display = 'block'; }
+  if (del) del.style.display = 'flex';
+}
+
+function clearProdImg() {
+  var ph = document.getElementById('prod-img-ph');
+  var prev = document.getElementById('prod-img-preview');
+  var del = document.getElementById('prod-img-del');
+  if (ph) ph.style.display = 'block';
+  if (prev) { prev.src = ''; prev.style.display = 'none'; }
+  if (del) del.style.display = 'none';
+  S_IMAGES[0] = null;
+  renderSlots();
+  showToast('제품 이미지 초기화됨');
+}
+
+// ── 상태 저장 ────────────────────────────────────────────────
+function saveDraft() {
+  try {
+    var ta = document.getElementById('body-textarea');
+    var draft = {
+      product: S.product,
+      titles: S.titles,
+      selectedTitle: S.selectedTitle,
+      body: ta ? ta.value : S.body,
+      hashtags: S.hashtags,
+      thumb: S.thumb,
+      seo: S.seo,
+      generated: S.generated,
+      urlInput: (document.getElementById('url-input')||{}).value || '',
+      postType: (document.getElementById('post-type')||{}).value || 'guide',
+      postLength: (document.getElementById('post-length')||{}).value || 'medium',
+      tags: [...document.querySelectorAll('.tag.on')].map(function(t){return t.textContent;}),
+      images: S_IMAGES.map(function(img){
+        if (!img) return null;
+        return { mimeType: img.mimeType, hasData: !!img.data, url: img.url||null };
+      })
+    };
+    sessionStorage.setItem(BLOG_STATE_KEY, JSON.stringify(draft));
+    // 이미지 data 별도 저장
+    for (var i=0; i<6; i++) {
+      if (S_IMAGES[i] && S_IMAGES[i].data) {
+        try { sessionStorage.setItem(BLOG_STATE_KEY+'-img'+i, S_IMAGES[i].data); } catch(e){}
+      } else {
+        sessionStorage.removeItem(BLOG_STATE_KEY+'-img'+i);
+      }
+    }
+  } catch(e) {}
+}
+
+// ── 상태 복원 ────────────────────────────────────────────────
+function restoreDraft() {
+  try {
+    var raw = sessionStorage.getItem(BLOG_STATE_KEY);
+    if (!raw) return false;
+    var draft = JSON.parse(raw);
+
+    if (draft.product) setProduct(draft.product);
+
+    if (draft.urlInput) {
+      var urlEl = document.getElementById('url-input');
+      if (urlEl) urlEl.value = draft.urlInput;
+    }
+    if (draft.postType) {
+      var ptEl = document.getElementById('post-type');
+      if (ptEl) ptEl.value = draft.postType;
+    }
+    if (draft.postLength) {
+      var plEl = document.getElementById('post-length');
+      if (plEl) plEl.value = draft.postLength;
+    }
+    if (draft.tags && draft.tags.length) {
+      document.querySelectorAll('.tag').forEach(function(t){
+        t.classList.toggle('on', draft.tags.indexOf(t.textContent) !== -1);
+      });
+    }
+
+    // 이미지 슬롯 복원
+    if (draft.images) {
+      draft.images.forEach(function(img, i){
+        if (!img) return;
+        var data = null;
+        try { data = sessionStorage.getItem(BLOG_STATE_KEY+'-img'+i); } catch(e){}
+        if (data) {
+          S_IMAGES[i] = { data: data, mimeType: img.mimeType };
+          // 대표 이미지(슬롯0) → prod-img-preview 복원
+          if (i === 0) showProdImg('data:'+img.mimeType+';base64,'+data);
+        } else if (img.url) {
+          S_IMAGES[i] = { url: img.url, mimeType: img.mimeType };
+        }
+      });
+      renderSlots();
+    }
+
+    // 생성 결과 복원
+    if (draft.generated && draft.titles && draft.titles.length) {
+      S.titles = draft.titles;
+      S.selectedTitle = draft.selectedTitle || 0;
+      S.body = draft.body || '';
+      S.hashtags = draft.hashtags || [];
+      S.thumb = draft.thumb || {};
+      S.seo = draft.seo || {};
+      S.generated = true;
+
+      var ta = document.getElementById('body-textarea');
+      if (ta && draft.body) ta.value = draft.body;
+
+      renderResult();
+      document.getElementById('result-area').style.display = 'block';
+      updateStep(3);
+      showToast('✅ 이전 작성 내용 복원됨');
+    }
+    return true;
+  } catch(e) {
+    return false;
+  }
+}
+
+function clearDraft() {
+  sessionStorage.removeItem(BLOG_STATE_KEY);
+  for (var i=0; i<6; i++) sessionStorage.removeItem(BLOG_STATE_KEY+'-img'+i);
+  location.reload();
+}
+
 // ── 초기화 ───────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', function() {
   renderSlots();
+
+  // 본문 수정 시 자동 저장
+  var ta = document.getElementById('body-textarea');
+  if (ta) {
+    ta.addEventListener('input', function(){
+      S.body = ta.value;
+      saveDraft();
+    });
+  }
+
   try {
+    // 1순위: 이전 작성 내용 복원
+    if (restoreDraft()) return;
+
+    // 2순위: image.html에서 생성된 이미지 자동 연결
+    var ir = sessionStorage.getItem('image-result');
+    if (ir) {
+      var cards = JSON.parse(ir);
+      cards.forEach(function(c){
+        if (c.src && c.slot >= 1 && c.slot <= 6) {
+          var b64 = c.src.split(',')[1] || '';
+          var mime = c.src.split(';')[0].replace('data:','') || 'image/png';
+          S_IMAGES[c.slot-1] = { data: b64, mimeType: mime };
+        }
+      });
+      renderSlots();
+      showToast('🖼 이미지 '+cards.filter(function(c){return c.src;}).length+'장 자동 연결됨');
+    }
+
+    // 3순위: hot 페이지에서 넘어온 제품
     var hp = sessionStorage.getItem('blog-product');
     if (hp) { setProduct(JSON.parse(hp)); sessionStorage.removeItem('blog-product'); return; }
+
     var hr = sessionStorage.getItem('hot-last-result');
     if (hr) {
       var d = JSON.parse(hr);
-      if (d && d.candidates && d.candidates.length) { setProduct(d.candidates[0]); showToast('📦 지금 뜨는 제품 1순위 자동 연결됨'); }
+      if (d && d.candidates && d.candidates.length) {
+        setProduct(d.candidates[0]);
+        showToast('📦 지금 뜨는 제품 1순위 자동 연결됨');
+      }
     }
   } catch(e) {}
+
   var tm = new Date(); tm.setDate(tm.getDate()+1);
   document.getElementById('schedule-date').value = tm.toISOString().slice(0,10);
+});
+
+// 탭 전환 / 페이지 이탈 시 자동 저장
+document.addEventListener('visibilitychange', function(){
+  if (document.visibilityState === 'hidden' && (S.generated || S.product)) saveDraft();
+});
+window.addEventListener('beforeunload', function(){
+  if (S.generated || S.product) saveDraft();
 });
 
 // ── URL 분석 ─────────────────────────────────────────────────
@@ -151,6 +345,7 @@ function setProduct(p) {
     +'<button onclick="clearProduct()" style="margin-left:auto;padding:4px 10px;background:#f8fafc;border:1px solid var(--bdr);border-radius:6px;font-size:11px;cursor:pointer;color:var(--muted)">변경</button>';
   updateStep(1);
   showToast('"'+p.name+'" 연결됨');
+  saveDraft();
 }
 
 function clearProduct() {
@@ -163,6 +358,7 @@ function clearProduct() {
     +'<div style="font-size:13px;font-weight:700;color:var(--faint);margin-bottom:6px">연결된 제품 없음</div>'
     +'<div style="font-size:11px;color:#c4cad4;margin-bottom:12px">아래에서 제품을 연결하세요</div>'
     +'<button onclick="openProductSearch()" style="padding:8px 18px;background:var(--pri);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🔥 지금 뜨는 제품에서 선택</button></div>';
+  sessionStorage.removeItem(BLOG_STATE_KEY);
 }
 
 function setManualProduct() {
@@ -203,7 +399,6 @@ async function generateBlog() {
   var p=S.product, jdg=p.judge||{}, sc=p.score||{}, rss=p.rss||{};
   var d=p.data||{}, dl=d.datalab||{}, yt=d.youtube||{}, shop=d.shopping||{};
   var urlInfo=p.urlInfo||S_URL_INFO||{};
-  // ★ 사용자가 입력창에 넣은 URL 그대로 사용
   var inputUrl = document.getElementById('url-input').value.trim() || urlInfo.originalUrl || '';
   var postType=document.getElementById('post-type').value;
   var postLength=document.getElementById('post-length').value;
@@ -265,6 +460,7 @@ async function generateBlog() {
     document.getElementById('result-area').style.display='block';
     document.getElementById('result-area').scrollIntoView({behavior:'smooth',block:'start'});
     updateStep(3);
+    saveDraft(); // ★ 생성 완료 즉시 저장
   } catch(e) {
     showToast('⚠️ 생성 오류: '+e.message);
     console.error(e);
@@ -273,7 +469,7 @@ async function generateBlog() {
   }
 }
 
-// ── 본문 이미지 삽입 (슬롯 번호 매칭) ───────────────────────
+// ── 본문 이미지 삽입 ─────────────────────────────────────────
 function insertImagesIntoBody(body) {
   if (!S_IMAGES.filter(Boolean).length) return body;
   var seqIdx = 0;
@@ -336,7 +532,7 @@ function renderResult() {
   document.getElementById('seo-score-text').textContent=score+'점';
 }
 
-function selectTitle(i){ S.selectedTitle=i; renderResult(); }
+function selectTitle(i){ S.selectedTitle=i; renderResult(); saveDraft(); }
 
 function updateThumbPreview() {
   var t=S.thumb, style=(document.getElementById('thumb-style')||{}).value||'dark';
@@ -364,12 +560,21 @@ async function regenSection(section) {
     var res=await fetch('/api/blog-generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:prompts[section],max_tokens:2000})});
     var data=await res.json(); if(data.error) throw new Error(data.error);
     var raw=data.text||'';
-    if(section==='body'){document.getElementById('body-textarea').value=raw.trim();updateCharCount();showToast('✓ 본문 재생성 완료');}
-    else if(section==='thumb'){S.thumb=JSON.parse(raw.replace(/```json|```/g,'').trim());updateThumbPreview();showToast('✓ 썸네일 재생성 완료');}
+    if(section==='body'){
+      S.body=raw.trim();
+      document.getElementById('body-textarea').value=S.body;
+      updateCharCount();
+      showToast('✓ 본문 재생성 완료');
+    } else if(section==='thumb'){
+      S.thumb=JSON.parse(raw.replace(/```json|```/g,'').trim());
+      updateThumbPreview();
+      showToast('✓ 썸네일 재생성 완료');
+    }
+    saveDraft();
   } catch(e){showToast('⚠️ 재생성 오류');}
 }
 
-// ── ImgBB 업로드 후 URL 맵 반환 ─────────────────────────────
+// ── ImgBB 업로드 ─────────────────────────────────────────────
 async function uploadImagesToImgBB() {
   var urlMap = {};
   for (var i = 0; i < 6; i++) {
@@ -383,43 +588,30 @@ async function uploadImagesToImgBB() {
       });
       var d = await r.json();
       if (d.url) urlMap[i] = d.url;
-    } catch(e) { /* 실패한 슬롯은 건너뜀 */ }
+    } catch(e) {}
   }
   return urlMap;
 }
 
-// ── [수정] [📸N] → ImgBB URL img 태그 + 단락/이모지 구조 변환 ─
 function insertUrlsIntoBody(body, urlMap) {
   var seqIdx = 0;
-
-  // 이모지로 시작하는 소제목 패턴
   var EMOJI_HEADING = /^([\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|✅|⚠️|💡|🔥|🛒|👉|💰|📌|🎯|⭐|🙌|💬|📦)/u;
 
-  // 1단계: [📸N] → 임시 구분자로 치환
   var processed = body.replace(/\[📸\s*(\d*)[^\]]*\]/g, function(m, num) {
     var idx = num ? parseInt(num) - 1 : seqIdx++;
     var url = urlMap[idx];
     if (!url) return '\x01';
-    return '\x00<img src="' + url
-      + '" style="max-width:100%;border-radius:10px;margin:30px 0;display:block" alt="제품이미지"/>\x00';
+    return '\x00<img src="' + url + '" style="max-width:100%;border-radius:10px;margin:30px 0;display:block" alt="제품이미지"/>\x00';
   });
 
-  // 2단계: \x00 기준 분리 → 텍스트는 단락 변환, img는 그대로
   return processed.split('\x00').map(function(chunk) {
     if (chunk.startsWith('<img')) return chunk;
-
     return chunk.replace(/\x01/g, '').trim().split(/\n{1,}/).reduce(function(acc, line) {
       var t = line.trim();
-      if (!t) {
-        // 빈 줄 → 단락 간격
-        acc.push('<div style="height:14px"></div>');
-        return acc;
-      }
+      if (!t) { acc.push('<div style="height:14px"></div>'); return acc; }
       if (EMOJI_HEADING.test(t)) {
-        // 이모지 소제목 → 위 30px 아래 16px 여백
         acc.push('<p style="margin:30px 0 16px 0;line-height:1.8;font-size:24px;font-weight:bold">' + t + '</p>');
       } else {
-        // 일반 문장
         if (acc.length && acc[acc.length-1].startsWith('<p style="margin:0')) {
           acc[acc.length-1] = acc[acc.length-1].replace(/<\/p>$/, '<br>' + t + '</p>');
         } else {
@@ -447,7 +639,6 @@ async function copySelected(type){
           .catch(function(){ copyText(raw); showToast('✓ 텍스트만 복사됨'); });
       } else { copyText(html); showToast('✓ 복사됨'); }
     } else {
-      // 이미지 없어도 단락 구조 유지
       var html = insertUrlsIntoBody(raw, {});
       if(navigator.clipboard && window.ClipboardItem){
         var blob = new Blob([html], {type:'text/html'});
@@ -540,7 +731,7 @@ function updateStep(active){
 function showLoading(on){document.getElementById('loading-overlay').style.display=on?'flex':'none';}
 function setLoadingStep(msg,pct){document.getElementById('loading-step').textContent=msg;document.getElementById('loading-bar').style.width=pct+'%';}
 function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
-function toggleTag(el){el.classList.toggle('on');}
+function toggleTag(el){el.classList.toggle('on'); saveDraft();}
 function copyText(t){try{var e=document.createElement('textarea');e.value=t;e.style.cssText='position:fixed;top:-9999px;opacity:0;';document.body.appendChild(e);e.focus();e.select();document.execCommand('copy');document.body.removeChild(e);}catch(e){if(navigator.clipboard)navigator.clipboard.writeText(t);}}
 function showToast(msg){var t=document.getElementById('_toast');if(!t){t=document.createElement('div');t.id='_toast';t.className='toast';document.body.appendChild(t);}t.textContent=msg;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(function(){t.style.opacity='0';},2500);}
 function showApiSetup(){showToast('💡 네이버/티스토리 API 연동은 OAuth 설정 필요');}
