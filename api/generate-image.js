@@ -6,13 +6,39 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { prompt } = req.body || {};
+  const { prompt, productImg, productMime, charImg, charMime } = req.body || {};
   if (!prompt) return res.status(400).json({ error: 'prompt required' });
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY not set' });
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${apiKey}`;
+
+  // ── 파트 구성: 텍스트 + 제품 이미지 + 캐릭터 이미지(선택)
+  const parts = [];
+
+  // 1. 제품 참조 이미지
+  if (productImg) {
+    parts.push({ inline_data: { mime_type: productMime || 'image/jpeg', data: productImg } });
+  }
+
+  // 2. 캐릭터 참조 이미지
+  if (charImg) {
+    parts.push({ inline_data: { mime_type: charMime || 'image/jpeg', data: charImg } });
+  }
+
+  // 3. 생성 지시 텍스트
+  const systemInstruction = [
+    productImg ? 'Reference image 1 = PRODUCT. Maintain IDENTICAL product design, color, shape in generated image.' : '',
+    charImg    ? 'Reference image 2 = CHARACTER. Maintain IDENTICAL character appearance, face, style in generated image.' : '',
+    'All human figures must be East Asian (Korean appearance), black hair, realistic.',
+    'Style: photorealistic, premium, 4K, cinematic lighting.',
+    'No cartoon, no 3D exaggeration, no heavy stylization.',
+  ].filter(Boolean).join('\n');
+
+  parts.push({
+    text: `${systemInstruction}\n\nGenerate image: ${prompt}`
+  });
 
   try {
     const response = await fetch(url, {
@@ -22,30 +48,30 @@ module.exports = async function handler(req, res) {
         'x-goog-api-key': apiKey,
       },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt + '\n\n[STRICT RULES]\n- Same product as input image: identical design, identical color, no modification, no substitution\n- Do NOT change product shape, structure, or color\n- Only change background, lighting, angle, people\n- All human figures must be East Asian (Korean appearance): natural skin tone, black hair\n- No Western or ambiguous ethnicity\n- No cartoon, 3D exaggeration, or heavy stylization' }] }],
-        generationConfig: {
-          responseModalities: ['TEXT', 'IMAGE']
-        }
+        contents: [{ parts }],
+        generationConfig: { responseModalities: ['TEXT', 'IMAGE'] }
       })
     });
 
     const data = await response.json();
-    console.log('Gemini image status:', response.status);
-    console.log('Gemini image response:', JSON.stringify(data).slice(0, 300));
+    console.log('generate-image status:', response.status);
 
     if (!response.ok) {
       const errMsg = data?.error?.message || JSON.stringify(data);
       return res.status(response.status).json({ error: errMsg });
     }
 
-    const parts = data.candidates?.[0]?.content?.parts || [];
-    const imgPart = parts.find(p => p.inlineData?.mimeType?.startsWith('image/'));
+    // 이미지 파트 추출
+    const resParts = data.candidates?.[0]?.content?.parts || [];
+    const imgPart = resParts.find(p => p.inlineData?.mimeType?.startsWith('image/'));
+
     if (!imgPart) {
-      return res.status(500).json({ error: '이미지 파트 없음', parts: JSON.stringify(parts).slice(0, 200) });
+      const textPart = resParts.find(p => p.text)?.text || '';
+      return res.status(500).json({ error: '이미지 파트 없음', text: textPart.slice(0, 200) });
     }
 
     return res.status(200).json({
-      base64: imgPart.inlineData.data,
+      base64:   imgPart.inlineData.data,
       mimeType: imgPart.inlineData.mimeType
     });
 
