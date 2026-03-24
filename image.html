@@ -444,15 +444,19 @@ btnGen.addEventListener('click', async () => {
     const dlEl = document.getElementById('dl'+p.slot);
     const regenEl = document.getElementById('regen'+p.slot);
 
-    ptEl.textContent = p.short_copy ? `"${p.short_copy}"` : p.prompt;
+    ptEl.textContent = p.prompt || '프롬프트 생성됨';
     imgWrap.innerHTML = '<div class="img-placeholder"><div class="spinner"></div></div>';
 
     await (async () => {
       try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 55000);
         const r = await fetch('/api/generate-image', {
           method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ prompt: p.prompt+', high quality, commercial product photography, seed:'+Math.floor(Math.random()*99999) })
+          body: JSON.stringify({ prompt: p.prompt+', high quality, commercial product photography, seed:'+Math.floor(Math.random()*99999) }),
+          signal: controller.signal
         });
+        clearTimeout(timeout);
         const d = await r.json();
         if (!r.ok || !d.base64) throw new Error(d.error||'이미지 없음');
         const src = `data:${d.mimeType};base64,${d.base64}`;
