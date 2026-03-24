@@ -109,7 +109,17 @@ Return ONLY valid JSON, no markdown, no preamble:
     const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     const clean = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean);
-    return res.status(200).json({ prompts: parsed.prompts });
+
+    // scenes 배열 → prompts 배열 변환
+    const SLOT_NAMES = {1:'문제상황',2:'기존한계',3:'제품등장',4:'사용장면',5:'결과변화',6:'라이프스타일'};
+    const prompts = (parsed.scenes || []).map(s => ({
+      slot: s.step,
+      name: SLOT_NAMES[s.step] || `장면${s.step}`,
+      prompt: s.prompt_en || '',
+      short_copy: s.short_copy || ''
+    }));
+
+    return res.status(200).json({ prompts });
 
   } catch (e) {
     return res.status(500).json({ error: e.message });
