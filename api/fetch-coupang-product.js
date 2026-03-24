@@ -1,6 +1,8 @@
 // api/fetch-coupang-product.js
-// POST /api/fetch-coupang-product  { keyword?, itemId?, contentkeyword? }
-// 쿠팡 파트너스 API — keyword 자동 생성 + 상품 검색
+// POST /api/fetch-coupang-product
+//   { keyword?, contentkeyword?, coupangUrl? }
+// 역할 1: coupangUrl → deeplink 변환 (shortenUrl + landingUrl)
+// 역할 2: keyword 기반 쿠팡 파트너스 상품 검색
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -9,7 +11,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
-  const { keyword: rawKeyword, itemId, contentkeyword } = req.body;
+  const { keyword: rawKeyword, contentkeyword, coupangUrl } = req.body;
 
   const accessKey = process.env.COUPANG_ACCESS_KEY;
   const secretKey = process.env.COUPANG_SECRET_KEY;
@@ -17,31 +19,137 @@ export default async function handler(req, res) {
     return res.status(200).json({ status: 'fallback', keyword: '', message: '쿠팡 API 키 미설정', items: [] });
   }
 
-  // ── 1. keyword 확정 ──────────────────────────────────────────
+  // ── 역할 1: deeplink 변환 ────────────────────────────────────
+  let deeplinkResult = null;
+  if (coupangUrl) {
+    try {
+      const method = 'POST';
+      const path   = '/v2/providers/affiliate_open_api/apis/openapi/v1/deeplink';
+      const qs     = '';
+      const { datetime, signature } = await buildHmac(method, path, qs, secretKey);
+
+      const r = await fetch(`https://api-gateway.coupang.com${path}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `CEA algorithm=HmacSHA256, access-key=${accessKey}, signed-date=${datetime}, signature=${signature}`,
+          'Content-Type' : 'application/json;charset=UTF-8'
+        },
+        body: JSON.stringify({ coupangUrls: [coupangUrl], subId: 'realpick' }),
+        signal: AbortSignal.timeout(10000)
+      });
+
+      const d = await r.json();
+      console.log('[fetch-coupang-product] deeplink status:', r.status, '| rCode:', d.rCode);
+
+      if (r.ok && d.rCode === '0' && d.data?.[0]) {
+        const item = d.data[0];
+        // landingUrl에서 itemId / vendorItemId 추출
+        let itemId = '', vendorItemId = '';
+        try {
+          const lu = new URL(item.landingUrl || item.shortenUrl || '');
+          itemId       = lu.searchParams.get('itemId')       || '';
+          vendorItemId = lu.searchParams.get('vendorItemId') || '';
+        } catch(e) {}
+
+        deeplinkResult = {
+          originalUrl  : item.originalUrl  || coupangUrl,
+          shortenUrl   : item.shortenUrl   || '',
+          landingUrl   : item.landingUrl   || '',
+          itemId,
+          vendorItemId
+        };
+        console.log('[fetch-coupang-product] deeplink 성공 | itemId:', itemId);
+      }
+    } catch(e) {
+      console.warn('[fetch-coupang-product] deeplink 실패:', e.message);
+    }
+  }
+
+  // ── 역할 2: keyword 확정 ─────────────────────────────────────
   let keyword = '';
+  if (contentkeyword) keyword = cleanKeyword(contentkeyword);
+  if (!keyword && rawKeyword) keyword = cleanKeyword(rawKeyword);
 
-  // (1) contentkeyword 직접 사용
-  if (contentkeyword) {
-    keyword = cleanKeyword(contentkeyword);
-    console.log('[fetch-coupang-product] contentkeyword:', keyword);
-  }
-
-  // (2) rawKeyword 사용
-  if (!keyword && rawKeyword) {
-    keyword = cleanKeyword(rawKeyword);
-    console.log('[fetch-coupang-product] rawKeyword:', keyword);
-  }
-
-  // keyword 없으면 API 호출 금지
+  // keyword 없으면 deeplink 결과만 반환
   if (!keyword) {
-    console.log('[fetch-coupang-product] keyword 없음 — API 호출 중단');
+    console.log('[fetch-coupang-product] keyword 없음');
     return res.status(200).json({
-      status  : 'no_keyword',
-      keyword : '',
-      message : 'keyword 없음',
+      status      : deeplinkResult ? 'deeplink_only' : 'no_keyword',
+      keyword     : '',
+      message     : 'keyword 없음 — 제품명을 직접 입력해주세요.',
+      deeplink    : deeplinkResult,
+      items       : []
+    });
+  }
+
+  // ── 역할 3: 쿠팡 파트너스 상품 검색 ─────────────────────────
+  try {
+    const method = 'GET';
+    const path   = '/v2/providers/affiliate_open_api/apis/openapi/v1/products/search';
+    const qs     = `keyword=${encodeURIComponent(keyword)}&limit=5&subId=realpick`;
+    const { datetime, signature } = await buildHmac(method, path, qs, secretKey);
+
+    const r = await fetch(`https://api-gateway.coupang.com${path}?${qs}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `CEA algorithm=HmacSHA256, access-key=${accessKey}, signed-date=${datetime}, signature=${signature}`,
+        'Content-Type' : 'application/json;charset=UTF-8'
+      },
+      signal: AbortSignal.timeout(10000)
+    });
+
+    const d = await r.json();
+    console.log('[fetch-coupang-product] search status:', r.status, '| rCode:', d.rCode, '| keyword:', keyword);
+
+    if (!r.ok || d.rCode !== '0') {
+      return res.status(200).json({
+        status  : 'fallback',
+        keyword,
+        message : d.rMessage || '쿠팡 검색 API 오류',
+        deeplink: deeplinkResult,
+        items   : []
+      });
+    }
+
+    const items = (d.data?.productData || []).map(p => ({
+      title       : p.productName   || '',
+      price       : p.salePriceStr  ? parseInt(p.salePriceStr.replace(/,/g, '')) : 0,
+      image       : p.productImage  || '',
+      deeplink    : p.productUrl    || '',
+      rating      : p.productRating || 0,
+      reviewCount : p.reviewCount   || 0
+    }));
+
+    console.log('[fetch-coupang-product] items:', items.length);
+    return res.status(200).json({
+      status  : 'success',
+      keyword,
+      deeplink: deeplinkResult,
+      items
+    });
+
+  } catch(e) {
+    console.error('[fetch-coupang-product] 검색 오류:', e.message);
+    return res.status(200).json({
+      status  : 'fallback',
+      keyword,
+      message : '상품 정보를 불러오지 못했습니다.',
+      deeplink: deeplinkResult,
       items   : []
     });
   }
+}
+
+// ── keyword 정제 ─────────────────────────────────────────────
+function cleanKeyword(raw) {
+  return raw
+    .replace(/<[^>]+>/g, '')
+    .replace(/쿠팡|무료배송|로켓배송|특가|할인|최저가|당일배송/g, '')
+    .replace(/\s*[\|\-\/\\].*$/, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+    .slice(0, 50);
+}
 
   // ── 2. 쿠팡 파트너스 검색 API ────────────────────────────────
   try {
