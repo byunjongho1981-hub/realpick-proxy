@@ -138,7 +138,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
   <div class="spinner"></div>
   <div class="loading-step" id="loading-step">블로그 콘텐츠 생성 중...</div>
   <div class="loading-progress"><div class="loading-bar" id="loading-bar" style="width:0%"></div></div>
-  <div style="font-size:11px;color:var(--faint)">스킬 v10.1 적용 중</div>
+  <div style="font-size:11px;color:var(--faint)">스킬 v10.2 적용 중</div>
 </div>
 
 <div class="wrap">
@@ -165,7 +165,6 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
         <button onclick="openProductSearch()" style="padding:8px 18px;background:var(--pri);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🔥 지금 뜨는 제품에서 선택</button>
       </div>
     </div>
-
     <div style="margin-top:14px;padding:14px;background:#f0f9ff;border:1.5px solid #a5f3fc;border-radius:10px">
       <div style="font-size:11px;font-weight:800;color:#0891b2;margin-bottom:8px">🔗 제품 URL로 자동 분석 (쿠팡·네이버·11번가 등)</div>
       <div class="url-input-row">
@@ -174,7 +173,6 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
       </div>
       <div id="url-result" style="display:none"></div>
     </div>
-
     <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
       <input id="manual-product" type="text" placeholder="직접 제품명 입력..."
         style="flex:1;min-width:200px;padding:8px 12px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;outline:none"
@@ -184,11 +182,30 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
     </div>
   </div>
 
-  <!-- 이미지 6슬롯 -->
+  <!-- 이미지 6슬롯 + 자동 생성 -->
   <div class="panel">
-    <div class="panel-title">🖼 제품 이미지 첨부 <span style="font-size:11px;font-weight:500;color:var(--muted)">(6슬롯 · 클릭 선택 또는 Ctrl+V 붙여넣기 · AI 분석 반영)</span></div>
+    <div class="panel-title">🖼 제품 이미지 첨부
+      <span style="font-size:11px;font-weight:500;color:var(--muted)">(6슬롯 · 클릭 선택 또는 Ctrl+V 붙여넣기 · AI 분석 반영)</span>
+    </div>
     <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px" id="img-slots"></div>
     <input type="file" id="img-input-slot" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none"/>
+
+    <!-- 이미지 자동 생성 버튼 (글 생성 완료 후 표시) -->
+    <div id="img-auto-wrap" style="display:none;margin-top:14px">
+      <button id="img-auto-btn" onclick="generateImagesFromBody()"
+        style="width:100%;padding:13px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:13px;font-weight:700;border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;box-shadow:0 3px 12px rgba(99,102,241,.25)">
+        🎨 본문 기반 이미지 자동 생성
+      </button>
+      <div id="img-auto-prog" style="display:none;margin-top:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <span id="img-auto-step" style="font-size:11px;color:var(--muted)">생성 중...</span>
+          <span id="img-auto-count" style="font-size:11px;font-weight:700;color:var(--pri)"></span>
+        </div>
+        <div style="background:#f1f5f9;border-radius:99px;height:6px;overflow:hidden">
+          <div id="img-auto-bar" style="height:100%;background:linear-gradient(90deg,#6366f1,#818cf8);border-radius:99px;transition:width .4s;width:0%"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- 설정 -->
@@ -234,7 +251,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
   </div>
 
   <button class="gen-btn" id="gen-btn" onclick="generateBlog()">
-    ⚡ 블로그 생성하기 — 스킬 v10.1 적용 · 제목 5개 + 본문 + 해시태그 + SEO
+    ⚡ 블로그 생성하기 — 스킬 v10.2 적용 · 제목 5개 + 본문 + 해시태그 + SEO
   </button>
 
   <!-- 결과 -->
