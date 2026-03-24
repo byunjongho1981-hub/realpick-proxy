@@ -49,7 +49,8 @@ function fetchYoutubeShorts(){
   if(!key) return Promise.resolve([]);
   var d = new Date(); d.setDate(d.getDate()-1);
   var after = d.toISOString();
-  var q = encodeURIComponent('#shorts 리뷰 추천 제품');
+  // ★ 한글 쿼리 encodeURIComponent 처리
+  var q = encodeURIComponent('shorts 리뷰 추천 제품');
   var path = '/youtube/v3/search'
     + '?part=snippet&type=video&order=viewCount&videoDuration=short'
     + '&publishedAfter='+encodeURIComponent(after)
@@ -105,6 +106,7 @@ function fetchCoupangBest(){
 function fetchGoogleKorea(){
   var key=process.env.GOOGLE_API_KEY, cx=process.env.GOOGLE_CX;
   if(!key||!cx) return Promise.resolve([]);
+  // ★ 한글 encodeURIComponent 처리
   var q=encodeURIComponent('요즘 뜨는 제품 트렌드 2025 한국');
   var path='/customsearch/v1?key='+key+'&cx='+cx+'&q='+q+'&dateRestrict=d3&num=8&gl=kr&hl=ko';
   return httpsGet('www.googleapis.com', path)
@@ -114,7 +116,7 @@ function fetchGoogleKorea(){
     .catch(function(e){ console.error('[google-kr]',e.message); return []; });
 }
 
-// ── Google: 해외 선행 트렌드 (한국 2~4주 선행) ──────────────
+// ── Google: 해외 선행 트렌드 ─────────────────────────────────
 function fetchGoogleOverseas(){
   var key=process.env.GOOGLE_API_KEY, cx=process.env.GOOGLE_CX;
   if(!key||!cx) return Promise.resolve([]);
@@ -143,12 +145,14 @@ function fetchTikTokTrends(){
   }).catch(function(e){ console.error('[tiktok]',e.message); return []; });
 }
 
-// ── Instagram 해시태그 (RapidAPI) ────────────────────────────
+// ── Instagram 해시태그 (RapidAPI) ★ 인코딩 수정 ─────────────
 function fetchInstagramTrends(){
   var key=process.env.RAPIDAPI_KEY;
   if(!key) return Promise.resolve([]);
-  return httpsGet('instagram-scraper-api2.p.rapidapi.com',
-    '/v1/hashtag_posts?hashtag=한국트렌드&count=20',
+  // ★ 한글 태그를 영문으로 교체 (unescaped characters 오류 방지)
+  var hashtag = 'koreanshopping';
+  var path = '/v1/hashtag_posts?hashtag='+encodeURIComponent(hashtag)+'&count=20';
+  return httpsGet('instagram-scraper-api2.p.rapidapi.com', path,
     { 'X-RapidAPI-Key':key, 'X-RapidAPI-Host':'instagram-scraper-api2.p.rapidapi.com' }
   ).then(function(d){
     var items=d.data&&d.data.items||[];
