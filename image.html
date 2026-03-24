@@ -178,6 +178,38 @@ if (savedName) {
   sessionStorage.removeItem('image-product-name');
 }
 
+// 이전 결과 복원
+try {
+  const saved = sessionStorage.getItem('image-result');
+  if (saved) {
+    const cards = JSON.parse(saved);
+    gridLabel.style.display = 'block';
+    imgGrid.innerHTML = cards.map(p => `
+      <div class="img-card" id="card${p.slot}">
+        <div class="slot-header">
+          <div class="slot-num">${p.slot}</div>
+          <div class="slot-name">${p.name}</div>
+        </div>
+        <div class="img-wrap">${p.src ? `<img src="${p.src}"/>` : '<div class="img-placeholder"><div style="font-size:24px">⚠️</div></div>'}</div>
+        <div class="slot-footer">
+          <div class="prompt-text">${p.short_copy ? `"${p.short_copy}"` : p.prompt}</div>
+          <button class="btn-dl" id="dl${p.slot}" ${p.src ? '' : 'disabled'}>저장</button>
+        </div>
+      </div>`).join('');
+    // 저장 버튼 이벤트
+    cards.forEach(p => {
+      if (!p.src) return;
+      const dlEl = document.getElementById('dl' + p.slot);
+      if (dlEl) dlEl.onclick = () => {
+        const a = document.createElement('a');
+        a.href = p.src; a.download = `realpick_${p.slot}_${p.name}.png`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      };
+    });
+    btnText.textContent = '🔄 다시 생성하기';
+  }
+} catch(e) {}
+
 function clearProductName() {
   document.getElementById('productNameBox').style.display = 'none';
   document.getElementById('manualProductName').value = '';
@@ -337,6 +369,16 @@ btnGen.addEventListener('click', async () => {
   setTimeout(() => progressBox.classList.remove('show'), 2500);
   btnGen.disabled = false;
   btnText.textContent = '🔄 다시 생성하기';
+
+  // 결과 sessionStorage 저장
+  try {
+    const cards = [];
+    for (const p of prompts) {
+      const imgEl = document.querySelector(`#card${p.slot} .img-wrap img`);
+      cards.push({ slot: p.slot, name: p.name, prompt: p.prompt, short_copy: p.short_copy || '', src: imgEl ? imgEl.src : '' });
+    }
+    sessionStorage.setItem('image-result', JSON.stringify(cards));
+  } catch(e) {}
 });
 </script>
 </body>
