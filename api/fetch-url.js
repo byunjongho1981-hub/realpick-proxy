@@ -127,20 +127,27 @@ async function fetchNaver(url) {
 // ── 쿠팡 ─────────────────────────────────────────────────────
 async function fetchCoupang(originalUrl, finalUrl) {
   try {
-    const parsed   = new URL(finalUrl);
-    const parts    = parsed.pathname.split('/').filter(Boolean);
+    const parsed       = new URL(finalUrl);
+    const parts        = parsed.pathname.split('/').filter(Boolean);
     const productId    = (parts[0]==='vp' && parts[1]==='products') ? parts[2] : '';
     const itemId       = parsed.searchParams.get('itemId') || '';
     const vendorItemId = parsed.searchParams.get('vendorItemId') || '';
+
+    // keyword: contentkeyword 파라미터 우선 추출
+    let keyword = '';
+    try {
+      const m = finalUrl.match(/[?&]contentkeyword=([^&]+)/);
+      if (m) keyword = decodeURIComponent(m[1]).trim();
+    } catch(e) {}
 
     let fixedUrl = productId ? `https://www.coupang.com/vp/products/${productId}` : finalUrl;
     if (productId && itemId && vendorItemId) fixedUrl += `?itemId=${itemId}&vendorItemId=${vendorItemId}`;
     else if (productId && itemId)            fixedUrl += `?itemId=${itemId}`;
 
-    console.log('[fetchCoupang] productId:', productId, '| itemId:', itemId);
+    console.log('[fetchCoupang] productId:', productId, '| itemId:', itemId, '| keyword:', keyword || '(없음)');
 
     return {
-      productName  : productId ? '쿠팡 상품 ' + productId : '쿠팡 상품',
+      productName  : keyword || (productId ? '쿠팡 상품 ' + productId : '쿠팡 상품'),
       price        : 0,
       category     : '쿠팡',
       brand        : '',
@@ -151,6 +158,7 @@ async function fetchCoupang(originalUrl, finalUrl) {
       productId    : productId || '',
       itemId       : itemId || '',
       vendorItemId : vendorItemId || '',
+      keyword,
       status       : 'success',
       priceGrade   : 'B',
       features     : [],
@@ -174,6 +182,7 @@ async function fetchCoupang(originalUrl, finalUrl) {
       productId    : '',
       itemId       : '',
       vendorItemId : '',
+      keyword      : '',
       status       : 'fallback',
       priceGrade   : 'B',
       features     : [],
