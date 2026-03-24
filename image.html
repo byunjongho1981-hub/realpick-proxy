@@ -142,6 +142,17 @@ const SLOTS = [
 
 let imgFile = null, imgB64 = null, prompts = [];
 
+function buildPrompts(caption) {
+  return [
+    { slot:1, name:'대표이미지', prompt:`${caption}, on pure white background, studio lighting, 4K sharp, commercial product photography` },
+    { slot:2, name:'핵심구조',   prompt:`${caption}, technical exploded-view diagram with labeled key features, clean infographic style, white background` },
+    { slot:3, name:'활용장면',   prompt:`${caption}, Korean lifestyle scene with person using the product naturally, bright natural light, cozy indoor` },
+    { slot:4, name:'세부디테일', prompt:`${caption}, extreme close-up macro shot showing material texture and craftsmanship, shallow depth of field` },
+    { slot:5, name:'구성품',     prompt:`${caption} with all accessories, overhead flat-lay on white background, minimal product photography` },
+    { slot:6, name:'CTA직접',   prompt:`${caption}, bold promotional banner design, vibrant colors, marketing visual, call-to-action style` },
+  ];
+}
+
 const uploadArea = document.getElementById('uploadArea');
 const fileInput  = document.getElementById('fileInput');
 const uploadDefault = document.getElementById('uploadDefault');
@@ -231,18 +242,25 @@ btnGen.addEventListener('click', async () => {
       </div>
     </div>`).join('');
 
-  // Step 1: Claude analyze
+  // Step 1: HuggingFace BLIP — image captioning (무료, API키 불필요)
   try {
-    const res = await fetch('/api/analyze-image', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageBase64: imgB64, mediaType: imgFile.type || 'image/jpeg' })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(JSON.stringify(data.error));
-    prompts = data.prompts;
+    const hfRes = await fetch(
+      'https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inputs: imgB64 })
+      }
+    );
+    if (!hfRes.ok) {
+      const err = await hfRes.json();
+      throw new Error(err.error || hfRes.statusText);
+    }
+    const hfData = await hfRes.json();
+    const caption = hfData[0]?.generated_text || 'product';
+    prompts = buildPrompts(caption);
   } catch(e) {
-    showErr('Claude 분석 실패: ' + e.message);
+    showErr('HuggingFace 분석 실패: ' + e.message + ' (모델 로딩 중이면 30초 후 재시도)');
     btnGen.disabled = false;
     progressBox.classList.remove('show');
     return;
