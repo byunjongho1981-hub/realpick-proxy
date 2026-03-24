@@ -112,12 +112,12 @@ export default async function handler(req, res) {
     }
 
     const items = (d.data?.productData || []).map(p => ({
-      title       : p.productName   || '',
-      price       : p.salePriceStr  ? parseInt(p.salePriceStr.replace(/,/g, '')) : 0,
-      image       : p.productImage  || '',
-      deeplink    : p.productUrl    || '',
-      rating      : p.productRating || 0,
-      reviewCount : p.reviewCount   || 0
+      title       : p.productName  || '',
+      price       : p.productPrice || 0,
+      image       : p.productImage || '',
+      deeplink    : p.productUrl   || '',
+      isRocket    : p.isRocket     || false,
+      rank        : p.rank         || 0
     }));
 
     console.log('[fetch-coupang-product] items:', items.length);
