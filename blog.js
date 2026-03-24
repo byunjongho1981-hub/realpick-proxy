@@ -653,7 +653,7 @@ async function uploadTo(platform){
     showToast(hasImgs?'🔄 이미지 업로드 중...':'복사 중...');
     var urlMap=hasImgs?await uploadImagesToImgBB():{};
     var bodyWithImgs=insertUrlsIntoBody(body,urlMap);
-    var fullHtml='<h2>'+title+'</h2>\n'+bodyWithImgs+'\n<p>'+tags+'</p>';
+    var fullHtml='<h2>'+title+'</h2>\n'+bodyWithImgs;
     if(navigator.clipboard && window.ClipboardItem){
       var blob=new Blob([fullHtml],{type:'text/html'});
       navigator.clipboard.write([new ClipboardItem({'text/html':blob})])
@@ -662,7 +662,7 @@ async function uploadTo(platform){
     } else { copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags); showToast('✓ 복사됨'); }
     updateStep(4); return;
   }
-  copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags);
+  copyText('【제목】\n'+title+'\n\n'+body);
   window.open({naver:'https://blog.naver.com/PostWriteForm.naver',tistory:'https://www.tistory.com/manage/post/write'}[platform],'_blank');
   showToast('✓ '+(platform==='naver'?'네이버':'티스토리')+' 열림 + 내용 복사됨'+sched);
   updateStep(4);
