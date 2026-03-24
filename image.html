@@ -89,6 +89,19 @@
   <main class="main">
     <div class="section-label">Image Studio</div>
 
+    <!-- 제품명 표시 -->
+    <div id="productNameBox" style="display:none;background:#eff0ff;border:1.5px solid #c7d2fe;border-radius:12px;padding:12px 20px;margin-bottom:20px;display:flex;align-items:center;gap:12px">
+      <span style="font-size:13px;color:#6366f1;font-weight:700">📦 연결된 제품:</span>
+      <span id="productNameText" style="font-size:14px;font-weight:800;color:#1e293b"></span>
+      <button onclick="clearProductName()" style="margin-left:auto;font-size:11px;color:#94a3b8;background:none;border:none;cursor:pointer">✕ 해제</button>
+    </div>
+
+    <!-- 제품명 직접 입력 -->
+    <div id="productNameInput" style="margin-bottom:20px">
+      <input id="manualProductName" type="text" placeholder="제품명 입력 (예: 티티카카 스트림 P7 접이식 자전거)"
+        style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;outline:none;font-family:inherit"/>
+    </div>
+
     <!-- Hidden file input (outside upload box) -->
     <input type="file" id="fileInput" accept="image/*" style="display:none"/>
 
@@ -155,6 +168,24 @@ const progressStep = document.getElementById('progressStep');
 const imgGrid      = document.getElementById('imgGrid');
 const gridLabel    = document.getElementById('gridLabel');
 const errBox       = document.getElementById('errBox');
+
+// sessionStorage에서 제품명 읽기
+const savedName = sessionStorage.getItem('image-product-name');
+if (savedName) {
+  document.getElementById('productNameBox').style.display = 'flex';
+  document.getElementById('productNameText').textContent = savedName;
+  document.getElementById('manualProductName').value = savedName;
+  sessionStorage.removeItem('image-product-name');
+}
+
+function clearProductName() {
+  document.getElementById('productNameBox').style.display = 'none';
+  document.getElementById('manualProductName').value = '';
+}
+
+function getProductName() {
+  return document.getElementById('manualProductName').value.trim();
+}
 
 // 클릭 → 파일 선택창
 uploadTrigger.addEventListener('click', () => fileInput.click());
@@ -238,7 +269,7 @@ btnGen.addEventListener('click', async () => {
     const res = await fetch('/api/analyze-image', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageBase64: imgB64, mediaType: imgFile.type || 'image/jpeg' })
+      body: JSON.stringify({ imageBase64: imgB64, mediaType: imgFile.type || 'image/jpeg', productName: getProductName() })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || res.statusText);
