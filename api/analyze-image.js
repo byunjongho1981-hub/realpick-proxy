@@ -6,7 +6,7 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { imageBase64, mediaType } = req.body || {};
+  const { imageBase64, mediaType, productName } = req.body || {};
   if (!imageBase64) return res.status(400).json({ error: 'imageBase64 required' });
 
   const apiKey = process.env.GEMINI_API_KEY;
@@ -26,7 +26,7 @@ module.exports = async function handler(req, res) {
           parts: [
             { inline_data: { mime_type: mediaType || 'image/jpeg', data: imageBase64 } },
             { text: `You are a product image prompt engineer for Korean e-commerce blogs.
-Analyze this product image and generate 6 English image generation prompts — one per slot.
+${productName ? `Product name: ${productName}\n` : ''}Analyze this product image and generate 6 English image generation prompts — one per slot.
 Return ONLY valid JSON, no markdown, no preamble.
 Format:
 {"prompts":[
