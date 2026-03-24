@@ -594,7 +594,7 @@ function insertUrlsIntoBody(body, urlMap) {
     while (i < lines.length) {
       var line = lines[i].trim();
 
-      // 마크다운 테이블 감지 — 현재 줄과 다음 줄이 | 로 시작하면 테이블 수집
+      // 마크다운 테이블 감지
       if (line.startsWith('|') && i + 1 < lines.length && lines[i+1].trim().startsWith('|')) {
         var tableLines = [];
         while (i < lines.length && lines[i].trim().startsWith('|')) {
@@ -605,14 +605,31 @@ function insertUrlsIntoBody(body, urlMap) {
         if (tableHtml) { result.push(tableHtml); continue; }
       }
 
-      if (!line) { result.push('<div style="height:14px"></div>'); i++; continue; }
-
-      if (EMOJI_HEADING.test(line)) {
-        result.push('<p style="margin:28px 0 12px 0;line-height:1.8;font-size:16px;font-weight:800;color:#1e293b">'+applyColorMarkers(line)+'</p>');
-      } else {
-        result.push('<p style="margin:0 0 14px 0;line-height:1.9;font-size:16px;font-weight:400;color:#000000">'+applyColorMarkers(line)+'</p>');
+      // 빈 줄 → 단락 구분 여백
+      if (!line) {
+        result.push('<p style="margin:0 0 20px 0"></p>');
+        i++; continue;
       }
-      i++;
+
+      // 이모지 소제목
+      if (EMOJI_HEADING.test(line)) {
+        result.push('<p style="margin:28px 0 10px 0;line-height:1.8;font-size:16px;font-weight:800;color:#1e293b">'+applyColorMarkers(line)+'</p>');
+        i++; continue;
+      }
+
+      // 일반 문장 — 연속된 줄을 하나의 <p>로 묶기 (빈 줄 또는 소제목 만날 때까지)
+      var paraLines = [];
+      while (i < lines.length) {
+        var l = lines[i].trim();
+        if (!l) break;                          // 빈 줄 → 단락 끝
+        if (EMOJI_HEADING.test(l)) break;       // 소제목 → 단락 끝
+        if (l.startsWith('|')) break;           // 테이블 → 단락 끝
+        paraLines.push(applyColorMarkers(l));
+        i++;
+      }
+      if (paraLines.length) {
+        result.push('<p style="margin:0 0 20px 0;line-height:2.0;font-size:16px;font-weight:400;color:#000000">'+paraLines.join('<br>')+'</p>');
+      }
     }
 
     return result.join('');
@@ -658,8 +675,8 @@ async function uploadTo(platform){
       var blob=new Blob([fullHtml],{type:'text/html'});
       navigator.clipboard.write([new ClipboardItem({'text/html':blob})])
         .then(function(){ showToast('✓ 이미지 포함 전체 복사됨'); })
-        .catch(function(){ copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags); showToast('✓ 텍스트만 복사됨'); });
-    } else { copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags); showToast('✓ 복사됨'); }
+        .catch(function(){ copyText('【제목】\n'+title+'\n\n'+body); showToast('✓ 텍스트만 복사됨'); });
+    } else { copyText('【제목】\n'+title+'\n\n'+body); showToast('✓ 복사됨'); }
     updateStep(4); return;
   }
   copyText('【제목】\n'+title+'\n\n'+body);
