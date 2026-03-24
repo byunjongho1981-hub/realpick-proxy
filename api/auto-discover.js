@@ -146,7 +146,7 @@ async function discoverSeed(seedKw, period){
   return {candidates:candidates.slice(0,10),apiStatus:{search:valid.length+'/'+unique.length+' 성공'}};
 }
 
-// ── 멀티소스 블루오션 탐색 ───────────────────────────────────
+// ── 멀티소스 블루오션 탐색 (수정) ────────────────────────────
 async function discoverMulti(period){
   var apiStatus={};
 
@@ -184,24 +184,27 @@ async function discoverMulti(period){
   apiStatus.groq = extracted.length ? extracted.length+'개 추출' : '실패/키 없음';
   if(!extracted.length) return {candidates:[], apiStatus:apiStatus};
 
-  // STEP 3: 네이버 검증 + 공급량 측정 (병렬)
+  // STEP 3: 네이버 쇼핑 검증 (병렬 유지)
   var naverResults = await Promise.allSettled(
     extracted.map(function(e){ return FETCH.shopSearch(e.name, null); })
-  );
-  var naverCounts = await Promise.allSettled(
-    extracted.map(function(e){ return NAVER_EXT.fetchNaverCounts(e.name); })
   );
 
   var maxTotal=0;
   naverResults.forEach(function(r){ if(r.status==='fulfilled') maxTotal=Math.max(maxTotal, r.value.totalCount); });
   if(!maxTotal) maxTotal=40;
 
+  // ★ STEP 3-1: 블로그·카페·뉴스 — 배치 순차 처리 (레이트 리밋 방지)
+  var kwList = extracted.map(function(e){ return e.name; });
+  var naverCounts = await NAVER_EXT.fetchNaverCountsBatch(kwList);
+  apiStatus['블로그/카페'] = naverCounts.filter(function(nc){ return nc.blogCount>0; }).length+'개 수집';
+
   // STEP 4: 후보 구성
   var candidates=[];
   for(var i=0; i<extracted.length; i++){
     var e  = extracted[i];
     var nr = naverResults[i].status==='fulfilled' ? naverResults[i].value : {items:[],totalCount:0};
-    var nc = naverCounts[i].status==='fulfilled'  ? naverCounts[i].value  : {blogCount:0,cafeCount:0,newsCount:0};
+    // ★ 배치 결과는 인덱스로 직접 접근
+    var nc = naverCounts[i] || {blogCount:0, cafeCount:0, newsCount:0};
     if(!nr.items.length) continue;
     var c = buildCandidate(e.name, nr, maxTotal, null, null, null);
     c.groqScore     = e.score      || 0;
@@ -211,9 +214,9 @@ async function discoverMulti(period){
     c.groqPhase     = e.phase      || '';
     c.groqPeakHours = e.peakHours  || 72;
     c.hasOverseas   = e.hasOverseas|| false;
-    c.blogCount  = nc.blogCount;
-    c.cafeCount  = nc.cafeCount;
-    c.newsCount  = nc.newsCount;
+    c.blogCount     = nc.blogCount;
+    c.cafeCount     = nc.cafeCount;
+    c.newsCount     = nc.newsCount;
     c.tiktokCount = tiktok.filter(function(h){
       return c.name.indexOf(h.tag)>-1 || h.tag.indexOf(c.name.slice(0,3))>-1;
     }).length;
@@ -223,26 +226,27 @@ async function discoverMulti(period){
     candidates.push(c);
   }
 
-  // STEP 5: 상위 5개 velocity + insight
+  // ★ STEP 5: velocity + insight — 순차 처리 (레이트 리밋 방지)
   var top5 = candidates.slice(0,5);
-  var vsiAll = await Promise.allSettled(
-    top5.map(function(c){
-      return Promise.all([FETCH.fetchVelocity(c.name,period), FETCH.fetchShoppingInsight(c.name,period)]);
-    })
-  );
-  top5.forEach(function(c,i){
-    if(vsiAll[i].status!=='fulfilled') return;
-    var vel=vsiAll[i].value[0], si=vsiAll[i].value[1];
-    if(!vel&&!si) return;
-    var nr = naverResults.find(function(r,j){ return extracted[j]&&extracted[j].name===c.name&&r.status==='fulfilled'; });
-    var result = nr ? nr.value : {items:c.sampleItems||[],totalCount:c.totalCount||0};
-    c.velocity       = vel;
-    c.velocityLabel  = SCORE.velocityLabel(vel);
-    c.shoppingInsight= si;
-    var ns = SCORE.calcScore(result, maxTotal, vel, c.commercial, si);
-    c.score        = ns;
-    c.insightLabel = ns.insightLabel;
-  });
+  for(var vi=0; vi<top5.length; vi++){
+    var cv = top5[vi];
+    try{
+      var vel = await FETCH.fetchVelocity(cv.name, period);
+      await new Promise(function(r){setTimeout(r,200);});
+      var si  = await FETCH.fetchShoppingInsight(cv.name, period);
+      if(vel||si){
+        cv.velocity        = vel;
+        cv.velocityLabel   = SCORE.velocityLabel(vel);
+        cv.shoppingInsight = si;
+        var nr2 = naverResults.find(function(r,j){ return extracted[j]&&extracted[j].name===cv.name&&r.status==='fulfilled'; });
+        var res2 = nr2 ? nr2.value : {items:cv.sampleItems||[],totalCount:cv.totalCount||0};
+        var ns = SCORE.calcScore(res2, maxTotal, vel, cv.commercial, si);
+        cv.score        = ns;
+        cv.insightLabel = ns.insightLabel;
+      }
+    }catch(e){ console.error('[velocity/insight]', cv.name, e.message); }
+    if(vi < top5.length-1) await new Promise(function(r){setTimeout(r,300);});
+  }
 
   // STEP 6: 블루오션 스코어 + 단계 계산
   candidates.forEach(function(c){
@@ -264,13 +268,10 @@ async function discoverMulti(period){
       ytSurge:     boData.ytSurge||0,
       snsSurge:    boData.snsSurge||0
     });
-    // GROQ 점수 보너스
     c.score.totalScore = Math.min(100, c.score.totalScore + Math.round((c.groqScore||0)/100*15));
-    // 소스 병합
     if(c.groqSignals&&c.groqSignals.length){
       c.sources = c.sources.concat(c.groqSignals.filter(function(s){ return c.sources.indexOf(s)<0; }));
     }
-    // reason 조합
     var r=[];
     if(c.blueOcean.score>=5)      r.push('🔥 극강 블루오션 '+c.blueOcean.score);
     else if(c.blueOcean.score>=2) r.push('✅ 블루오션 '+c.blueOcean.score);
