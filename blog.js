@@ -149,7 +149,6 @@ function saveDraft() {
       })
     };
     sessionStorage.setItem(BLOG_STATE_KEY, JSON.stringify(draft));
-    // 이미지 data 별도 저장
     for (var i=0; i<6; i++) {
       if (S_IMAGES[i] && S_IMAGES[i].data) {
         try { sessionStorage.setItem(BLOG_STATE_KEY+'-img'+i, S_IMAGES[i].data); } catch(e){}
@@ -168,26 +167,14 @@ function restoreDraft() {
     var draft = JSON.parse(raw);
 
     if (draft.product) setProduct(draft.product);
-
-    if (draft.urlInput) {
-      var urlEl = document.getElementById('url-input');
-      if (urlEl) urlEl.value = draft.urlInput;
-    }
-    if (draft.postType) {
-      var ptEl = document.getElementById('post-type');
-      if (ptEl) ptEl.value = draft.postType;
-    }
-    if (draft.postLength) {
-      var plEl = document.getElementById('post-length');
-      if (plEl) plEl.value = draft.postLength;
-    }
+    if (draft.urlInput) { var urlEl = document.getElementById('url-input'); if (urlEl) urlEl.value = draft.urlInput; }
+    if (draft.postType) { var ptEl = document.getElementById('post-type'); if (ptEl) ptEl.value = draft.postType; }
+    if (draft.postLength) { var plEl = document.getElementById('post-length'); if (plEl) plEl.value = draft.postLength; }
     if (draft.tags && draft.tags.length) {
       document.querySelectorAll('.tag').forEach(function(t){
         t.classList.toggle('on', draft.tags.indexOf(t.textContent) !== -1);
       });
     }
-
-    // 이미지 슬롯 복원
     if (draft.images) {
       draft.images.forEach(function(img, i){
         if (!img) return;
@@ -195,7 +182,6 @@ function restoreDraft() {
         try { data = sessionStorage.getItem(BLOG_STATE_KEY+'-img'+i); } catch(e){}
         if (data) {
           S_IMAGES[i] = { data: data, mimeType: img.mimeType };
-          // 대표 이미지(슬롯0) → prod-img-preview 복원
           if (i === 0) showProdImg('data:'+img.mimeType+';base64,'+data);
         } else if (img.url) {
           S_IMAGES[i] = { url: img.url, mimeType: img.mimeType };
@@ -203,8 +189,6 @@ function restoreDraft() {
       });
       renderSlots();
     }
-
-    // 생성 결과 복원
     if (draft.generated && draft.titles && draft.titles.length) {
       S.titles = draft.titles;
       S.selectedTitle = draft.selectedTitle || 0;
@@ -213,19 +197,16 @@ function restoreDraft() {
       S.thumb = draft.thumb || {};
       S.seo = draft.seo || {};
       S.generated = true;
-
       var ta = document.getElementById('body-textarea');
       if (ta && draft.body) ta.value = draft.body;
-
       renderResult();
       document.getElementById('result-area').style.display = 'block';
       updateStep(3);
+      showImgAutoBtn();
       showToast('✅ 이전 작성 내용 복원됨');
     }
     return true;
-  } catch(e) {
-    return false;
-  }
+  } catch(e) { return false; }
 }
 
 function clearDraft() {
@@ -237,21 +218,12 @@ function clearDraft() {
 // ── 초기화 ───────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', function() {
   renderSlots();
-
-  // 본문 수정 시 자동 저장
   var ta = document.getElementById('body-textarea');
   if (ta) {
-    ta.addEventListener('input', function(){
-      S.body = ta.value;
-      saveDraft();
-    });
+    ta.addEventListener('input', function(){ S.body = ta.value; saveDraft(); });
   }
-
   try {
-    // 1순위: 이전 작성 내용 복원
     if (restoreDraft()) return;
-
-    // 2순위: image.html에서 생성된 이미지 자동 연결
     var ir = sessionStorage.getItem('image-result');
     if (ir) {
       var cards = JSON.parse(ir);
@@ -265,26 +237,18 @@ window.addEventListener('DOMContentLoaded', function() {
       renderSlots();
       showToast('🖼 이미지 '+cards.filter(function(c){return c.src;}).length+'장 자동 연결됨');
     }
-
-    // 3순위: hot 페이지에서 넘어온 제품
     var hp = sessionStorage.getItem('blog-product');
     if (hp) { setProduct(JSON.parse(hp)); sessionStorage.removeItem('blog-product'); return; }
-
     var hr = sessionStorage.getItem('hot-last-result');
     if (hr) {
       var d = JSON.parse(hr);
-      if (d && d.candidates && d.candidates.length) {
-        setProduct(d.candidates[0]);
-        showToast('📦 지금 뜨는 제품 1순위 자동 연결됨');
-      }
+      if (d && d.candidates && d.candidates.length) { setProduct(d.candidates[0]); showToast('📦 지금 뜨는 제품 1순위 자동 연결됨'); }
     }
   } catch(e) {}
-
   var tm = new Date(); tm.setDate(tm.getDate()+1);
   document.getElementById('schedule-date').value = tm.toISOString().slice(0,10);
 });
 
-// 탭 전환 / 페이지 이탈 시 자동 저장
 document.addEventListener('visibilitychange', function(){
   if (document.visibilityState === 'hidden' && (S.generated || S.product)) saveDraft();
 });
@@ -438,29 +402,24 @@ async function generateBlog() {
 
   try {
     var res = await fetch('/api/blog-generate', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json'},
       body:JSON.stringify({ user:userPrompt, max_tokens:8000 })
     });
     var data2 = await res.json();
     if (data2.error) throw new Error(data2.error);
-
     setLoadingStep('SEO 분석 중...', 80); await sleep(200);
-
     var raw = data2.text||'';
     var clean = raw.replace(/```json|```/g,'').trim();
     var result = JSON.parse(clean);
-
     S.titles=result.titles||[]; S.body=result.body||''; S.hashtags=result.hashtags||[];
     S.thumb=result.thumb||{}; S.seo=result.seo||{}; S.selectedTitle=0; S.generated=true;
-
     setLoadingStep('완료!', 100); await sleep(200);
-
     renderResult();
     document.getElementById('result-area').style.display='block';
     document.getElementById('result-area').scrollIntoView({behavior:'smooth',block:'start'});
     updateStep(3);
-    saveDraft(); // ★ 생성 완료 즉시 저장
+    saveDraft();
+    showImgAutoBtn(); // ★ 이미지 자동 생성 버튼 표시
   } catch(e) {
     showToast('⚠️ 생성 오류: '+e.message);
     console.error(e);
@@ -502,16 +461,12 @@ function renderResult() {
       +'<span class="seo-score" style="background:'+(ok?'#ecfdf5;color:#10b981':'#fff7ed;color:#d97706')+'">'+len+'자'+(ok?' ✓':'')+'</span>'
       +'</div>';
   }).join('');
-
   document.getElementById('body-textarea').value = cleanMarkdown(S.body);
   updateCharCount();
-
   document.getElementById('hashtag-wrap').innerHTML = S.hashtags.map(function(h){
     return '<span class="hashtag">#'+h.replace(/^#/,'')+'</span>';
   }).join('');
-
   updateThumbPreview();
-
   var seoItems=[
     {key:'keyword_density',label:'키워드 밀도 적절'},
     {key:'title_length',label:'제목 길이 최적 (20~50자)'},
@@ -582,8 +537,7 @@ async function uploadImagesToImgBB() {
     if (!img || !img.data) continue;
     try {
       var r = await fetch('/api/proxy-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ base64: img.data, mimeType: img.mimeType })
       });
       var d = await r.json();
@@ -596,14 +550,12 @@ async function uploadImagesToImgBB() {
 function insertUrlsIntoBody(body, urlMap) {
   var seqIdx = 0;
   var EMOJI_HEADING = /^([\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|✅|⚠️|💡|🔥|🛒|👉|💰|📌|🎯|⭐|🙌|💬|📦)/u;
-
   var processed = body.replace(/\[📸\s*(\d*)[^\]]*\]/g, function(m, num) {
     var idx = num ? parseInt(num) - 1 : seqIdx++;
     var url = urlMap[idx];
     if (!url) return '\x01';
     return '\x00<img src="' + url + '" style="max-width:100%;border-radius:10px;margin:30px 0;display:block" alt="제품이미지"/>\x00';
   });
-
   return processed.split('\x00').map(function(chunk) {
     if (chunk.startsWith('<img')) return chunk;
     return chunk.replace(/\x01/g, '').trim().split(/\n{1,}/).reduce(function(acc, line) {
@@ -735,3 +687,135 @@ function toggleTag(el){el.classList.toggle('on'); saveDraft();}
 function copyText(t){try{var e=document.createElement('textarea');e.value=t;e.style.cssText='position:fixed;top:-9999px;opacity:0;';document.body.appendChild(e);e.focus();e.select();document.execCommand('copy');document.body.removeChild(e);}catch(e){if(navigator.clipboard)navigator.clipboard.writeText(t);}}
 function showToast(msg){var t=document.getElementById('_toast');if(!t){t=document.createElement('div');t.id='_toast';t.className='toast';document.body.appendChild(t);}t.textContent=msg;t.style.opacity='1';clearTimeout(t._t);t._t=setTimeout(function(){t.style.opacity='0';},2500);}
 function showApiSetup(){showToast('💡 네이버/티스토리 API 연동은 OAuth 설정 필요');}
+
+// ══════════════════════════════════════════════════════════════
+// ★ 이미지 자동 생성 시스템
+// ══════════════════════════════════════════════════════════════
+
+var IMG_CHARACTER_DNA = [
+  'FIXED CHARACTER (must appear identical in every image):',
+  '- Korean woman, age 28-32, slim athletic build',
+  '- Face: soft oval face, natural double eyelids, slightly high cheekbones, small lips',
+  '- Hair: straight black hair, shoulder-length, loosely pulled back, few strands on forehead',
+  '- Skin: fair porcelain skin, light natural makeup only',
+  '- SAME woman in every scene. Do NOT change her appearance.'
+].join('\n');
+
+function showImgAutoBtn() {
+  var wrap = document.getElementById('img-auto-wrap');
+  if (wrap) wrap.style.display = 'block';
+}
+
+function extractScenesFromBody(body) {
+  var scenes = [];
+  var markerRe = /\[📸\s*(\d+)[^\]]*\]/g;
+  var match, markers = [];
+  while ((match = markerRe.exec(body)) !== null) {
+    markers.push({ slot: parseInt(match[1]), idx: match.index });
+  }
+  if (markers.length >= 3) {
+    markers.forEach(function(mk) {
+      var before = body.slice(Math.max(0, mk.idx - 220), mk.idx).replace(/\[📸\d+[^\]]*\]/g,'').trim();
+      var after  = body.slice(mk.idx, Math.min(body.length, mk.idx + 220)).replace(/\[📸\d+[^\]]*\]/g,'').trim();
+      scenes.push({ slot: mk.slot, context: (before.slice(-130)+' '+after.slice(0,130)).trim() });
+    });
+  } else {
+    var clean = body.replace(/\[📸\d+[^\]]*\]/g,'').replace(/\n{2,}/g,'\n').trim();
+    var unit = Math.floor(clean.length / 6);
+    for (var i = 1; i <= 6; i++) {
+      scenes.push({ slot: i, context: clean.slice((i-1)*unit, i*unit).trim().slice(0,220) });
+    }
+  }
+  return scenes;
+}
+
+function buildScenePrompt(scene, prodName) {
+  var defaults = {
+    1: 'Korean woman looking frustrated with a daily problem that "'+prodName+'" solves, urban Korean setting, photorealistic 4K cinematic',
+    2: 'Close-up of "'+prodName+'" showing key features and quality details, product photography, studio lighting, 4K',
+    3: 'Korean woman discovering "'+prodName+'" for the first time, curious expression, Korean retail or home setting, photorealistic 4K',
+    4: 'Korean woman actively using "'+prodName+'" in daily life, natural movement, Korean urban background, photorealistic 4K cinematic',
+    5: 'Korean woman showing positive results and satisfaction after using "'+prodName+'", happy expression, photorealistic 4K warm lighting',
+    6: 'Korean woman confidently enjoying lifestyle with "'+prodName+'", aspirational Korean urban setting, photorealistic 4K cinematic'
+  };
+  return defaults[scene.slot] || ('"'+prodName+'" product lifestyle scene, Korean woman, photorealistic 4K');
+}
+
+async function generateImagesFromBody() {
+  if (!S.generated) { showToast('⚠️ 먼저 블로그 글을 생성해주세요'); return; }
+
+  var btn  = document.getElementById('img-auto-btn');
+  var prog = document.getElementById('img-auto-prog');
+  var bar  = document.getElementById('img-auto-bar');
+  var step = document.getElementById('img-auto-step');
+  var cnt  = document.getElementById('img-auto-count');
+
+  btn.disabled = true;
+  btn.innerHTML = '⏳ 생성 중...';
+  prog.style.display = 'block';
+  bar.style.width = '0%';
+
+  var body     = document.getElementById('body-textarea').value;
+  var prodName = S.product ? S.product.name : '제품';
+  var scenes   = extractScenesFromBody(body);
+  var total    = scenes.length;
+  var success  = 0;
+  var fail     = 0;
+
+  for (var i = 0; i < scenes.length; i++) {
+    var scene   = scenes[i];
+    var slotIdx = scene.slot - 1;
+
+    step.textContent = '씬 ' + scene.slot + ' 생성 중...';
+    cnt.textContent  = (i+1) + ' / ' + total;
+    bar.style.width  = Math.round((i / total) * 100) + '%';
+
+    // 컨텍스트가 있으면 활용, 없으면 기본 프롬프트
+    var sceneDesc = scene.context.length > 20
+      ? scene.context
+      : buildScenePrompt(scene, prodName);
+
+    var fullPrompt = IMG_CHARACTER_DNA
+      + '\n\nSCENE CONTEXT:\n' + sceneDesc
+      + '\n\nPRODUCT: ' + prodName
+      + '\n\nCRITICAL: Photorealistic, 4K, cinematic. Korean setting. Same woman as DNA above.';
+
+    var ctrl    = new AbortController();
+    var timeout = setTimeout(function(){ ctrl.abort(); }, 55000);
+
+    try {
+      var res = await fetch('/api/generate-image', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ prompt: fullPrompt }),
+        signal:  ctrl.signal
+      });
+      clearTimeout(timeout);
+      var data = await res.json();
+      if (!res.ok || !data.base64) throw new Error(data.error || '생성 실패');
+      S_IMAGES[slotIdx] = { data: data.base64, mimeType: data.mimeType };
+      renderSlots();
+      success++;
+    } catch(e) {
+      clearTimeout(timeout);
+      fail++;
+      console.warn('슬롯 ' + scene.slot + ' 실패:', e.message);
+    }
+
+    bar.style.width = Math.round(((i+1) / total) * 100) + '%';
+  }
+
+  // 완료 처리
+  bar.style.width  = '100%';
+  step.textContent = '완료! ✅ ' + success + '장 성공' + (fail > 0 ? ' / ' + fail + '장 실패' : '');
+  cnt.textContent  = '';
+  btn.disabled     = false;
+  btn.innerHTML    = '🔄 이미지 다시 생성';
+
+  if (success > 0) {
+    saveDraft();
+    showToast('🎨 이미지 ' + success + '장 생성 완료 — 슬롯에 자동 배치됨');
+  } else {
+    showToast('⚠️ 이미지 생성 실패 — API 상태를 확인해주세요');
+  }
+}
