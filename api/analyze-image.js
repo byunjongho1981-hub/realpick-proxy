@@ -42,7 +42,8 @@ PROMPT RULES:
 - Base style: photorealistic, premium, realistic human expression, 4K, cinematic lighting
 - All 6 scenes must share consistent color tone, lighting, and mood
 - At least 3 scenes must include a person or hands
-- Avoid fake advertising look, over-staged compositions, exaggerated expressions
+- All human figures must be East Asian (Korean appearance): natural skin tone, black hair, realistic Korean facial features
+- Avoid Western or ambiguous ethnicity in any person or hands shown
 - Focus on real-life environments
 - Never repeat the same product-only shot
 - Each scene must serve a clearly different role
