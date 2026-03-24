@@ -23,7 +23,7 @@ module.exports = async function handler(req, res) {
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify({
         contents: [{ parts: [{
-          text: prompt + '\n\n[STRICT RULES]\n- Same product as input image: identical design, identical color, no modification\n- All human figures: East Asian (Korean appearance), black hair\n- No cartoon, 3D exaggeration, or heavy stylization'
+          text: prompt + '\n\nCRITICAL: Generate EXACTLY as described. Do NOT change any colors, styles, or designs mentioned. All people must be East Asian Korean appearance with black hair. Photorealistic, 4K, cinematic lighting only.'
         }] }],
         generationConfig: { responseModalities: ['TEXT', 'IMAGE'] }
       }),
