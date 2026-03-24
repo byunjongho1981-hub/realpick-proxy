@@ -3,6 +3,8 @@ var CFG   = require('./_trend-config');
 
 function safeNum(v){ return isNaN(Number(v)) ? 0 : Number(v); }
 
+// ★ 버그1 수정: ytGet 내부에서만 encodeURIComponent 처리
+// 호출 시 파라미터 값을 미리 인코딩하지 말 것
 function ytGet(path, params){
   return new Promise(function(resolve, reject){
     var qs = Object.keys(params).map(function(k){
@@ -25,7 +27,6 @@ function ytGet(path, params){
   });
 }
 
-// 게시 후 시간(시간) 계산
 function hoursSince(publishedAt){
   try{
     var diff = Date.now() - new Date(publishedAt).getTime();
@@ -33,18 +34,14 @@ function hoursSince(publishedAt){
   }catch(e){ return 24; }
 }
 
-// viralScore = (조회수 + 3*좋아요 + 5*댓글) / 게시 후 시간
 function calcViralScore(views, likes, comments, publishedAt){
   var h = hoursSince(publishedAt);
   return Math.round((safeNum(views) + 3*safeNum(likes) + 5*safeNum(comments)) / h);
 }
 
-// Shorts 여부 추정 (제목/설명에 #shorts 또는 영상 길이 60초 이하)
 function isShorts(title, desc, duration){
-  if(!title&&!desc&&!duration) return false;
-  var text = (title||'')+(desc||'');
-  if(/\#shorts|\#short/i.test(text)) return true;
-  // duration: PT1M30S 형식 파싱
+  if(!title && !desc && !duration) return false;
+  if(/\#shorts|\#short/i.test((title||'')+(desc||''))) return true;
   if(duration){
     var m = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
     if(m){
@@ -55,9 +52,8 @@ function isShorts(title, desc, duration){
   return false;
 }
 
-// 쇼츠 적합성 — 시각적 변화, 사용 전후, 비교 가능 여부
 function assessShortsCompatibility(titles){
-  var signals = ['전후','변화','비교','써봤','사용','개봉','리뷰','테스트','효과','비포'];
+  var signals = ['전후','변화','비교','써봤','사용','개봉','리뷰','테스트','효과','비포','해봤','써보'];
   var hit = 0;
   signals.forEach(function(s){
     if(titles.some(function(t){ return t.indexOf(s)>-1; })) hit++;
@@ -65,9 +61,8 @@ function assessShortsCompatibility(titles){
   return hit >= 2;
 }
 
-// 블로그 적합성 — 정보성, 설명형 콘텐츠
 function assessBlogCompatibility(titles){
-  var signals = ['추천','비교','장단점','방법','후기','가이드','총정리','완벽정리','리뷰'];
+  var signals = ['추천','비교','장단점','방법','후기','가이드','총정리','완벽정리','리뷰','선택','어떤'];
   var hit = 0;
   signals.forEach(function(s){
     if(titles.some(function(t){ return t.indexOf(s)>-1; })) hit++;
@@ -75,35 +70,44 @@ function assessBlogCompatibility(titles){
   return hit >= 2;
 }
 
-// ── 단일 키워드 YouTube 분석 ─────────────────────────────────
 async function fetchYouTubeData(keyword){
   var key = process.env.YOUTUBE_API_KEY;
   if(!key) return null;
   try{
-    // 최근 14일 검색
     var since = new Date(); since.setDate(since.getDate()-14);
+
+    // ★ 버그1 수정: q 값을 인코딩 없이 전달 (ytGet이 내부에서 처리)
     var searchRes = await ytGet('/youtube/v3/search', {
-      part:'snippet', type:'video', order:'viewCount',
-      q: encodeURIComponent(keyword+' 추천 리뷰'),
+      part:           'snippet',
+      type:           'video',
+      order:          'viewCount',
+      q:              keyword+' 추천 리뷰',   // 인코딩 금지
       publishedAfter: since.toISOString(),
-      regionCode:'KR', maxResults:20,
-      key: key,
+      regionCode:     'KR',
+      maxResults:     20,
+      key:            key,
     });
+
     if(!searchRes || !searchRes.items || !searchRes.items.length){
       return { recentCount:0, avgViralScore:0, hasShorts:false, isShortsCompatible:false, isBlogCompatible:false, topVideos:[] };
     }
-    var items      = searchRes.items;
-    var videoIds   = items.map(function(i){ return i.id&&i.id.videoId; }).filter(Boolean).join(',');
-    var statsRes   = videoIds ? await ytGet('/youtube/v3/videos', {
-      part:'statistics,contentDetails', id:videoIds, key:key,
-    }) : { items:[] };
+
+    var items    = searchRes.items;
+    var videoIds = items.map(function(i){ return i.id&&i.id.videoId; }).filter(Boolean).join(',');
+
+    var statsRes = { items:[] };
+    if(videoIds){
+      statsRes = await ytGet('/youtube/v3/videos', {
+        part: 'statistics,contentDetails',
+        id:   videoIds,
+        key:  key,
+      });
+    }
 
     var statsMap = {};
     (statsRes.items||[]).forEach(function(v){ statsMap[v.id] = v; });
 
-    var viralScores = [];
-    var hasShorts   = false;
-    var topVideos   = [];
+    var viralScores = [], hasShorts = false, topVideos = [];
     items.forEach(function(item){
       var vid     = item.id&&item.id.videoId;
       var snippet = item.snippet||{};
@@ -113,24 +117,26 @@ async function fetchYouTubeData(keyword){
       var likes    = safeNum(stat.statistics&&stat.statistics.likeCount);
       var comments = safeNum(stat.statistics&&stat.statistics.commentCount);
       var dur      = stat.contentDetails&&stat.contentDetails.duration;
-      var pub      = snippet.publishedAt;
-      var viral    = calcViralScore(views, likes, comments, pub);
+      var viral    = calcViralScore(views, likes, comments, snippet.publishedAt);
       viralScores.push(viral);
       if(isShorts(snippet.title, snippet.description, dur)) hasShorts = true;
-      topVideos.push({ title:snippet.title||'', views, likes, viral, videoId:vid });
+      topVideos.push({ title:snippet.title||'', views:views, likes:likes, viral:viral, videoId:vid });
     });
 
-    topVideos.sort(function(a,b){return b.viral-a.viral;});
-    var titles = items.map(function(i){return (i.snippet&&i.snippet.title)||'';});
+    topVideos.sort(function(a,b){ return b.viral-a.viral; });
+    var titles = items.map(function(i){ return (i.snippet&&i.snippet.title)||''; });
+    var avgViral = viralScores.length
+      ? Math.round(viralScores.reduce(function(s,v){return s+v;},0)/viralScores.length)
+      : 0;
 
     return {
-      recentCount:       items.length,
-      avgViralScore:     viralScores.length ? Math.round(viralScores.reduce(function(s,v){return s+v;},0)/viralScores.length) : 0,
-      maxViralScore:     viralScores.length ? Math.max.apply(null,viralScores) : 0,
-      hasShorts:         hasShorts,
+      recentCount:        items.length,
+      avgViralScore:      avgViral,
+      maxViralScore:      viralScores.length ? Math.max.apply(null,viralScores) : 0,
+      hasShorts:          hasShorts,
       isShortsCompatible: assessShortsCompatibility(titles),
       isBlogCompatible:   assessBlogCompatibility(titles),
-      topVideos:         topVideos.slice(0,3),
+      topVideos:          topVideos.slice(0,3),
     };
   }catch(e){
     console.error('[youtube]', keyword, e.message);
@@ -138,7 +144,6 @@ async function fetchYouTubeData(keyword){
   }
 }
 
-// ── 배치 처리 ────────────────────────────────────────────────
 async function fetchYouTubeBatch(keywords){
   var results = {};
   for(var i=0; i<keywords.length; i++){
