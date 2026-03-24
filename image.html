@@ -292,7 +292,7 @@ btnGen.addEventListener('click', async () => {
     const ptEl = document.getElementById('pt' + p.slot);
     const dlEl = document.getElementById('dl' + p.slot);
 
-    ptEl.textContent = p.prompt;
+    ptEl.textContent = p.short_copy ? `"${p.short_copy}" — ${p.prompt}` : p.prompt;
     imgWrap.innerHTML = '<div class="img-placeholder"><div class="spinner"></div></div>';
 
     const seed = Math.floor(Math.random() * 99999);
