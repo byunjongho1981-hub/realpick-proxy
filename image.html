@@ -108,23 +108,21 @@
         style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;outline:none;font-family:inherit"/>
     </div>
 
-    <!-- Hidden file input -->
-    <input type="file" id="fileInput" accept="image/*" style="display:none"/>
-
     <!-- Upload Box -->
     <div class="upload-box" id="uploadBox">
-      <label for="fileInput" id="uploadTrigger" class="upload-trigger" style="display:block;cursor:pointer">
+      <div id="uploadTrigger" class="upload-trigger" onclick="document.getElementById('fileInput').click()">
+        <input type="file" id="fileInput" accept="image/*" style="position:fixed;top:-9999px;left:-9999px;opacity:0"/>
         <div class="upload-icon">🖼️</div>
         <div class="upload-title">제품 원본 이미지를 업로드하세요</div>
         <div class="upload-sub">JPG, PNG, WEBP 지원</div>
         <div class="upload-btn">파일 선택</div>
-      </label>
+      </div>
       <div id="previewArea" class="preview-area" style="display:none">
         <img id="previewImg" class="preview-img" src="" alt=""/>
         <div class="preview-info">
           <div class="p-name" id="previewName"></div>
           <div class="p-sub">이미지 분석 준비 완료 ✅</div>
-          <button class="btn-reset" id="btnReset" type="button">✕ 다시 선택</button>
+          <button class="btn-reset" id="btnReset" type="button" onclick="resetFile()">✕ 다시 선택</button>
         </div>
       </div>
     </div>
@@ -280,25 +278,23 @@ uploadBox.addEventListener('drop', e => {
 });
 
 // 파일 선택
-fileInput.addEventListener('change', () => {
-  if (fileInput.files[0]) loadFile(fileInput.files[0]);
+document.getElementById('fileInput').addEventListener('change', function() {
+  if (this.files && this.files[0]) loadFile(this.files[0]);
 });
 
-// 다시 선택
-btnReset.addEventListener('click', e => {
-  e.preventDefault();
-  e.stopPropagation();
-  fileInput.value = '';
+function resetFile() {
+  const fi = document.getElementById('fileInput');
+  fi.value = '';
   imgFile = imgB64 = null;
-  uploadTrigger.style.display = 'block';
-  previewArea.style.display = 'none';
+  document.getElementById('uploadTrigger').style.display = 'block';
+  document.getElementById('previewArea').style.display = 'none';
   btnGen.disabled = true;
   btnText.textContent = '이미지 업로드 후 생성 가능';
   imgGrid.innerHTML = '';
   gridLabel.style.display = 'none';
   progressBox.classList.remove('show');
   errBox.classList.remove('show');
-});
+}
 
 function loadFile(f) {
   imgFile = f;
