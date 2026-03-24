@@ -1,6 +1,6 @@
 // api/fetch-coupang-product.js
-// POST /api/fetch-coupang-product  { keyword, productId }
-// 쿠팡 파트너스 API — 상품 검색 후 카드 UI용 JSON 반환
+// POST /api/fetch-coupang-product  { keyword?, itemId?, contentkeyword? }
+// 쿠팡 파트너스 API — keyword 자동 생성 + 상품 검색
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -9,24 +9,65 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
-  const { keyword, productId } = req.body;
-  const query = (keyword || productId || '').trim();
-
-  if (!query) {
-    return res.status(400).json({ status: 'fallback', message: '검색어가 없습니다.', items: [] });
-  }
+  const { keyword: rawKeyword, itemId, contentkeyword } = req.body;
 
   const accessKey = process.env.COUPANG_ACCESS_KEY;
   const secretKey = process.env.COUPANG_SECRET_KEY;
-
   if (!accessKey || !secretKey) {
-    return res.status(200).json({ status: 'fallback', message: '쿠팡 API 키 미설정', items: [] });
+    return res.status(200).json({ status: 'fallback', keyword: '', message: '쿠팡 API 키 미설정', items: [] });
   }
 
+  // ── 1. keyword 생성 (우선순위) ───────────────────────────────
+  let keyword = '';
+
+  // (1) contentkeyword 직접 사용
+  if (contentkeyword) {
+    keyword = cleanKeyword(contentkeyword);
+    console.log('[fetch-coupang-product] contentkeyword 사용:', keyword);
+  }
+
+  // (2) rawKeyword 직접 사용
+  if (!keyword && rawKeyword) {
+    keyword = cleanKeyword(rawKeyword);
+    console.log('[fetch-coupang-product] rawKeyword 사용:', keyword);
+  }
+
+  // (3) itemId로 네이버 쇼핑 검색 → 제목 추출
+  if (!keyword && itemId) {
+    console.log('[fetch-coupang-product] itemId로 네이버 검색:', itemId);
+    try {
+      const r = await fetch(
+        `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(itemId)}&display=3&sort=sim`,
+        {
+          headers: {
+            'X-Naver-Client-Id':     process.env.NAVER_CLIENT_ID,
+            'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET
+          },
+          signal: AbortSignal.timeout(6000)
+        }
+      );
+      if (r.ok) {
+        const d  = await r.json();
+        const ni = (d.items || [])[0];
+        if (ni && ni.title) {
+          keyword = cleanKeyword(ni.title.replace(/<[^>]+>/g, ''));
+          console.log('[fetch-coupang-product] 네이버 keyword:', keyword);
+        }
+      }
+    } catch(e) {
+      console.warn('[fetch-coupang-product] 네이버 검색 실패:', e.message);
+    }
+  }
+
+  if (!keyword) {
+    return res.status(200).json({ status: 'fallback', keyword: '', message: 'keyword를 생성할 수 없습니다.', items: [] });
+  }
+
+  // ── 2. 쿠팡 파트너스 검색 API ────────────────────────────────
   try {
     const method = 'GET';
     const path   = '/v2/providers/affiliate_open_api/apis/openapi/v1/products/search';
-    const qs     = `keyword=${encodeURIComponent(query.slice(0, 50))}&limit=5&subId=realpick`;
+    const qs     = `keyword=${encodeURIComponent(keyword)}&limit=5&subId=realpick`;
     const { datetime, signature } = await buildHmac(method, path, qs, secretKey);
 
     const r = await fetch(`https://api-gateway.coupang.com${path}?${qs}`, {
@@ -39,37 +80,49 @@ export default async function handler(req, res) {
     });
 
     const d = await r.json();
-    console.log('[fetch-coupang-product] status:', r.status, '| rCode:', d.rCode);
+    console.log('[fetch-coupang-product] API status:', r.status, '| rCode:', d.rCode, '| keyword:', keyword);
 
     if (!r.ok || d.rCode !== '0') {
       return res.status(200).json({
         status  : 'fallback',
+        keyword,
         message : d.rMessage || '쿠팡 API 오류',
         items   : []
       });
     }
 
-    const raw   = d.data?.productData || [];
-    const items = raw.map(p => ({
-      title       : p.productName || '',
-      price       : p.salePriceStr ? parseInt(p.salePriceStr.replace(/,/g, '')) : 0,
-      image       : p.productImage || '',
-      deeplink    : p.productUrl   || '',
+    const items = (d.data?.productData || []).map(p => ({
+      title       : p.productName   || '',
+      price       : p.salePriceStr  ? parseInt(p.salePriceStr.replace(/,/g, '')) : 0,
+      image       : p.productImage  || '',
+      deeplink    : p.productUrl    || '',
       rating      : p.productRating || 0,
       reviewCount : p.reviewCount   || 0
     }));
 
     console.log('[fetch-coupang-product] items:', items.length);
-    return res.status(200).json({ status: 'success', items });
+    return res.status(200).json({ status: 'success', keyword, items });
 
   } catch(e) {
     console.error('[fetch-coupang-product] 오류:', e.message);
     return res.status(200).json({
       status  : 'fallback',
+      keyword,
       message : '상품 정보를 불러오지 못했습니다.',
       items   : []
     });
   }
+}
+
+// ── keyword 정제 ─────────────────────────────────────────────
+function cleanKeyword(raw) {
+  return raw
+    .replace(/<[^>]+>/g, '')                          // HTML 태그
+    .replace(/쿠팡|무료배송|로켓배송|특가|할인|최저가|당일배송/g, '') // 불필요 단어
+    .replace(/\s*[\|\-\/\\].*$/, '')                  // | - / \ 이후 제거
+    .replace(/\s{2,}/g, ' ')                          // 연속 공백
+    .trim()
+    .slice(0, 50);
 }
 
 // ── HMAC 서명 (crypto.subtle — import 없이) ──────────────────
