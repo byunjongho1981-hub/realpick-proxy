@@ -68,35 +68,54 @@ function naverPost(path, body){
   });
 }
 
-// ── 네이버 검색 API (블로그 + 쇼핑 + 뉴스) ──────────────────
+// ── 네이버 검색 API (블로그 + 쇼핑 + 뉴스 + ★카페) ─────────
 async function fetchNaverSearchData(keyword){
   try{
-    var [blogRes, shopRes, newsRes] = await Promise.all([
-      naverGet('/v1/search/blog.json', { query:keyword, display:20, sort:'date' }),
-      naverGet('/v1/search/shop.json', { query:keyword, display:10, sort:'sim'  }),
-      naverGet('/v1/search/news.json', { query:keyword, display:10, sort:'date' }),
+    // ★ 카페 API 추가
+    var [blogRes, shopRes, newsRes, cafeRes] = await Promise.all([
+      naverGet('/v1/search/blog.json',        { query:keyword, display:20, sort:'date' }),
+      naverGet('/v1/search/shop.json',        { query:keyword, display:10, sort:'sim'  }),
+      naverGet('/v1/search/news.json',        { query:keyword, display:10, sort:'date' }),
+      naverGet('/v1/search/cafearticle.json', { query:keyword, display:10, sort:'date' }),
     ]);
     await sleep(200);
 
     var blogCount  = blogRes ? safeNum(blogRes.total)  : 0;
     var newsCount  = newsRes ? safeNum(newsRes.total)  : 0;
+    var cafeCount  = cafeRes ? safeNum(cafeRes.total)  : 0; // ★ 카페 수
     var shopExists = !!(shopRes && shopRes.items && shopRes.items.length > 0);
     var shopItems  = shopRes ? (shopRes.items||[]) : [];
 
-    // 구매의도 문맥 히트
+    // 구매의도 문맥 히트 (블로그 + 쇼핑 + ★카페 제목 포함)
     var allTitles = [];
-    if(blogRes && blogRes.items) allTitles = allTitles.concat(blogRes.items.map(function(i){ return i.title+' '+i.description; }));
-    if(shopRes && shopRes.items) allTitles = allTitles.concat(shopRes.items.map(function(i){ return i.title; }));
+    if(blogRes && blogRes.items) allTitles = allTitles.concat(
+      blogRes.items.map(function(i){ return i.title+' '+(i.description||''); })
+    );
+    if(shopRes && shopRes.items) allTitles = allTitles.concat(
+      shopRes.items.map(function(i){ return i.title||''; })
+    );
+    if(cafeRes && cafeRes.items) allTitles = allTitles.concat(  // ★
+      cafeRes.items.map(function(i){ return i.title+' '+(i.description||''); })
+    );
     var allText = allTitles.join(' ').replace(/<[^>]+>/g,'');
     var buyIntentHits = 0;
     CFG.BUY_INTENT_SIGNALS.forEach(function(sig){
       if(allText.indexOf(sig)>-1) buyIntentHits++;
     });
 
+    // ★ 카페 반응 판단: 태동기 감지 신호
+    // 카페 50건 이상 = 커뮤니티에서 관심 시작
+    var cafeSignal = cafeCount >= 50 ? 'active' : cafeCount >= 10 ? 'low' : 'none';
+
     return {
-      blogCount: blogCount, newsCount: newsCount,
-      shopExists: shopExists, shopItemCount: shopItems.length,
-      buyIntentHits: buyIntentHits, shoppingExists: shopExists,
+      blogCount:    blogCount,
+      newsCount:    newsCount,
+      cafeCount:    cafeCount,       // ★
+      cafeSignal:   cafeSignal,      // ★ active / low / none
+      shopExists:   shopExists,
+      shopItemCount: shopItems.length,
+      buyIntentHits: buyIntentHits,
+      shoppingExists: shopExists,
       sampleShopItems: shopItems.slice(0,3).map(function(i){
         return { title:i.title.replace(/<[^>]+>/g,''), price:safeNum(i.lprice), link:i.link||'' };
       }),
@@ -125,10 +144,10 @@ async function fetchNaverDatalab(keywords, period){
     if(!data || !data.results) return {};
     await sleep(300);
 
-    // ★ 버그4 수정: 원본 keywords 배열 인덱스 기반으로 매핑 (r.title 키 불일치 방지)
+    // 인덱스 기반 매핑 (r.title 불일치 방지)
     var result = {};
     data.results.forEach(function(r, idx){
-      var originalKw = keywords[idx] || r.title;  // 인덱스 우선, 없으면 title
+      var originalKw = keywords[idx] || r.title;
       var pts = r.data || [];
       if(pts.length < 4){ result[originalKw] = null; return; }
       var h    = Math.floor(pts.length/2);
@@ -176,10 +195,10 @@ async function fetchNaverShoppingInsight(keyword, catId, period){
     var clickSurge = pa>0 ? Math.round(((ca-pa)/pa)*100) : (ca>0?100:0);
     var last3  = pts.slice(-3), prev3 = pts.slice(Math.max(0,pts.length-6),-3);
     var l3=avg(last3), p3=avg(prev3);
-    var clickAccel = p3>0 ? Math.round(((l3-p3)/p3)*100) : (l3>0?50:0);
-    var all        = avg(pts);
-    var dur        = Math.round((pts.filter(function(p){return safeNum(p.ratio)>=all;}).length/pts.length)*100);
-    var shopTrend  = clickSurge>=30?'hot':clickSurge>=10?'rising':clickSurge>=-10?'stable':'falling';
+    var clickAccel    = p3>0 ? Math.round(((l3-p3)/p3)*100) : (l3>0?50:0);
+    var all           = avg(pts);
+    var dur           = Math.round((pts.filter(function(p){return safeNum(p.ratio)>=all;}).length/pts.length)*100);
+    var shopTrend     = clickSurge>=30?'hot':clickSurge>=10?'rising':clickSurge>=-10?'stable':'falling';
 
     return {
       clickSurge:clickSurge, clickAccel:clickAccel,
@@ -196,7 +215,7 @@ async function fetchNaverShoppingInsight(keyword, catId, period){
 async function fetchNaverBatch(keywords, period){
   var results = {};
 
-  // 1단계: 검색 API (순차)
+  // 1단계: 검색+카페+뉴스 (순차)
   for(var i=0; i<keywords.length; i++){
     var kw = keywords[i];
     if(!results[kw]) results[kw] = {};
