@@ -1,5 +1,6 @@
 var S = { product:null, titles:[], selectedTitle:0, body:'', hashtags:[], thumb:{}, seo:{}, generated:false };
 var S_IMAGES = new Array(6).fill(null);
+var S_PROD_REF = null; // 제품 원본 이미지 { data, mimeType }
 var S_URL_INFO = null;
 var S_ACTIVE_SLOT = -1;
 
@@ -83,47 +84,58 @@ document.addEventListener('paste', function(e) {
   pasteSlot(e, targetIdx);
 });
 
-// ── 제품 대표 이미지 핸들러 ──────────────────────────────────
-function handleProdImgFile(input) {
+// ── 제품 원본 이미지 핸들러 ──────────────────────────────────
+function handleProdRefFile(input) {
   var file = input.files ? input.files[0] : input;
   if (!file) return;
   var reader = new FileReader();
   reader.onload = function(ev) {
-    showProdImg(ev.target.result);
-    S_IMAGES[0] = { data: ev.target.result.split(',')[1], mimeType: file.type };
-    renderSlots();
-    showToast('📸 제품 이미지 등록됨 (슬롯 1 자동 연결)');
-    saveDraft();
+    S_PROD_REF = { data: ev.target.result.split(',')[1], mimeType: file.type };
+    var preview = document.getElementById('prod-ref-preview');
+    var ph  = document.getElementById('prod-ref-ph');
+    var del = document.getElementById('prod-ref-del');
+    if (preview) { preview.src = ev.target.result; preview.style.display = 'block'; }
+    if (ph)  ph.style.display  = 'none';
+    if (del) del.style.display = 'flex';
+    showToast('📦 제품 원본 이미지 등록됨 — 이미지 생성 시 참조됩니다');
+    // prodRef는 용량이 크므로 sessionStorage 별도 저장
+    try { sessionStorage.setItem(BLOG_STATE_KEY+'-prodref', ev.target.result); } catch(e) {}
   };
   reader.readAsDataURL(file);
   if (input.value !== undefined) input.value = '';
 }
 
-function handleProdImgDrop(e) {
+function handleProdRefDrop(e) {
   var file = e.dataTransfer.files[0];
   if (!file || !file.type.startsWith('image/')) return;
-  handleProdImgFile(file);
+  handleProdRefFile(file);
 }
 
-function showProdImg(src) {
-  var ph = document.getElementById('prod-img-ph');
-  var prev = document.getElementById('prod-img-preview');
-  var del = document.getElementById('prod-img-del');
-  if (ph) ph.style.display = 'none';
-  if (prev) { prev.src = src; prev.style.display = 'block'; }
-  if (del) del.style.display = 'flex';
-}
-
-function clearProdImg() {
-  var ph = document.getElementById('prod-img-ph');
-  var prev = document.getElementById('prod-img-preview');
-  var del = document.getElementById('prod-img-del');
-  if (ph) ph.style.display = 'block';
-  if (prev) { prev.src = ''; prev.style.display = 'none'; }
+function clearProdRef() {
+  S_PROD_REF = null;
+  var preview = document.getElementById('prod-ref-preview');
+  var ph  = document.getElementById('prod-ref-ph');
+  var del = document.getElementById('prod-ref-del');
+  if (preview) { preview.src = ''; preview.style.display = 'none'; }
+  if (ph)  ph.style.display  = 'flex';
   if (del) del.style.display = 'none';
-  S_IMAGES[0] = null;
-  renderSlots();
-  showToast('제품 이미지 초기화됨');
+  sessionStorage.removeItem(BLOG_STATE_KEY+'-prodref');
+  showToast('제품 원본 이미지 초기화됨');
+}
+
+function restoreProdRef() {
+  try {
+    var saved = sessionStorage.getItem(BLOG_STATE_KEY+'-prodref');
+    if (!saved) return;
+    var mime = saved.split(';')[0].replace('data:','') || 'image/jpeg';
+    S_PROD_REF = { data: saved.split(',')[1], mimeType: mime };
+    var preview = document.getElementById('prod-ref-preview');
+    var ph  = document.getElementById('prod-ref-ph');
+    var del = document.getElementById('prod-ref-del');
+    if (preview) { preview.src = saved; preview.style.display = 'block'; }
+    if (ph)  ph.style.display  = 'none';
+    if (del) del.style.display = 'flex';
+  } catch(e) {}
 }
 
 // ── 상태 저장 ────────────────────────────────────────────────
@@ -165,7 +177,6 @@ function restoreDraft() {
     var raw = sessionStorage.getItem(BLOG_STATE_KEY);
     if (!raw) return false;
     var draft = JSON.parse(raw);
-
     if (draft.product) setProduct(draft.product);
     if (draft.urlInput) { var urlEl = document.getElementById('url-input'); if (urlEl) urlEl.value = draft.urlInput; }
     if (draft.postType) { var ptEl = document.getElementById('post-type'); if (ptEl) ptEl.value = draft.postType; }
@@ -182,13 +193,13 @@ function restoreDraft() {
         try { data = sessionStorage.getItem(BLOG_STATE_KEY+'-img'+i); } catch(e){}
         if (data) {
           S_IMAGES[i] = { data: data, mimeType: img.mimeType };
-          if (i === 0) showProdImg('data:'+img.mimeType+';base64,'+data);
         } else if (img.url) {
           S_IMAGES[i] = { url: img.url, mimeType: img.mimeType };
         }
       });
       renderSlots();
     }
+    restoreProdRef();
     if (draft.generated && draft.titles && draft.titles.length) {
       S.titles = draft.titles;
       S.selectedTitle = draft.selectedTitle || 0;
@@ -211,6 +222,7 @@ function restoreDraft() {
 
 function clearDraft() {
   sessionStorage.removeItem(BLOG_STATE_KEY);
+  sessionStorage.removeItem(BLOG_STATE_KEY+'-prodref');
   for (var i=0; i<6; i++) sessionStorage.removeItem(BLOG_STATE_KEY+'-img'+i);
   location.reload();
 }
@@ -359,7 +371,6 @@ async function generateBlog() {
   if (!S.product) { showToast('⚠️ 제품을 먼저 연결해주세요'); return; }
   var btn = document.getElementById('gen-btn');
   btn.disabled=true; showLoading(true); updateStep(2);
-
   var p=S.product, jdg=p.judge||{}, sc=p.score||{}, rss=p.rss||{};
   var d=p.data||{}, dl=d.datalab||{}, yt=d.youtube||{}, shop=d.shopping||{};
   var urlInfo=p.urlInfo||S_URL_INFO||{};
@@ -368,15 +379,11 @@ async function generateBlog() {
   var postLength=document.getElementById('post-length').value;
   var tags=[...document.querySelectorAll('.tag.on')].map(function(t){return t.textContent;});
   var validImages=S_IMAGES.filter(Boolean);
-
   var typeLabel={review:'상품 리뷰',compare:'비교 추천',guide:'구매 가이드',trend:'트렌드 분석'}[postType]||'리뷰';
   var lenLabel={short:'800자 이상',medium:'1500자 이상',long:'2500자 이상'}[postLength]||'1500자 이상';
-
   var userPrompt =
     '아래 제품 데이터를 기반으로 스킬 v10.2를 완전히 적용한 수익형 블로그 글을 작성하라.\n\n'
-    +'제품명: '+p.name+'\n'
-    +'글 유형: '+typeLabel+'\n'
-    +'글 길이: '+lenLabel+'\n'
+    +'제품명: '+p.name+'\n글 유형: '+typeLabel+'\n글 길이: '+lenLabel+'\n'
     +'트렌드: '+(jdg.trendStatus||'–')+' / 결정: '+(jdg.decision||'–')+'\n'
     +'검색량 변화: '+(dl.surgeRate>=0?'+':'')+(dl.surgeRate||0)+'%\n'
     +'RSS 신호: '+(rss.score||0)+'점 / '+(rss.detectionCount||0)+'건\n'
@@ -386,10 +393,7 @@ async function generateBlog() {
     +(urlInfo.pros?'장점: '+urlInfo.pros.join(', ')+'\n':'')
     +(urlInfo.cons?'단점: '+urlInfo.cons.join(', ')+'\n':'')
     +(urlInfo.reviewSummary?'후기 요약: '+urlInfo.reviewSummary+'\n':'')
-    +(inputUrl
-      ? '구매 링크 URL: '+inputUrl+'\n'
-        +'⚠️ 본문의 모든 CTA(상단/중단/하단) 링크는 반드시 이 URL만 사용할 것: '+inputUrl+'\n'
-      : '')
+    +(inputUrl?'구매 링크 URL: '+inputUrl+'\n⚠️ 본문의 모든 CTA 링크는 반드시 이 URL만 사용할 것: '+inputUrl+'\n':'')
     +'포함 요소: '+tags.join(', ')+'\n'
     +(validImages.length?'\n첨부 이미지 '+validImages.length+'장을 분석하여 [📸 사진] 배치 설명에 반영하라.\n':'')
     +'\n⚠️ 절대 중간에 끊지 마라. JSON이 완전히 닫힐 때까지 출력을 멈추지 마라.\n'
@@ -399,7 +403,6 @@ async function generateBlog() {
   setLoadingStep('스킬 v10.2 적용 중...', 15); await sleep(300);
   setLoadingStep('가격대 분석 + 구조 설계 중...', 35); await sleep(300);
   setLoadingStep('본문 작성 중...', 55);
-
   try {
     var res = await fetch('/api/blog-generate', {
       method:'POST', headers:{'Content-Type':'application/json'},
@@ -419,7 +422,7 @@ async function generateBlog() {
     document.getElementById('result-area').scrollIntoView({behavior:'smooth',block:'start'});
     updateStep(3);
     saveDraft();
-    showImgAutoBtn(); // ★ 이미지 자동 생성 버튼 표시
+    showImgAutoBtn();
   } catch(e) {
     showToast('⚠️ 생성 오류: '+e.message);
     console.error(e);
@@ -441,14 +444,8 @@ function insertImagesIntoBody(body) {
 }
 
 function cleanMarkdown(t) {
-  return t
-    .replace(/#{1,6}\s*/g,'')
-    .replace(/\*\*(.+?)\*\*/g,'$1')
-    .replace(/\*(.+?)\*/g,'$1')
-    .replace(/__(.+?)__/g,'$1')
-    .replace(/^>\s*/gm,'')
-    .replace(/\n{3,}/g,'\n\n')
-    .trim();
+  return t.replace(/#{1,6}\s*/g,'').replace(/\*\*(.+?)\*\*/g,'$1').replace(/\*(.+?)\*/g,'$1')
+    .replace(/__(.+?)__/g,'$1').replace(/^>\s*/gm,'').replace(/\n{3,}/g,'\n\n').trim();
 }
 
 // ── 결과 렌더 ────────────────────────────────────────────────
@@ -456,10 +453,8 @@ function renderResult() {
   document.getElementById('title-list').innerHTML = S.titles.map(function(t,i){
     var len=t.length, ok=len>=20&&len<=50;
     return '<div class="title-item'+(i===S.selectedTitle?' selected':'')+'" onclick="selectTitle('+i+')">'
-      +'<div class="title-num">'+(i+1)+'</div>'
-      +'<div class="title-text">'+t+'</div>'
-      +'<span class="seo-score" style="background:'+(ok?'#ecfdf5;color:#10b981':'#fff7ed;color:#d97706')+'">'+len+'자'+(ok?' ✓':'')+'</span>'
-      +'</div>';
+      +'<div class="title-num">'+(i+1)+'</div><div class="title-text">'+t+'</div>'
+      +'<span class="seo-score" style="background:'+(ok?'#ecfdf5;color:#10b981':'#fff7ed;color:#d97706')+'">'+len+'자'+(ok?' ✓':'')+'</span></div>';
   }).join('');
   document.getElementById('body-textarea').value = cleanMarkdown(S.body);
   updateCharCount();
@@ -468,12 +463,9 @@ function renderResult() {
   }).join('');
   updateThumbPreview();
   var seoItems=[
-    {key:'keyword_density',label:'키워드 밀도 적절'},
-    {key:'title_length',label:'제목 길이 최적 (20~50자)'},
-    {key:'meta_desc',label:'메타 설명 포함'},
-    {key:'heading_structure',label:'헤딩 구조 (H2/H3)'},
-    {key:'cta_included',label:'구매 유도 CTA 포함'},
-    {key:'internal_link',label:'내부/제휴 링크 포함'}
+    {key:'keyword_density',label:'키워드 밀도 적절'},{key:'title_length',label:'제목 길이 최적 (20~50자)'},
+    {key:'meta_desc',label:'메타 설명 포함'},{key:'heading_structure',label:'헤딩 구조 (H2/H3)'},
+    {key:'cta_included',label:'구매 유도 CTA 포함'},{key:'internal_link',label:'내부/제휴 링크 포함'}
   ];
   var pass=0;
   document.getElementById('seo-checklist').innerHTML = seoItems.map(function(item){
@@ -515,16 +507,8 @@ async function regenSection(section) {
     var res=await fetch('/api/blog-generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:prompts[section],max_tokens:2000})});
     var data=await res.json(); if(data.error) throw new Error(data.error);
     var raw=data.text||'';
-    if(section==='body'){
-      S.body=raw.trim();
-      document.getElementById('body-textarea').value=S.body;
-      updateCharCount();
-      showToast('✓ 본문 재생성 완료');
-    } else if(section==='thumb'){
-      S.thumb=JSON.parse(raw.replace(/```json|```/g,'').trim());
-      updateThumbPreview();
-      showToast('✓ 썸네일 재생성 완료');
-    }
+    if(section==='body'){ S.body=raw.trim(); document.getElementById('body-textarea').value=S.body; updateCharCount(); showToast('✓ 본문 재생성 완료'); }
+    else if(section==='thumb'){ S.thumb=JSON.parse(raw.replace(/```json|```/g,'').trim()); updateThumbPreview(); showToast('✓ 썸네일 재생성 완료'); }
     saveDraft();
   } catch(e){showToast('⚠️ 재생성 오류');}
 }
@@ -536,10 +520,7 @@ async function uploadImagesToImgBB() {
     var img = S_IMAGES[i];
     if (!img || !img.data) continue;
     try {
-      var r = await fetch('/api/proxy-image', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ base64: img.data, mimeType: img.mimeType })
-      });
+      var r = await fetch('/api/proxy-image', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({base64:img.data,mimeType:img.mimeType}) });
       var d = await r.json();
       if (d.url) urlMap[i] = d.url;
     } catch(e) {}
@@ -551,23 +532,23 @@ function insertUrlsIntoBody(body, urlMap) {
   var seqIdx = 0;
   var EMOJI_HEADING = /^([\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|✅|⚠️|💡|🔥|🛒|👉|💰|📌|🎯|⭐|🙌|💬|📦)/u;
   var processed = body.replace(/\[📸\s*(\d*)[^\]]*\]/g, function(m, num) {
-    var idx = num ? parseInt(num) - 1 : seqIdx++;
+    var idx = num ? parseInt(num)-1 : seqIdx++;
     var url = urlMap[idx];
     if (!url) return '\x01';
-    return '\x00<img src="' + url + '" style="max-width:100%;border-radius:10px;margin:30px 0;display:block" alt="제품이미지"/>\x00';
+    return '\x00<img src="'+url+'" style="max-width:100%;border-radius:10px;margin:30px 0;display:block" alt="제품이미지"/>\x00';
   });
   return processed.split('\x00').map(function(chunk) {
     if (chunk.startsWith('<img')) return chunk;
-    return chunk.replace(/\x01/g, '').trim().split(/\n{1,}/).reduce(function(acc, line) {
+    return chunk.replace(/\x01/g,'').trim().split(/\n{1,}/).reduce(function(acc, line) {
       var t = line.trim();
       if (!t) { acc.push('<div style="height:14px"></div>'); return acc; }
       if (EMOJI_HEADING.test(t)) {
-        acc.push('<p style="margin:30px 0 16px 0;line-height:1.8;font-size:24px;font-weight:bold">' + t + '</p>');
+        acc.push('<p style="margin:30px 0 16px 0;line-height:1.8;font-size:24px;font-weight:bold">'+t+'</p>');
       } else {
         if (acc.length && acc[acc.length-1].startsWith('<p style="margin:0')) {
-          acc[acc.length-1] = acc[acc.length-1].replace(/<\/p>$/, '<br>' + t + '</p>');
+          acc[acc.length-1] = acc[acc.length-1].replace(/<\/p>$/, '<br>'+t+'</p>');
         } else {
-          acc.push('<p style="margin:0 0 16px 0;line-height:1.9;font-size:19px">' + t + '</p>');
+          acc.push('<p style="margin:0 0 16px 0;line-height:1.9;font-size:19px">'+t+'</p>');
         }
       }
       return acc;
@@ -580,25 +561,15 @@ async function copySelected(type){
   if(type==='body'){
     var raw = document.getElementById('body-textarea').value;
     var hasImgs = S_IMAGES.filter(Boolean).length > 0;
-    if(hasImgs){
-      showToast('🔄 이미지 업로드 중...');
-      var urlMap = await uploadImagesToImgBB();
-      var html = insertUrlsIntoBody(raw, urlMap);
-      if(navigator.clipboard && window.ClipboardItem){
-        var blob = new Blob([html], {type:'text/html'});
-        navigator.clipboard.write([new ClipboardItem({'text/html': blob})])
-          .then(function(){ showToast('✓ 이미지 포함 복사됨'); })
-          .catch(function(){ copyText(raw); showToast('✓ 텍스트만 복사됨'); });
-      } else { copyText(html); showToast('✓ 복사됨'); }
-    } else {
-      var html = insertUrlsIntoBody(raw, {});
-      if(navigator.clipboard && window.ClipboardItem){
-        var blob = new Blob([html], {type:'text/html'});
-        navigator.clipboard.write([new ClipboardItem({'text/html': blob})])
-          .then(function(){ showToast('✓ 복사됨'); })
-          .catch(function(){ copyText(raw); showToast('✓ 복사됨'); });
-      } else { copyText(raw); showToast('✓ 복사됨'); }
-    }
+    var html, blob;
+    if(hasImgs){ showToast('🔄 이미지 업로드 중...'); var urlMap=await uploadImagesToImgBB(); html=insertUrlsIntoBody(raw,urlMap); }
+    else { html=insertUrlsIntoBody(raw,{}); }
+    if(navigator.clipboard && window.ClipboardItem){
+      blob = new Blob([html],{type:'text/html'});
+      navigator.clipboard.write([new ClipboardItem({'text/html':blob})])
+        .then(function(){ showToast(hasImgs?'✓ 이미지 포함 복사됨':'✓ 복사됨'); })
+        .catch(function(){ copyText(raw); showToast('✓ 텍스트만 복사됨'); });
+    } else { copyText(html); showToast('✓ 복사됨'); }
     return;
   }
   var text='';
@@ -613,22 +584,19 @@ async function uploadTo(platform){
   var title=S.titles[S.selectedTitle]||'';
   var body=document.getElementById('body-textarea').value;
   var tags=S.hashtags.map(function(h){return h.replace(/^#/,'');}).join(',');
-  var sched=document.getElementById('use-schedule').checked
-    ?' ('+document.getElementById('schedule-date').value+' '+document.getElementById('schedule-time').value+' 예약)':' (즉시)';
+  var sched=document.getElementById('use-schedule').checked?' ('+document.getElementById('schedule-date').value+' '+document.getElementById('schedule-time').value+' 예약)':' (즉시)';
   if(platform==='both'){
-    var hasImgs = S_IMAGES.filter(Boolean).length > 0;
-    showToast(hasImgs ? '🔄 이미지 업로드 중...' : '복사 중...');
-    var urlMap = hasImgs ? await uploadImagesToImgBB() : {};
-    var bodyWithImgs = insertUrlsIntoBody(body, urlMap);
-    var fullHtml = '<h2>'+title+'</h2>\n'+bodyWithImgs+'\n<p>'+tags+'</p>';
+    var hasImgs=S_IMAGES.filter(Boolean).length>0;
+    showToast(hasImgs?'🔄 이미지 업로드 중...':'복사 중...');
+    var urlMap=hasImgs?await uploadImagesToImgBB():{};
+    var bodyWithImgs=insertUrlsIntoBody(body,urlMap);
+    var fullHtml='<h2>'+title+'</h2>\n'+bodyWithImgs+'\n<p>'+tags+'</p>';
     if(navigator.clipboard && window.ClipboardItem){
-      var blob = new Blob([fullHtml], {type:'text/html'});
-      navigator.clipboard.write([new ClipboardItem({'text/html': blob})])
+      var blob=new Blob([fullHtml],{type:'text/html'});
+      navigator.clipboard.write([new ClipboardItem({'text/html':blob})])
         .then(function(){ showToast('✓ 이미지 포함 전체 복사됨'); })
         .catch(function(){ copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags); showToast('✓ 텍스트만 복사됨'); });
-    } else {
-      copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags); showToast('✓ 복사됨');
-    }
+    } else { copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags); showToast('✓ 복사됨'); }
     updateStep(4); return;
   }
   copyText('【제목】\n'+title+'\n\n'+body+'\n\n'+tags);
@@ -639,12 +607,9 @@ async function uploadTo(platform){
 
 // ── 미리보기 ─────────────────────────────────────────────────
 function togglePreview() {
-  var ta=document.getElementById('body-textarea');
-  var pv=document.getElementById('body-preview');
-  var btn=document.getElementById('preview-btn');
+  var ta=document.getElementById('body-textarea'),pv=document.getElementById('body-preview'),btn=document.getElementById('preview-btn');
   if(pv.style.display==='none'){
-    pv.innerHTML=renderBodyWithImages(ta.value);
-    pv.style.display='block'; ta.style.display='none';
+    pv.innerHTML=renderBodyWithImages(ta.value); pv.style.display='block'; ta.style.display='none';
     btn.textContent='편집'; btn.style.background='#f1f5f9'; btn.style.color='#475569';
   } else {
     pv.style.display='none'; ta.style.display='block';
@@ -655,16 +620,10 @@ function togglePreview() {
 function renderBodyWithImages(text) {
   var escaped=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   return escaped.replace(/\[(?:📸|📷|🖼|📟)[^\]]*(\d)[^\]]*\]/g,function(match,num){
-    var idx=parseInt(num)-1;
-    var img=(idx>=0&&idx<6)?S_IMAGES[idx]:null;
-    if(img&&img.data){
-      return '\n<img src="data:'+img.mimeType+';base64,'+img.data+'" style="max-width:100%;border-radius:10px;margin:12px 0;display:block" alt="📸'+(idx+1)+'"/>\n';
-    }
-    if(img&&img.url){
-      return '\n<img src="'+img.url+'" style="max-width:100%;border-radius:10px;margin:12px 0;display:block" alt="📸'+(idx+1)+'" onerror="this.style.display=\'none\'"/>\n';
-    }
-    return '\n<div style="background:#f1f5f9;border:2px dashed #c7d2fe;border-radius:10px;padding:20px;text-align:center;color:#94a3b8;font-size:12px;margin:12px 0">'
-      +'📸 이미지 '+(idx+1)+' 슬롯 — 이미지를 첨부하면 여기에 표시됩니다</div>\n';
+    var idx=parseInt(num)-1, img=(idx>=0&&idx<6)?S_IMAGES[idx]:null;
+    if(img&&img.data) return '\n<img src="data:'+img.mimeType+';base64,'+img.data+'" style="max-width:100%;border-radius:10px;margin:12px 0;display:block" alt="📸'+(idx+1)+'"/>\n';
+    if(img&&img.url) return '\n<img src="'+img.url+'" style="max-width:100%;border-radius:10px;margin:12px 0;display:block" alt="📸'+(idx+1)+'" onerror="this.style.display=\'none\'"/>\n';
+    return '\n<div style="background:#f1f5f9;border:2px dashed #c7d2fe;border-radius:10px;padding:20px;text-align:center;color:#94a3b8;font-size:12px;margin:12px 0">📸 이미지 '+(idx+1)+' 슬롯 — 이미지를 첨부하면 여기에 표시됩니다</div>\n';
   });
 }
 
@@ -691,7 +650,6 @@ function showApiSetup(){showToast('💡 네이버/티스토리 API 연동은 OAu
 // ══════════════════════════════════════════════════════════════
 // ★ 이미지 자동 생성 시스템
 // ══════════════════════════════════════════════════════════════
-
 var IMG_CHARACTER_DNA = [
   'FIXED CHARACTER (must appear identical in every image):',
   '- Korean woman, age 28-32, slim athletic build',
@@ -707,115 +665,80 @@ function showImgAutoBtn() {
 }
 
 function extractScenesFromBody(body) {
-  var scenes = [];
-  var markerRe = /\[📸\s*(\d+)[^\]]*\]/g;
-  var match, markers = [];
-  while ((match = markerRe.exec(body)) !== null) {
-    markers.push({ slot: parseInt(match[1]), idx: match.index });
-  }
+  var scenes = [], markerRe = /\[📸\s*(\d+)[^\]]*\]/g, match, markers = [];
+  while ((match = markerRe.exec(body)) !== null) markers.push({ slot:parseInt(match[1]), idx:match.index });
   if (markers.length >= 3) {
     markers.forEach(function(mk) {
-      var before = body.slice(Math.max(0, mk.idx - 220), mk.idx).replace(/\[📸\d+[^\]]*\]/g,'').trim();
-      var after  = body.slice(mk.idx, Math.min(body.length, mk.idx + 220)).replace(/\[📸\d+[^\]]*\]/g,'').trim();
-      scenes.push({ slot: mk.slot, context: (before.slice(-130)+' '+after.slice(0,130)).trim() });
+      var before = body.slice(Math.max(0,mk.idx-220),mk.idx).replace(/\[📸\d+[^\]]*\]/g,'').trim();
+      var after  = body.slice(mk.idx,Math.min(body.length,mk.idx+220)).replace(/\[📸\d+[^\]]*\]/g,'').trim();
+      scenes.push({ slot:mk.slot, context:(before.slice(-130)+' '+after.slice(0,130)).trim() });
     });
   } else {
     var clean = body.replace(/\[📸\d+[^\]]*\]/g,'').replace(/\n{2,}/g,'\n').trim();
-    var unit = Math.floor(clean.length / 6);
-    for (var i = 1; i <= 6; i++) {
-      scenes.push({ slot: i, context: clean.slice((i-1)*unit, i*unit).trim().slice(0,220) });
-    }
+    var unit = Math.floor(clean.length/6);
+    for (var i=1;i<=6;i++) scenes.push({ slot:i, context:clean.slice((i-1)*unit,i*unit).trim().slice(0,220) });
   }
   return scenes;
 }
 
 function buildScenePrompt(scene, prodName) {
   var defaults = {
-    1: 'Korean woman looking frustrated with a daily problem that "'+prodName+'" solves, urban Korean setting, photorealistic 4K cinematic',
-    2: 'Close-up of "'+prodName+'" showing key features and quality details, product photography, studio lighting, 4K',
-    3: 'Korean woman discovering "'+prodName+'" for the first time, curious expression, Korean retail or home setting, photorealistic 4K',
-    4: 'Korean woman actively using "'+prodName+'" in daily life, natural movement, Korean urban background, photorealistic 4K cinematic',
-    5: 'Korean woman showing positive results and satisfaction after using "'+prodName+'", happy expression, photorealistic 4K warm lighting',
-    6: 'Korean woman confidently enjoying lifestyle with "'+prodName+'", aspirational Korean urban setting, photorealistic 4K cinematic'
+    1:'Korean woman looking frustrated with a daily problem that "'+prodName+'" solves, urban Korean setting, photorealistic 4K cinematic',
+    2:'The product "'+prodName+'" shown clearly with key features visible, product photography, studio lighting, 4K sharp detail',
+    3:'Korean woman discovering "'+prodName+'" for the first time, curious expression, Korean retail or home setting, photorealistic 4K',
+    4:'Korean woman actively using "'+prodName+'" in daily life, natural movement, Korean urban background, photorealistic 4K cinematic',
+    5:'Korean woman showing positive results and satisfaction after using "'+prodName+'", happy expression, photorealistic 4K warm lighting',
+    6:'Korean woman confidently enjoying lifestyle with "'+prodName+'", aspirational Korean urban setting, photorealistic 4K cinematic'
   };
   return defaults[scene.slot] || ('"'+prodName+'" product lifestyle scene, Korean woman, photorealistic 4K');
 }
 
 async function generateImagesFromBody() {
   if (!S.generated) { showToast('⚠️ 먼저 블로그 글을 생성해주세요'); return; }
-
   var btn  = document.getElementById('img-auto-btn');
   var prog = document.getElementById('img-auto-prog');
   var bar  = document.getElementById('img-auto-bar');
   var step = document.getElementById('img-auto-step');
   var cnt  = document.getElementById('img-auto-count');
-
-  btn.disabled = true;
-  btn.innerHTML = '⏳ 생성 중...';
-  prog.style.display = 'block';
-  bar.style.width = '0%';
+  btn.disabled=true; btn.innerHTML='⏳ 생성 중...';
+  prog.style.display='block'; bar.style.width='0%';
 
   var body     = document.getElementById('body-textarea').value;
   var prodName = S.product ? S.product.name : '제품';
   var scenes   = extractScenesFromBody(body);
-  var total    = scenes.length;
-  var success  = 0;
-  var fail     = 0;
+  var total=scenes.length, success=0, fail=0;
 
-  for (var i = 0; i < scenes.length; i++) {
-    var scene   = scenes[i];
-    var slotIdx = scene.slot - 1;
+  for (var i=0; i<scenes.length; i++) {
+    var scene=scenes[i], slotIdx=scene.slot-1;
+    step.textContent='씬 '+scene.slot+' 생성 중...';
+    cnt.textContent=(i+1)+' / '+total;
+    bar.style.width=Math.round((i/total)*100)+'%';
 
-    step.textContent = '씬 ' + scene.slot + ' 생성 중...';
-    cnt.textContent  = (i+1) + ' / ' + total;
-    bar.style.width  = Math.round((i / total) * 100) + '%';
-
-    // 컨텍스트가 있으면 활용, 없으면 기본 프롬프트
-    var sceneDesc = scene.context.length > 20
-      ? scene.context
-      : buildScenePrompt(scene, prodName);
-
+    var sceneDesc = scene.context.length>20 ? scene.context : buildScenePrompt(scene,prodName);
     var fullPrompt = IMG_CHARACTER_DNA
-      + '\n\nSCENE CONTEXT:\n' + sceneDesc
-      + '\n\nPRODUCT: ' + prodName
-      + '\n\nCRITICAL: Photorealistic, 4K, cinematic. Korean setting. Same woman as DNA above.';
+      +'\n\nSCENE CONTEXT:\n'+sceneDesc
+      +'\n\nPRODUCT: '+prodName
+      +'\n\nCRITICAL: Photorealistic, 4K, cinematic. Korean setting. Same woman as DNA above.'
+      +(S_PROD_REF ? '\nThe reference image shows the EXACT product. Reproduce its color, shape, branding faithfully. Do NOT alter the product appearance.' : '');
 
-    var ctrl    = new AbortController();
-    var timeout = setTimeout(function(){ ctrl.abort(); }, 55000);
+    var payload = { prompt: fullPrompt };
+    if (S_PROD_REF) { payload.imageBase64=S_PROD_REF.data; payload.imageMimeType=S_PROD_REF.mimeType; }
 
+    var ctrl=new AbortController(), timeout=setTimeout(function(){ctrl.abort();},55000);
     try {
-      var res = await fetch('/api/generate-image', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ prompt: fullPrompt }),
-        signal:  ctrl.signal
-      });
+      var res=await fetch('/api/generate-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:ctrl.signal});
       clearTimeout(timeout);
-      var data = await res.json();
-      if (!res.ok || !data.base64) throw new Error(data.error || '생성 실패');
-      S_IMAGES[slotIdx] = { data: data.base64, mimeType: data.mimeType };
-      renderSlots();
-      success++;
-    } catch(e) {
-      clearTimeout(timeout);
-      fail++;
-      console.warn('슬롯 ' + scene.slot + ' 실패:', e.message);
-    }
-
-    bar.style.width = Math.round(((i+1) / total) * 100) + '%';
+      var data=await res.json();
+      if(!res.ok||!data.base64) throw new Error(data.error||'생성 실패');
+      S_IMAGES[slotIdx]={data:data.base64,mimeType:data.mimeType};
+      renderSlots(); success++;
+    } catch(e) { clearTimeout(timeout); fail++; console.warn('슬롯 '+scene.slot+' 실패:',e.message); }
+    bar.style.width=Math.round(((i+1)/total)*100)+'%';
   }
 
-  // 완료 처리
-  bar.style.width  = '100%';
-  step.textContent = '완료! ✅ ' + success + '장 성공' + (fail > 0 ? ' / ' + fail + '장 실패' : '');
-  cnt.textContent  = '';
-  btn.disabled     = false;
-  btn.innerHTML    = '🔄 이미지 다시 생성';
-
-  if (success > 0) {
-    saveDraft();
-    showToast('🎨 이미지 ' + success + '장 생성 완료 — 슬롯에 자동 배치됨');
-  } else {
-    showToast('⚠️ 이미지 생성 실패 — API 상태를 확인해주세요');
-  }
+  bar.style.width='100%';
+  step.textContent='완료! ✅ '+success+'장 성공'+(fail>0?' / '+fail+'장 실패':'');
+  cnt.textContent=''; btn.disabled=false; btn.innerHTML='🔄 이미지 다시 생성';
+  if(success>0){ saveDraft(); showToast('🎨 이미지 '+success+'장 생성 완료 — 슬롯에 자동 배치됨'); }
+  else showToast('⚠️ 이미지 생성 실패 — API 상태를 확인해주세요');
 }
