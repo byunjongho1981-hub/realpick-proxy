@@ -807,7 +807,7 @@ async function generateImagesFromBody() {
     var sceneDesc = buildScenePrompt(scene, prodName);
     var fullPrompt = IMG_CHARACTER_DNA
       + '\n\nSCENE CAMERA DIRECTION: ' + (SCENE_CAMERA[scene.slot] || '')
-      + '\n\nSCENE CONTENT:\n' + situation
+      + '\n\nSCENE CONTENT:\n' + sceneDesc
       + '\n\nPRODUCT: ' + prodName
       + '\n\nIMAGE RULES: Photorealistic, 4K, cinematic. Korean setting.'
       + ' NO TEXT, NO LETTERS, NO CAPTIONS anywhere in the image.'
