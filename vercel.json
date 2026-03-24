@@ -11,8 +11,8 @@
     "api/proxy-image.js":             { "maxDuration": 30  },
     "api/coupang-search.js":          { "maxDuration": 15  },
     "api/fetch-coupang-product.js":   { "maxDuration": 15  },
-    "api/analyze-image.js":           { "maxDuration": 30  },
-    "api/generate-image.js":          { "maxDuration": 60  },
+    "api/analyze-image.js":           { "maxDuration": 60  },
+    "api/generate-image.js":          { "maxDuration": 90  },
     "api/naver-shop.js":              { "maxDuration": 15  },
     "api/naver-search.js":            { "maxDuration": 15  }
   },
