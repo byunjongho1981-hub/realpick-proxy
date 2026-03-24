@@ -110,8 +110,9 @@
 
     <!-- Upload Box -->
     <div class="upload-box" id="uploadBox">
-      <div id="uploadTrigger" class="upload-trigger" onclick="document.getElementById('fileInput').click()">
-        <input type="file" id="fileInput" accept="image/*" style="position:fixed;top:-9999px;left:-9999px;opacity:0"/>
+      <div id="uploadTrigger" class="upload-trigger" style="position:relative">
+        <input type="file" id="fileInput" accept="image/*"
+          style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:10"/>
         <div class="upload-icon">🖼️</div>
         <div class="upload-title">제품 원본 이미지를 업로드하세요</div>
         <div class="upload-sub">JPG, PNG, WEBP 지원</div>
@@ -122,7 +123,7 @@
         <div class="preview-info">
           <div class="p-name" id="previewName"></div>
           <div class="p-sub">이미지 분석 준비 완료 ✅</div>
-          <button class="btn-reset" id="btnReset" type="button" onclick="resetFile()">✕ 다시 선택</button>
+          <button class="btn-reset" id="btnReset" type="button">✕ 다시 선택</button>
         </div>
       </div>
     </div>
@@ -260,26 +261,26 @@ async function regenSlot(p) {
   } catch(e) {
     imgWrap.innerHTML = `<div class="img-placeholder"><div style="font-size:20px">⚠️</div><div style="font-size:11px;color:#94a3b8">${e.message}</div></div>`;
   }
-  regenEl.disabled = false;
-  regenEl.textContent = '↺';
+    regenEl.disabled = false;
+    regenEl.textContent = '↺';
 }
 
-
+function getProductName() {
   return document.getElementById('manualProductName').value.trim();
 }
 
-// 드래그 앤 드롭
+document.getElementById('fileInput').onchange = function() {
+  if (this.files && this.files[0]) loadFile(this.files[0]);
+};
+
+document.getElementById('btnReset').onclick = function() { resetFile(); };
+
 uploadBox.addEventListener('dragover', e => { e.preventDefault(); uploadBox.classList.add('drag'); });
 uploadBox.addEventListener('dragleave', () => uploadBox.classList.remove('drag'));
 uploadBox.addEventListener('drop', e => {
   e.preventDefault(); uploadBox.classList.remove('drag');
   const f = e.dataTransfer.files[0];
   if (f && f.type.startsWith('image/')) loadFile(f);
-});
-
-// 파일 선택
-document.getElementById('fileInput').addEventListener('change', function() {
-  if (this.files && this.files[0]) loadFile(this.files[0]);
 });
 
 function resetFile() {
