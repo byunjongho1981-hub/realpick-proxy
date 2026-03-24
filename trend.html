@@ -384,7 +384,6 @@ function handleResult(data){
   S.clusters    = data.clusters||[];
   S.apiStatus   = data.apiStatus||{};
   S.lastUpdated = data.updatedAt||new Date().toISOString();
-  // ★ sessionStorage 저장
   try{
     sessionStorage.setItem('realpick-trend-search-state', JSON.stringify({
       candidates: S.candidates, clusters: S.clusters,
@@ -441,7 +440,6 @@ function renderTable(){
   tbody.innerHTML=S.filtered.map(function(c,i){
     if(!c)return'';
     var sc=c.score||{},tr=c.trend||{},gc=GRADE_C[sc.grade]||'var(--gc)',isSel=S.selected&&S.selected.id===c.id,isFav=S.favorites.has(c.id);
-    var srcs=(c.sources||[]).map(function(s){return'<span style="background:#f1f5f9;color:#475569;border-radius:4px;padding:1px 5px;font-size:10px;margin-right:2px">'+s+'</span>';}).join('');
     var row='<tr class="r-row'+(isSel?' sel':'')+'" onclick="selItem('+i+')">'
       +'<td style="padding:9px 12px"><div style="font-weight:700;font-size:13px">'+(isFav?'⭐ ':'')+(c.name||'–')+'</div></td>'
       +'<td style="padding:9px 12px;font-weight:900;font-size:15px;color:'+gc+'">'+Math.round(n(sc.totalScore))+'</td>'
@@ -453,16 +451,13 @@ function renderTable(){
       +'<td style="padding:9px 12px">'+velocityHtml(c,'accel','accel')+'</td>'
       +'<td style="padding:9px 12px">'+velocityHtml(c,'durability','dur')+'</td>'
       +'<td style="padding:9px 12px">'
-        // 소스 배지
         +(c.sources||[]).map(function(s){
           var sc={shopping:'#f59e0b',blog:'#0891b2',news:'#6366f1',cafe:'#10b981'};
           var sl={shopping:'🛒쇼핑',blog:'📝블로그',news:'📰뉴스',cafe:'☕카페'};
           return '<span style="background:'+(sc[s]||'#94a3b8')+'18;color:'+(sc[s]||'#94a3b8')+';border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;margin-right:2px">'+(sl[s]||s)+'</span>';
         }).join('')
-        // 쇼핑인사이트 라벨
         +(c.insightLabel?'<div style="font-size:10px;color:#6366f1;margin-top:3px;font-weight:700">'+c.insightLabel+'</div>':'')
       +'</td>'
-      // ★ 바로가기 셀 — 🔥지금뜨는제품 + 더보기 드롭다운
       +'<td style="padding:9px 12px;vertical-align:middle">'
         +'<div style="display:flex;align-items:center;gap:4px">'
           +'<button onclick="event.stopPropagation();goHot(\''+c.name+'\')" style="display:inline-flex;align-items:center;gap:3px;padding:4px 9px;background:#fef2f2;border:1.5px solid #fecaca;border-radius:7px;font-size:11px;font-weight:700;color:#ef4444;cursor:pointer;white-space:nowrap">🔥 지금뜨는제품</button>'
@@ -509,8 +504,8 @@ document.addEventListener('click',function(){
   document.querySelectorAll('[id^="more_"]').forEach(function(el){el.style.display='none';});
 });
 
-function qlFetch(type, name, idx, inline){
-  var elId = inline ? 'ql-inline-'+idx : 'ql-result-'+idx;
+function qlFetch(type,name,idx,inline){
+  var elId=inline?'ql-inline-'+idx:'ql-result-'+idx;
   var el=document.getElementById(elId);
   if(!el)return;
   if(type==='shop'){
@@ -559,8 +554,8 @@ function qlFetch(type, name, idx, inline){
 }
 
 function goHot(kw){
-  sessionStorage.setItem('hot-auto-kw', kw);
-  location.href = '/hot.html';
+  sessionStorage.setItem('hot-auto-kw',kw);
+  location.href='/hot.html';
 }
 
 function renderDetail(){
@@ -626,42 +621,57 @@ function onFilter(el,val){document.querySelectorAll('[data-f]').forEach(function
 function onSort(val){S.sortBy=val;applySort();renderTable();}
 
 window.addEventListener('DOMContentLoaded', function(){
+  // ★ 로딩 상태 강제 초기화 — 버튼 disabled 방지
+  S.loading = false;
+  ['btn-auto','btn-qs'].forEach(function(id){
+    var b = document.getElementById(id);
+    if(b) b.disabled = false;
+  });
+
   try{
     var saved = sessionStorage.getItem('realpick-trend-search-state');
     if(!saved) return;
     var d = JSON.parse(saved);
     if(!d||!Array.isArray(d.candidates)||!d.candidates.length) return;
-    S.catId       = d.catId    || S.catId;
-    S.mode        = d.mode     || S.mode;
-    S.period      = d.period   || S.period;
-    S.filterStatus= 'all';
-    S.sortBy      = d.sortBy   || 'score';
-    S.candidates  = d.candidates;
-    S.clusters    = d.clusters || [];
-    S.apiStatus   = d.apiStatus|| {};
-    S.lastUpdated = d.updatedAt|| '';
+
+    S.catId        = d.catId     || S.catId;
+    S.mode         = d.mode      || S.mode;
+    S.period       = d.period    || S.period;
+    S.filterStatus = 'all';
+    S.sortBy       = d.sortBy    || 'score';
+    S.candidates   = d.candidates;
+    S.clusters     = d.clusters  || [];
+    S.apiStatus    = d.apiStatus || {};
+    S.lastUpdated  = d.updatedAt || '';
+
     document.querySelectorAll('[data-cat]').forEach(function(b){ b.classList.toggle('on', b.dataset.cat===S.catId); });
     document.querySelectorAll('[data-period]').forEach(function(b){ b.classList.toggle('on', b.dataset.period===S.period); });
     document.querySelectorAll('[data-f]').forEach(function(b){ b.classList.toggle('on', b.dataset.f==='all'); });
     document.querySelectorAll('.mode-tab').forEach(function(t,i){ t.classList.toggle('active', ['category','seed'][i]===S.mode); });
     ['ctrl-category','ctrl-seed'].forEach(function(id){ var el=document.getElementById(id); if(el) el.style.display=id==='ctrl-'+S.mode?'flex':'none'; });
+
     document.getElementById('empty-st').style.display='none';
     document.getElementById('result-tbl').style.display='table';
+
     applySort();
     if(!S.filtered.length){ S.filterStatus='all'; applySort(); }
-    // 비동기로 렌더링 — 브라우저 멈춤 방지
+
+    // ★ 비동기 렌더링 — 브라우저 멈춤 방지
     setTimeout(function(){
       renderCards();
       renderMeta();
       renderApiBar();
       renderClusters();
-      // 테이블은 100ms 뒤 별도 렌더 (DOM 부하 분산)
       setTimeout(function(){
         renderTable();
         renderDetail();
         showToast('📦 이전 탐색 결과 복원됨');
       }, 100);
     }, 50);
+
+  }catch(e){
+    console.warn('[복원 실패]', e.message);
+  }
 });
 </script>
 </body>
