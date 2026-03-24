@@ -68,7 +68,16 @@
     .btn-regen{padding:5px 10px;background:#f1f5f9;color:#64748b;font-size:11px;font-weight:700;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer}
     .btn-regen:hover{background:#e2e8f0}
 
-    /* 전체화면 미리보기 */
+    /* 슬롯 선택 */
+    .slot-select{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px 20px;margin-bottom:20px}
+    .slot-select-title{font-size:12px;font-weight:700;color:#64748b;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+    .slot-checks{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+    .slot-check{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
+    .slot-check input{display:none}
+    .slot-check-box{width:44px;height:44px;border-radius:10px;border:2px solid #e2e8f0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#94a3b8;transition:all .15s;background:#f8fafc}
+    .slot-check input:checked ~ .slot-check-box{border-color:#6366f1;background:#6366f1;color:#fff}
+    .slot-check-label{font-size:9px;color:#94a3b8;text-align:center;line-height:1.3;font-weight:600}
+    .slot-check input:checked ~ .slot-check-label{color:#6366f1;font-weight:700}
     .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:999;display:none;align-items:center;justify-content:center;cursor:zoom-out;pointer-events:none}
     .modal-overlay.show{display:flex;pointer-events:all}
     .modal-img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,.6)}
@@ -128,7 +137,24 @@
       </div>
     </div>
 
-    <div class="error-box" id="errBox"></div>
+    <!-- 슬롯 선택 -->
+    <div class="slot-select">
+      <div class="slot-select-title">
+        <span>🎯 생성할 장면 선택</span>
+        <div style="display:flex;gap:8px">
+          <button onclick="selectAllSlots(true)" style="font-size:11px;padding:3px 10px;background:#6366f1;color:#fff;border:none;border-radius:6px;cursor:pointer">전체선택</button>
+          <button onclick="selectAllSlots(false)" style="font-size:11px;padding:3px 10px;background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer">전체해제</button>
+        </div>
+      </div>
+      <div class="slot-checks">
+        <label class="slot-check"><input type="checkbox" class="slot-chk" value="1" checked/><div class="slot-check-box">1</div><div class="slot-check-label">문제<br/>상황</div></label>
+        <label class="slot-check"><input type="checkbox" class="slot-chk" value="2" checked/><div class="slot-check-box">2</div><div class="slot-check-label">기존<br/>한계</div></label>
+        <label class="slot-check"><input type="checkbox" class="slot-chk" value="3" checked/><div class="slot-check-box">3</div><div class="slot-check-label">제품<br/>등장</div></label>
+        <label class="slot-check"><input type="checkbox" class="slot-chk" value="4" checked/><div class="slot-check-box">4</div><div class="slot-check-label">사용<br/>장면</div></label>
+        <label class="slot-check"><input type="checkbox" class="slot-chk" value="5" checked/><div class="slot-check-box">5</div><div class="slot-check-label">결과<br/>변화</div></label>
+        <label class="slot-check"><input type="checkbox" class="slot-chk" value="6" checked/><div class="slot-check-box">6</div><div class="slot-check-label">라이프<br/>스타일</div></label>
+      </div>
+    </div>
 
     <!-- 전체화면 모달 -->
     <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
@@ -205,11 +231,14 @@ try {
         <div class="img-wrap">${p.src ? `<img src="${p.src}"/>` : '<div class="img-placeholder"><div style="font-size:24px">⚠️</div></div>'}</div>
         <div class="slot-footer">
           <div class="prompt-text">${p.short_copy ? `"${p.short_copy}"` : p.prompt}</div>
+          <button class="btn-regen" id="regen${p.slot}">↺</button>
           <button class="btn-dl" id="dl${p.slot}" ${p.src ? '' : 'disabled'}>저장</button>
         </div>
       </div>`).join('');
     // 저장 버튼 이벤트
     cards.forEach(p => {
+      const regenEl = document.getElementById('regen' + p.slot);
+      if (regenEl) regenEl.onclick = () => regenSlot(p);
       if (!p.src) return;
       const dlEl = document.getElementById('dl' + p.slot);
       if (dlEl) dlEl.onclick = () => {
@@ -263,6 +292,14 @@ async function regenSlot(p) {
   }
     regenEl.disabled = false;
     regenEl.textContent = '↺';
+}
+
+function selectAllSlots(v) {
+  document.querySelectorAll('.slot-chk').forEach(c => c.checked = v);
+}
+
+function getSelectedSlots() {
+  return [...document.querySelectorAll('.slot-chk:checked')].map(c => parseInt(c.value));
 }
 
 function getProductName() {
@@ -339,6 +376,7 @@ btnGen.addEventListener('click', async () => {
       </div>
       <div class="slot-footer">
         <div class="prompt-text" id="pt${s.num}">프롬프트 생성 중...</div>
+        <button class="btn-regen" disabled id="regen${s.num}">↺</button>
         <button class="btn-dl" disabled id="dl${s.num}">저장</button>
       </div>
     </div>`).join('');
@@ -361,11 +399,12 @@ btnGen.addEventListener('click', async () => {
     return;
   }
 
-  setProgress(40, 'Gemini 이미지 생성 중...', '2/2 — 렌더링 (6장)');
+  // 선택된 슬롯만 필터링
+  const filteredPrompts = prompts.filter(p => selectedSlots.includes(p.slot));
+  setProgress(40, 'Gemini 이미지 생성 중...', `2/2 — 렌더링 (${filteredPrompts.length}장)`);
 
-  // Step 2: Pollinations 렌더링
-  for (let i = 0; i < prompts.length; i++) {
-    const p = prompts[i];
+  for (let i = 0; i < filteredPrompts.length; i++) {
+    const p = filteredPrompts[i];
     const card = document.getElementById('card' + p.slot);
     const imgWrap = card.querySelector('.img-wrap');
     const ptEl = document.getElementById('pt' + p.slot);
@@ -399,6 +438,10 @@ btnGen.addEventListener('click', async () => {
               a.download = `realpick_${p.slot}_${p.name}.png`;
               document.body.appendChild(a); a.click(); document.body.removeChild(a);
             };
+            const regenEl = document.getElementById('regen' + p.slot);
+            if (regenEl) { regenEl.disabled = false; regenEl.onclick = () => regenSlot(p); }
+            img.style.cursor = 'zoom-in';
+            img.onclick = () => openModal(src, p.short_copy ? `"${p.short_copy}" — ${p.name}` : p.name);
           };
           img.src = src;
         } catch(e) {
@@ -409,7 +452,7 @@ btnGen.addEventListener('click', async () => {
       })();
     });
 
-    setProgress(40 + Math.round((i + 1) / prompts.length * 58), 'Pollinations.ai 이미지 생성 중...', `${i+1}/${prompts.length}장 완료`);
+    setProgress(40 + Math.round((i + 1) / filteredPrompts.length * 58), 'Gemini 이미지 생성 중...', `${i+1}/${filteredPrompts.length}장 완료`);
   }
 
   setProgress(100, '완료!', '6장 모두 생성되었습니다 ✅');
