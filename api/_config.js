@@ -1,7 +1,7 @@
 module.exports = {
-  TIMEOUT: 4000,
+  TIMEOUT: 9000,   // ★ 4000 → 9000 (Datalab API 응답 지연 대응)
   GRADE_A: 70,
-  GRADE_B: 50,
+  GRADE_B: 45,     // ★ 50 → 45 (새 scoring에서 B등급 진입 완화)
 
   CAT_NAMES: {
     '50000000':'패션의류','50000001':'패션잡화','50000002':'화장품/미용',
