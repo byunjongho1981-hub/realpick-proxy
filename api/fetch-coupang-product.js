@@ -17,50 +17,30 @@ export default async function handler(req, res) {
     return res.status(200).json({ status: 'fallback', keyword: '', message: '쿠팡 API 키 미설정', items: [] });
   }
 
-  // ── 1. keyword 생성 (우선순위) ───────────────────────────────
+  // ── 1. keyword 확정 ──────────────────────────────────────────
   let keyword = '';
 
   // (1) contentkeyword 직접 사용
   if (contentkeyword) {
     keyword = cleanKeyword(contentkeyword);
-    console.log('[fetch-coupang-product] contentkeyword 사용:', keyword);
+    console.log('[fetch-coupang-product] contentkeyword:', keyword);
   }
 
-  // (2) rawKeyword 직접 사용
+  // (2) rawKeyword 사용
   if (!keyword && rawKeyword) {
     keyword = cleanKeyword(rawKeyword);
-    console.log('[fetch-coupang-product] rawKeyword 사용:', keyword);
+    console.log('[fetch-coupang-product] rawKeyword:', keyword);
   }
 
-  // (3) itemId로 네이버 쇼핑 검색 → 제목 추출
-  if (!keyword && itemId) {
-    console.log('[fetch-coupang-product] itemId로 네이버 검색:', itemId);
-    try {
-      const r = await fetch(
-        `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(itemId)}&display=3&sort=sim`,
-        {
-          headers: {
-            'X-Naver-Client-Id':     process.env.NAVER_CLIENT_ID,
-            'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET
-          },
-          signal: AbortSignal.timeout(6000)
-        }
-      );
-      if (r.ok) {
-        const d  = await r.json();
-        const ni = (d.items || [])[0];
-        if (ni && ni.title) {
-          keyword = cleanKeyword(ni.title.replace(/<[^>]+>/g, ''));
-          console.log('[fetch-coupang-product] 네이버 keyword:', keyword);
-        }
-      }
-    } catch(e) {
-      console.warn('[fetch-coupang-product] 네이버 검색 실패:', e.message);
-    }
-  }
-
+  // keyword 없으면 API 호출 금지
   if (!keyword) {
-    return res.status(200).json({ status: 'fallback', keyword: '', message: 'keyword를 생성할 수 없습니다.', items: [] });
+    console.log('[fetch-coupang-product] keyword 없음 — API 호출 중단');
+    return res.status(200).json({
+      status  : 'no_keyword',
+      keyword : '',
+      message : 'keyword 없음',
+      items   : []
+    });
   }
 
   // ── 2. 쿠팡 파트너스 검색 API ────────────────────────────────
