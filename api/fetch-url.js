@@ -133,12 +133,10 @@ async function fetchCoupang(originalUrl, finalUrl) {
     const itemId       = parsed.searchParams.get('itemId') || '';
     const vendorItemId = parsed.searchParams.get('vendorItemId') || '';
 
-    // keyword: contentkeyword 파라미터 우선 추출
+    // (1) contentkeyword만 사용 — 없으면 no_keyword
     let keyword = '';
-    try {
-      const m = finalUrl.match(/[?&]contentkeyword=([^&]+)/);
-      if (m) keyword = decodeURIComponent(m[1]).trim();
-    } catch(e) {}
+    const m = finalUrl.match(/[?&]contentkeyword=([^&]+)/);
+    if (m) keyword = decodeURIComponent(m[1]).trim();
 
     let fixedUrl = productId ? `https://www.coupang.com/vp/products/${productId}` : finalUrl;
     if (productId && itemId && vendorItemId) fixedUrl += `?itemId=${itemId}&vendorItemId=${vendorItemId}`;
@@ -146,8 +144,37 @@ async function fetchCoupang(originalUrl, finalUrl) {
 
     console.log('[fetchCoupang] productId:', productId, '| itemId:', itemId, '| keyword:', keyword || '(없음)');
 
+    // keyword 없으면 no_keyword 반환 — API 호출 금지
+    if (!keyword) {
+      return {
+        productName  : productId ? '쿠팡 상품 ' + productId : '쿠팡 상품',
+        price        : 0,
+        category     : '쿠팡',
+        brand        : '',
+        platform     : '쿠팡',
+        originalUrl,
+        finalUrl,
+        fixedUrl,
+        productId    : productId || '',
+        itemId       : itemId || '',
+        vendorItemId : vendorItemId || '',
+        keyword      : '',
+        status       : 'no_keyword',
+        message      : 'keyword 없음 — 제품명을 직접 입력해주세요.',
+        priceGrade   : 'B',
+        features     : [],
+        pros         : [],
+        cons         : [],
+        targetUser   : '',
+        hookScene    : '',
+        reviewSummary: '',
+        imageUrl     : ''
+      };
+    }
+
+    // keyword 있으면 정상 반환
     return {
-      productName  : keyword || (productId ? '쿠팡 상품 ' + productId : '쿠팡 상품'),
+      productName  : keyword,
       price        : 0,
       category     : '쿠팡',
       brand        : '',
@@ -169,6 +196,7 @@ async function fetchCoupang(originalUrl, finalUrl) {
       reviewSummary: '',
       imageUrl     : ''
     };
+
   } catch(e) {
     console.warn('[fetchCoupang] 파싱 실패:', e.message);
     return {
