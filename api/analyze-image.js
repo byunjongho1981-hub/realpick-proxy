@@ -8,21 +8,17 @@ export default async function handler(req, res) {
   const { imageBase64, mediaType } = req.body;
   if (!imageBase64) return res.status(400).json({ error: 'imageBase64 required' });
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const apiKey = process.env.GEMINI_API_KEY;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+  const response = await fetch(url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': process.env.ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'image', source: { type: 'base64', media_type: mediaType || 'image/jpeg', data: imageBase64 } },
-          { type: 'text', text: `You are a product image prompt engineer for Korean e-commerce blogs.
+      contents: [{
+        parts: [
+          { inline_data: { mime_type: mediaType || 'image/jpeg', data: imageBase64 } },
+          { text: `You are a product image prompt engineer for Korean e-commerce blogs.
 Analyze this product image and generate 6 English image generation prompts — one per slot.
 Return ONLY valid JSON, no markdown, no preamble.
 Format:
@@ -52,7 +48,7 @@ Make each prompt specific to this exact product.` }
   const data = await response.json();
   if (!response.ok) return res.status(response.status).json({ error: data });
 
-  const raw = data.content.find(b => b.type === 'text')?.text || '';
+  const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
   const clean = raw.replace(/```json|```/g, '').trim();
   try {
     const parsed = JSON.parse(clean);
