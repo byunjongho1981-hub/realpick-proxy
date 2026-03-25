@@ -314,42 +314,105 @@ async function fetchCategoryTopKeywords(catIds, period){
 async function fetchNaverBatch(keywords, period, scope, catIdMap){
   var s=scope||'all', results={};
 
-  // 검색 (scope !== 'shop') — ★ 5개씩 병렬 배치
+  // ── STEP A: 검색 (scope !== 'shop') ──────────────────────
   if(s!=='shop'){
-    var BATCH=5;
+    var BATCH=5, searchOk=0, searchFail=0;
     for(var bi=0;bi<keywords.length;bi+=BATCH){
       var batch=keywords.slice(bi,bi+BATCH);
       var batchRes=await Promise.all(batch.map(function(kw){return fetchNaverSearchData(kw);}));
-      batch.forEach(function(kw,j){ results[kw]={search:batchRes[j]||null}; });
+      batch.forEach(function(kw,j){
+        results[kw]={search:batchRes[j]||null};
+        if(batchRes[j]) searchOk++; else searchFail++;
+      });
       if(bi+BATCH<keywords.length) await sleep(200);
     }
+    // 실패한 키워드 1회 재시도
+    if(searchFail>0){
+      console.warn('[search] 실패 '+searchFail+'개 — 재시도');
+      await sleep(500);
+      for(var ri=0;ri<keywords.length;ri++){
+        var rkw=keywords[ri];
+        if(!results[rkw]||!results[rkw].search){
+          results[rkw].search=await fetchNaverSearchData(rkw);
+          if(results[rkw].search) searchOk++; else console.error('[search 재시도 실패]',rkw);
+          await sleep(200);
+        }
+      }
+    }
+    console.log('[STEP A 검색] OK:'+searchOk+' / 전체:'+keywords.length);
     await sleep(200);
   }
 
-  // 데이터랩 (scope !== 'shop')
+  // ── STEP B: 데이터랩 (scope !== 'shop') ──────────────────
   if(s!=='shop'){
     var dlData=await fetchNaverDatalab(keywords,period);
+    var dlOk=0,dlFail=0;
     keywords.forEach(function(kw){
       if(!results[kw]) results[kw]={};
       results[kw].datalab=dlData[kw]||null;
+      if(dlData[kw]) dlOk++; else dlFail++;
     });
+    // 데이터랩 실패 키워드 재시도
+    if(dlFail>0){
+      console.warn('[datalab] 실패 '+dlFail+'개 — 재시도');
+      await sleep(600);
+      for(var di=0;di<keywords.length;di++){
+        var dkw=keywords[di];
+        if(!results[dkw].datalab){
+          var retry=await NAVER_DL_SINGLE(dkw,period);
+          if(retry){results[dkw].datalab=retry;dlOk++;}
+          else console.error('[datalab 재시도 실패]',dkw);
+          await sleep(300);
+        }
+      }
+    }
+    console.log('[STEP B 데이터랩] OK:'+dlOk+' / 전체:'+keywords.length);
     await sleep(200);
   }
 
-  // 쇼핑인사이트 (scope !== 'search') — ★ 200ms sleep (기존 300ms)
+  // ── STEP C: 쇼핑인사이트 (scope !== 'search') ────────────
   if(s!=='search'){
+    var insightOk=0,insightFail=0;
     for(var k=0;k<keywords.length;k++){
       var kw=keywords[k];
       if(!results[kw]) results[kw]={};
       if(!results[kw].insight){
         var cid=(catIdMap&&catIdMap[kw])||null;
         results[kw].insight=await fetchNaverShoppingInsight(kw,cid,period);
+        if(results[kw].insight) insightOk++;
+        else{
+          // 1회 재시도
+          await sleep(400);
+          results[kw].insight=await fetchNaverShoppingInsight(kw,cid,period);
+          if(results[kw].insight) insightOk++;
+          else{ insightFail++; console.error('[insight 재시도 실패]',kw); }
+        }
         await sleep(200);
-      }
+      } else { insightOk++; }
     }
+    console.log('[STEP C 쇼핑인사이트] OK:'+insightOk+' / 전체:'+keywords.length);
   }
 
   return results;
+}
+
+// 데이터랩 단독 재시도 헬퍼
+async function NAVER_DL_SINGLE(keyword, period){
+  var totalDays=period==='month'?60:14, timeUnit=period==='month'?'week':'date';
+  var data=await naverPost('/v1/datalab/search',{
+    startDate:fmtDate(agoDate(totalDays+1)), endDate:fmtDate(agoDate(1)),
+    timeUnit:timeUnit, keywordGroups:[{groupName:keyword,keywords:[keyword]}],
+  });
+  if(!data||!data.results) return null;
+  var pts=(data.results[0]||{}).data||[]; if(pts.length<4) return null;
+  var h=Math.floor(pts.length/2);
+  var avg=function(a){return a.reduce(function(s,p){return s+safeNum(p.ratio);},0)/(a.length||1);};
+  var pa=avg(pts.slice(0,h)),ca=avg(pts.slice(h));
+  var surge=pa>0?Math.round(((ca-pa)/pa)*100):(ca>0?100:0);
+  var mid=pts.slice(h),eh=mid.slice(0,Math.floor(mid.length/2)),rh=mid.slice(Math.floor(mid.length/2));
+  var accel=avg(eh)>0?Math.round(((avg(rh)-avg(eh))/avg(eh))*100):0;
+  var all=avg(pts),dur=Math.round((pts.filter(function(p){return safeNum(p.ratio)>=all;}).length/pts.length)*100);
+  return {surgeRate:surge,accel:accel,durability:dur};
 }
 
 module.exports = {
