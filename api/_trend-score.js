@@ -31,7 +31,8 @@ function calcRecentRise(kw24h,kw7d){
 
 // ── 구매 의도 (네이버 검색 API) ──────────────────────────────
 function calcBuyIntent(naverData){
-  if(!naverData) return 30;
+  // ★ naverData null → 0이 아닌 중립값 반환 (데이터 미수집과 구매의도 없음은 다름)
+  if(!naverData) return 35;
   var s=0;
   if(naverData.shoppingExists)    s+=25;
   if(naverData.blogCount>0)       s+=norm(naverData.blogCount,50000)*0.2;
