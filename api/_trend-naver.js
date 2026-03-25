@@ -68,12 +68,13 @@ function naverPost(path, body){
 
 // ── 네이버 검색 (blog+shop+news 병렬) ────────────────────────
 async function fetchNaverSearchData(keyword){
-  var res=await Promise.all([
-    naverGet('/v1/search/blog.json',{query:keyword,display:10,sort:'date'}),
-    naverGet('/v1/search/shop.json',{query:keyword,display:10,sort:'sim'}),
-    naverGet('/v1/search/news.json',{query:keyword,display:10,sort:'date'}),
-  ]);
-  var blogRes=res[0], shopRes=res[1], newsRes=res[2];
+  // 순차 호출 — Vercel 아웃바운드 동시연결 제한 회피
+  var blogRes = await naverGet('/v1/search/blog.json',{query:keyword,display:10,sort:'date'});
+  await sleep(80);
+  var shopRes = await naverGet('/v1/search/shop.json',{query:keyword,display:10,sort:'sim'});
+  await sleep(80);
+  var newsRes = await naverGet('/v1/search/news.json',{query:keyword,display:10,sort:'date'});
+
   if(!blogRes&&!shopRes&&!newsRes){ console.warn('[search all-null]',keyword); return null; }
 
   var blogCount  = blogRes?safeNum(blogRes.total):0;
@@ -313,84 +314,79 @@ async function fetchCategoryTopKeywords(catIds, period){
 // ── 배치 수집 (scope + catIdMap) ─────────────────────────────
 async function fetchNaverBatch(keywords, period, scope, catIdMap){
   var s=scope||'all', results={};
+  keywords.forEach(function(kw){ results[kw]={}; });
 
-  // ── STEP A: 검색 (scope !== 'shop') ──────────────────────
+  // ── STEP A: 검색 — 1개씩 순차 (동시연결 제한 회피) ─────────
   if(s!=='shop'){
-    var BATCH=5, searchOk=0, searchFail=0;
-    for(var bi=0;bi<keywords.length;bi+=BATCH){
-      var batch=keywords.slice(bi,bi+BATCH);
-      var batchRes=await Promise.all(batch.map(function(kw){return fetchNaverSearchData(kw);}));
-      batch.forEach(function(kw,j){
-        results[kw]={search:batchRes[j]||null};
-        if(batchRes[j]) searchOk++; else searchFail++;
-      });
-      if(bi+BATCH<keywords.length) await sleep(200);
-    }
-    // 실패한 키워드 1회 재시도
-    if(searchFail>0){
-      console.warn('[search] 실패 '+searchFail+'개 — 재시도');
-      await sleep(500);
-      for(var ri=0;ri<keywords.length;ri++){
-        var rkw=keywords[ri];
-        if(!results[rkw]||!results[rkw].search){
-          results[rkw].search=await fetchNaverSearchData(rkw);
-          if(results[rkw].search) searchOk++; else console.error('[search 재시도 실패]',rkw);
-          await sleep(200);
-        }
+    var searchOk=0;
+    for(var i=0;i<keywords.length;i++){
+      var kw=keywords[i];
+      results[kw].search = await fetchNaverSearchData(kw);
+      if(results[kw].search){
+        searchOk++;
+        console.log('[search ok]',kw,'('+searchOk+'/'+keywords.length+')');
+      } else {
+        console.warn('[search null]',kw,'— 재시도');
+        await sleep(500);
+        results[kw].search = await fetchNaverSearchData(kw);
+        if(results[kw].search) searchOk++;
+        else console.error('[search fail]',kw);
       }
+      await sleep(150);
     }
-    console.log('[STEP A 검색] OK:'+searchOk+' / 전체:'+keywords.length);
-    await sleep(200);
+    console.log('[STEP A 검색] OK:'+searchOk+'/'+keywords.length);
   }
 
-  // ── STEP B: 데이터랩 (scope !== 'shop') ──────────────────
+  // ── STEP B: 데이터랩 — 2개씩 묶어서 순차 ──────────────────
   if(s!=='shop'){
-    var dlData=await fetchNaverDatalab(keywords,period);
-    var dlOk=0,dlFail=0;
-    keywords.forEach(function(kw){
-      if(!results[kw]) results[kw]={};
-      results[kw].datalab=dlData[kw]||null;
-      if(dlData[kw]) dlOk++; else dlFail++;
-    });
-    // 데이터랩 실패 키워드 재시도
-    if(dlFail>0){
-      console.warn('[datalab] 실패 '+dlFail+'개 — 재시도');
-      await sleep(600);
-      for(var di=0;di<keywords.length;di++){
-        var dkw=keywords[di];
-        if(!results[dkw].datalab){
-          var retry=await NAVER_DL_SINGLE(dkw,period);
-          if(retry){results[dkw].datalab=retry;dlOk++;}
-          else console.error('[datalab 재시도 실패]',dkw);
-          await sleep(300);
+    var dlOk=0;
+    var clusters=buildKeywordClusters(keywords);
+    for(var ci=0;ci<clusters.length;ci++){
+      var cl=clusters[ci];
+      var clResult=await fetchNaverDatalabCluster(cl,period);
+      if(clResult){
+        Object.keys(clResult).forEach(function(k){
+          if(results[k]) results[k].datalab=clResult[k];
+          if(clResult[k]) dlOk++;
+        });
+        console.log('[datalab ok]',cl.root);
+      } else {
+        console.warn('[datalab null]',cl.root,'— 단독 재시도');
+        await sleep(600);
+        for(var ki=0;ki<cl.keywords.length;ki++){
+          var dkw=cl.keywords[ki];
+          var single=await NAVER_DL_SINGLE(dkw,period);
+          if(single){ if(results[dkw]) results[dkw].datalab=single; dlOk++; console.log('[datalab retry ok]',dkw); }
+          else console.error('[datalab fail]',dkw);
+          if(ki<cl.keywords.length-1) await sleep(400);
         }
       }
+      if(ci<clusters.length-1) await sleep(350);
     }
-    console.log('[STEP B 데이터랩] OK:'+dlOk+' / 전체:'+keywords.length);
-    await sleep(200);
+    console.log('[STEP B 데이터랩] OK:'+dlOk+'/'+keywords.length);
   }
 
-  // ── STEP C: 쇼핑인사이트 (scope !== 'search') ────────────
+  // ── STEP C: 쇼핑인사이트 — 1개씩 순차 ─────────────────────
   if(s!=='search'){
-    var insightOk=0,insightFail=0;
+    var insightOk=0;
     for(var k=0;k<keywords.length;k++){
-      var kw=keywords[k];
-      if(!results[kw]) results[kw]={};
-      if(!results[kw].insight){
-        var cid=(catIdMap&&catIdMap[kw])||null;
-        results[kw].insight=await fetchNaverShoppingInsight(kw,cid,period);
-        if(results[kw].insight) insightOk++;
-        else{
-          // 1회 재시도
-          await sleep(400);
-          results[kw].insight=await fetchNaverShoppingInsight(kw,cid,period);
-          if(results[kw].insight) insightOk++;
-          else{ insightFail++; console.error('[insight 재시도 실패]',kw); }
-        }
-        await sleep(200);
-      } else { insightOk++; }
+      var ikw=keywords[k];
+      if(results[ikw].insight){ insightOk++; continue; }
+      var cid=(catIdMap&&catIdMap[ikw])||null;
+      results[ikw].insight=await fetchNaverShoppingInsight(ikw,cid,period);
+      if(results[ikw].insight){
+        insightOk++;
+        console.log('[insight ok]',ikw);
+      } else {
+        console.warn('[insight null]',ikw,'— 재시도');
+        await sleep(400);
+        results[ikw].insight=await fetchNaverShoppingInsight(ikw,cid,period);
+        if(results[ikw].insight) insightOk++;
+        else console.error('[insight fail]',ikw);
+      }
+      await sleep(150);
     }
-    console.log('[STEP C 쇼핑인사이트] OK:'+insightOk+' / 전체:'+keywords.length);
+    console.log('[STEP C 쇼핑인사이트] OK:'+insightOk+'/'+keywords.length);
   }
 
   return results;
