@@ -295,7 +295,7 @@ module.exports = async function(req,res){
       if(!candidates.length)
         return res.status(200).json({candidates:[],apiStatus,excluded,excludeReasons,error:'제품 후보 없음'});
 
-      candidates = candidates.slice(0,15);
+      candidates = candidates.slice(0,10);
       candidates = await collectExternalData(candidates,period,apiStatus,scope,preInsightMap);
       candidates = enrichSearchIntent(candidates,apiStatus);   // ★ STEP 5
       candidates = await enrichWithGroq(candidates,apiStatus);
