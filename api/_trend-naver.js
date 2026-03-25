@@ -49,14 +49,12 @@ function naverPost(path, body){
 // ── 네이버 검색 (블로그+쇼핑+뉴스+카페) ─────────────────────
 async function fetchNaverSearchData(keyword){
   try{
-    var [blogRes,shopRes,newsRes,cafeRes,kinRes]=await Promise.all([
-      naverGet('/v1/search/blog.json',        {query:keyword,display:20,sort:'date'}),
-      naverGet('/v1/search/shop.json',        {query:keyword,display:10,sort:'sim'}),
-      naverGet('/v1/search/news.json',        {query:keyword,display:10,sort:'date'}),
-      naverGet('/v1/search/cafearticle.json', {query:keyword,display:10,sort:'date'}),
-      naverGet('/v1/search/kin.json',         {query:keyword,display:10,sort:'date'}), // ★ 지식인
-    ]);
-    await sleep(200);
+    // ★ Promise.all → 순차 호출: 네이버 rate limit 방지
+    var blogRes = await naverGet('/v1/search/blog.json',        {query:keyword,display:20,sort:'date'}); await sleep(150);
+    var shopRes = await naverGet('/v1/search/shop.json',        {query:keyword,display:10,sort:'sim'});  await sleep(150);
+    var newsRes = await naverGet('/v1/search/news.json',        {query:keyword,display:10,sort:'date'}); await sleep(150);
+    var cafeRes = await naverGet('/v1/search/cafearticle.json', {query:keyword,display:10,sort:'date'}); await sleep(150);
+    var kinRes  = await naverGet('/v1/search/kin.json',         {query:keyword,display:10,sort:'date'}); await sleep(150);
     var blogCount  = blogRes ? safeNum(blogRes.total)  : 0;
     var newsCount  = newsRes ? safeNum(newsRes.total)  : 0;
     var cafeCount  = cafeRes ? safeNum(cafeRes.total)  : 0;
@@ -88,32 +86,37 @@ async function fetchNaverSearchData(keyword){
   }
 }
 
-// ── ★ 설계서 [2]: 네이버 자동완성 + 연관검색어 수집 ─────────
-// 네이버 오픈 자동완성 API (인증 불필요)
+// ── ★ 설계서 [2]: 네이버 자동완성 수집 (폴백 강화) ──────────
 function fetchNaverSuggestions(keyword){
   return new Promise(function(resolve){
-    var t=setTimeout(function(){resolve([]);},5000);
-    var enc=encodeURIComponent(keyword);
-    var req=https.request({
-      hostname:'ac.search.naver.com',
-      path:'/nx/ac?q='+enc+'&con_q=&frm=nv&ans=2&aq=4&q_enc=UTF-8&st=100&r_format=json&r_enc=UTF-8&r_unicode=0&t_koreng=1&run_ptyp=true&nlu_query=&type=extend&target=ac',
-      method:'GET',
-      headers:{'User-Agent':'Mozilla/5.0','Referer':'https://search.naver.com/'}
-    },function(res){
-      var raw='';
-      res.on('data',function(c){raw+=c;});
-      res.on('end',function(){
-        clearTimeout(t);
-        try{
-          var d=JSON.parse(raw);
-          // 응답 구조: {items:[[["키워드",...],...],...]}
-          var items=d.items&&d.items[0]&&d.items[0].slice(0,8).map(function(r){return r[0];});
-          resolve(items||[]);
-        }catch(e){resolve([]);}
+    var t=setTimeout(function(){resolve([]);},4000);
+    try{
+      var enc=encodeURIComponent(keyword);
+      var req=https.request({
+        hostname:'ac.search.naver.com',
+        path:'/nx/ac?q='+enc+'&con_q=&frm=nv&ans=2&aq=4&q_enc=UTF-8&st=100&r_format=json&r_enc=UTF-8&r_unicode=0&t_koreng=1&run_ptyp=true&nlu_query=&type=extend&target=ac',
+        method:'GET',
+        headers:{
+          'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Referer':'https://search.naver.com/',
+          'Accept':'application/json',
+        }
+      },function(res){
+        var raw='';
+        res.on('data',function(c){raw+=c;});
+        res.on('end',function(){
+          clearTimeout(t);
+          try{
+            var d=JSON.parse(raw);
+            var items=(d.items&&d.items[0])?d.items[0].slice(0,8).map(function(r){return r[0];}):[];
+            resolve(items);
+          }catch(e){resolve([]);}
+        });
       });
-    });
-    req.on('error',function(){clearTimeout(t);resolve([]);});
-    req.end();
+      req.on('error',function(){clearTimeout(t);resolve([]);});
+      req.setTimeout(3500,function(){req.destroy();resolve([]);});
+      req.end();
+    }catch(e){clearTimeout(t);resolve([]);}
   });
 }
 // naverData(fetchNaverSearchData 결과)를 재활용 — 추가 API 호출 없음
