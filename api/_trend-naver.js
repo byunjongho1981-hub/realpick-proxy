@@ -14,7 +14,7 @@ function naverGet(path, params){
         return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);
       }).join('&');
       var done=false;
-      var t=setTimeout(function(){ if(!done){done=true; console.warn('[naverGet timeout]',path); resolve(null);} },6000);
+      var t=setTimeout(function(){ if(!done){done=true; console.warn('[naverGet timeout]',path); resolve(null);} },4000);
       var req=https.request({
         hostname:'openapi.naver.com', path:path+'?'+qs, method:'GET',
         headers:{'X-Naver-Client-Id':process.env.NAVER_CLIENT_ID,'X-Naver-Client-Secret':process.env.NAVER_CLIENT_SECRET}
@@ -31,7 +31,7 @@ function naverGet(path, params){
         });
       });
       req.on('error',function(e){ if(!done){done=true; clearTimeout(t); console.error('[naverGet req]',path,e.message); resolve(null);} });
-      req.setTimeout(5500,function(){ req.destroy(); });
+      req.setTimeout(3500,function(){ req.destroy(); });
       req.end();
     }catch(e){ resolve(null); }
   });
@@ -43,7 +43,7 @@ function naverPost(path, body){
     try{
       var buf=Buffer.from(JSON.stringify(body),'utf8');
       var done=false;
-      var t=setTimeout(function(){ if(!done){done=true; console.warn('[naverPost timeout]',path); resolve(null);} },6000);
+      var t=setTimeout(function(){ if(!done){done=true; console.warn('[naverPost timeout]',path); resolve(null);} },4000);
       var req=https.request({
         hostname:'openapi.naver.com', path:path, method:'POST',
         headers:{'X-Naver-Client-Id':process.env.NAVER_CLIENT_ID,'X-Naver-Client-Secret':process.env.NAVER_CLIENT_SECRET,'Content-Type':'application/json','Content-Length':buf.length}
@@ -60,7 +60,7 @@ function naverPost(path, body){
         });
       });
       req.on('error',function(e){ if(!done){done=true; clearTimeout(t); console.error('[naverPost req]',path,e.message); resolve(null);} });
-      req.setTimeout(5500,function(){ req.destroy(); });
+      req.setTimeout(3500,function(){ req.destroy(); });
       req.write(buf); req.end();
     }catch(e){ resolve(null); }
   });
@@ -69,7 +69,7 @@ function naverPost(path, body){
 // ── 네이버 검색 (blog+shop+news 병렬) ────────────────────────
 async function fetchNaverSearchData(keyword){
   var res=await Promise.all([
-    naverGet('/v1/search/blog.json',{query:keyword,display:20,sort:'date'}),
+    naverGet('/v1/search/blog.json',{query:keyword,display:10,sort:'date'}),
     naverGet('/v1/search/shop.json',{query:keyword,display:10,sort:'sim'}),
     naverGet('/v1/search/news.json',{query:keyword,display:10,sort:'date'}),
   ]);
