@@ -18,7 +18,14 @@ function naverGet(path, params){
       res.on('data',function(c){raw+=c;});
       res.on('end',function(){
         clearTimeout(t);
-        try{ var d=JSON.parse(raw); if(d.errorCode){resolve(null);return;} resolve(d); }catch(e){resolve(null);}
+        try{
+          var d=JSON.parse(raw);
+          if(d.errorCode){
+            console.error('[naverGet-err]',path,d.errorCode,d.errorMessage);
+            resolve(null); return;
+          }
+          resolve(d);
+        }catch(e){ console.error('[naverGet-parse]',path,e.message); resolve(null); }
       });
     });
     req.on('error',function(e){clearTimeout(t);reject(e);});
@@ -49,12 +56,18 @@ function naverPost(path, body){
 // ── 네이버 검색 (블로그+쇼핑+뉴스+카페) ─────────────────────
 async function fetchNaverSearchData(keyword){
   try{
-    // ★ Promise.all → 순차 호출: 네이버 rate limit 방지
-    var blogRes = await naverGet('/v1/search/blog.json',        {query:keyword,display:20,sort:'date'}); await sleep(150);
-    var shopRes = await naverGet('/v1/search/shop.json',        {query:keyword,display:10,sort:'sim'});  await sleep(150);
-    var newsRes = await naverGet('/v1/search/news.json',        {query:keyword,display:10,sort:'date'}); await sleep(150);
-    var cafeRes = await naverGet('/v1/search/cafearticle.json', {query:keyword,display:10,sort:'date'}); await sleep(150);
-    var kinRes  = await naverGet('/v1/search/kin.json',         {query:keyword,display:10,sort:'date'}); await sleep(150);
+    // ★ 각 API 독립 try-catch — 일부 권한 없어도 수집 가능한 데이터 반환
+    var blogRes=null,shopRes=null,newsRes=null,cafeRes=null,kinRes=null;
+    try{ blogRes=await naverGet('/v1/search/blog.json',        {query:keyword,display:20,sort:'date'}); }catch(e){ console.warn('[blog]',keyword,e.message); }
+    await sleep(150);
+    try{ shopRes=await naverGet('/v1/search/shop.json',        {query:keyword,display:10,sort:'sim'});  }catch(e){ console.warn('[shop]',keyword,e.message); }
+    await sleep(150);
+    try{ newsRes=await naverGet('/v1/search/news.json',        {query:keyword,display:10,sort:'date'}); }catch(e){ console.warn('[news]',keyword,e.message); }
+    await sleep(150);
+    try{ cafeRes=await naverGet('/v1/search/cafearticle.json', {query:keyword,display:10,sort:'date'}); }catch(e){ console.warn('[cafe]',keyword,e.message); }
+    await sleep(150);
+    try{ kinRes =await naverGet('/v1/search/kin.json',         {query:keyword,display:10,sort:'date'}); }catch(e){ console.warn('[kin]', keyword,e.message); }
+    await sleep(150);
     var blogCount  = blogRes ? safeNum(blogRes.total)  : 0;
     var newsCount  = newsRes ? safeNum(newsRes.total)  : 0;
     var cafeCount  = cafeRes ? safeNum(cafeRes.total)  : 0;
@@ -153,13 +166,11 @@ function calcSearchIntentFromData(keyword, naverData){
   score+=Math.min(20, naverData.buyIntentHits*3);
   if(naverData.cafeCount>500)                 score+=8;
   if(naverData.blogCount>10000)               score+=5;
-  // ★ 설계서 [4]: 자동완성/연관검색어 다양성 가점
-  var sugs=suggestions||[];
+  // ★ 설계서 [4]: 자동완성 다양성 가점 (최상단 sugs 재사용)
   if(sugs.length>=6)      score+=10;
   else if(sugs.length>=3) score+=5;
-  // 자동완성에 구매형 키워드 포함 시 추가 가점
   var sugText=sugs.join(' ').toLowerCase();
-  CFG.SEARCH_INTENT.BUY.forEach(function(p){if(sugText.indexOf(p)>-1)score+=2;});
+  CFG.SEARCH_INTENT.BUY.forEach(function(p){if(sugText.indexOf(p)>-1) score+=2;});
 
   // 뉴스 비중 높으면 감점
   if(naverData.newsCount>naverData.blogCount*2) score-=15;
@@ -237,10 +248,23 @@ async function fetchNaverDatalabCluster(cluster, period){
 }
 
 async function fetchNaverDatalab(keywords, period){
-  var clusters=buildKeywordClusters(keywords),result={};
+  var clusters=buildKeywordClusters(keywords), result={};
   for(var i=0;i<clusters.length;i++){
-    var clResult=await fetchNaverDatalabCluster(clusters[i],period);
-    if(clResult) Object.keys(clResult).forEach(function(k){result[k]=clResult[k];});
+    var cl=clusters[i];
+    try{
+      var clResult=await fetchNaverDatalabCluster(cl,period);
+      if(clResult) Object.keys(clResult).forEach(function(k){result[k]=clResult[k];});
+    }catch(e){
+      console.warn('[datalab-cluster-fail]',cl.root,e.message);
+      // ★ 클러스터 실패 시 키워드별 단독 재시도
+      for(var j=0;j<cl.keywords.length;j++){
+        try{
+          var single=await fetchNaverDatalabCluster({root:cl.keywords[j],label:cl.keywords[j],keywords:[cl.keywords[j]]},period);
+          if(single) Object.keys(single).forEach(function(k){result[k]=single[k];});
+          await sleep(300);
+        }catch(e2){ console.warn('[datalab-single-fail]',cl.keywords[j],e2.message); }
+      }
+    }
     if(i<clusters.length-1) await sleep(400);
   }
   return result;
