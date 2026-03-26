@@ -338,27 +338,47 @@ async function fetchNaverDatalabCluster(cluster, period){
 }
 
 // ── 카테고리 TOP 키워드 — 순차 (Rate Limit 방지) ─────────────
+// 카테고리당 시드 최대 6개 수집 → 상위 3개 반환
+// 전체 최대 15개 (candidates.slice(0,10) 이후 여유분 포함)
 async function fetchCategoryTopKeywords(catIds, period){
-  var tasks=[];
-  catIds.forEach(function(catId){
-    var seeds=(CFG.CATEGORY_SEEDS&&CFG.CATEGORY_SEEDS[catId])||[];
-    seeds.slice(0,2).forEach(function(seed){ tasks.push({keyword:seed,catId:catId}); });
-  });
   var results=[];
-  for(var i=0;i<tasks.length;i++){
-    var t=tasks[i];
-    var insight=await fetchNaverShoppingInsight(t.keyword,t.catId,period);
-    var trendScore=0;
-    if(insight&&!insight._fallback){
-      trendScore=Math.max(0,insight.clickSurge||0)+Math.max(0,insight.clickAccel||0);
-      if(insight.shopTrend==='hot')        trendScore+=30;
-      else if(insight.shopTrend==='rising')trendScore+=15;
+
+  for(var i=0;i<catIds.length;i++){
+    var catId=catIds[i];
+    var seeds=(CFG.CATEGORY_SEEDS&&CFG.CATEGORY_SEEDS[catId])||[];
+    if(!seeds.length) continue;
+
+    var catItems=[];
+    // ★ slice(0,2) → slice(0,6): 카테고리당 최대 6개 시드 수집
+    var limit = Math.min(seeds.length, 6);
+    for(var j=0;j<limit;j++){
+      var insight=await fetchNaverShoppingInsight(seeds[j],catId,period);
+      var trendScore=0;
+      if(insight&&!insight._fallback){
+        trendScore=Math.max(0,insight.clickSurge||0)+Math.max(0,insight.clickAccel||0);
+        if(insight.shopTrend==='hot')         trendScore+=30;
+        else if(insight.shopTrend==='rising') trendScore+=15;
+      }
+      catItems.push({
+        keyword:    seeds[j],
+        catId:      catId,
+        insightData:insight&&!insight._fallback?insight:null,
+        trendScore: trendScore,
+      });
+      await sleep(100);
     }
-    results.push({keyword:t.keyword,catId:t.catId,insightData:insight&&!insight._fallback?insight:null,trendScore:trendScore});
-    await sleep(100);
+
+    // 카테고리당 상위 3개 반환
+    catItems.sort(function(a,b){return b.trendScore-a.trendScore;});
+    var take = catIds.length===1 ? Math.min(catItems.length,10) : 3; // ★ 단일 카테고리면 최대 10개
+    results=results.concat(catItems.slice(0,take));
+    console.log('[cat]',catId,'수집:'+catItems.length+'개 → 선택:'+take+'개');
   }
+
   results.sort(function(a,b){return b.trendScore-a.trendScore;});
-  return results.slice(0,12);
+  var finalLimit = catIds.length===1 ? 10 : 15; // ★ 단일 카테고리 10개, 복수 15개
+  console.log('[fetchCategoryTopKeywords] 최종:'+Math.min(results.length,finalLimit)+'개');
+  return results.slice(0,finalLimit);
 }
 
 // ── 배치 수집 ─────────────────────────────────────────────────
