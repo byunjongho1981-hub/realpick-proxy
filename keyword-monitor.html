@@ -134,15 +134,15 @@ body{background:#0f172a;color:#e2e8f0;font-family:'Noto Sans KR',monospace;font-
   <!-- 진행 단계 -->
   <div class="phases">
     <div class="phase-card" id="ph1">
-      <div class="ph-title"><span class="ph-icon">🛒</span>PHASE 1 — 쇼핑 검색</div>
+      <div class="ph-title"><span class="ph-icon">🛍</span>PHASE 1 — 쇼핑인사이트 TOP 20</div>
       <div class="ph-status" id="ph1-status">대기</div>
     </div>
     <div class="phase-card" id="ph2">
-      <div class="ph-title"><span class="ph-icon">📈</span>PHASE 2 — 데이터랩</div>
+      <div class="ph-title"><span class="ph-icon">📈</span>PHASE 2 — 데이터랩 트렌드</div>
       <div class="ph-status" id="ph2-status">대기</div>
     </div>
     <div class="phase-card" id="ph3">
-      <div class="ph-title"><span class="ph-icon">🛍</span>PHASE 3 — 쇼핑인사이트</div>
+      <div class="ph-title"><span class="ph-icon">📊</span>PHASE 3 — 인사이트 점수화</div>
       <div class="ph-status" id="ph3-status">대기</div>
     </div>
   </div>
@@ -161,15 +161,15 @@ body{background:#0f172a;color:#e2e8f0;font-family:'Noto Sans KR',monospace;font-
   <!-- 단계별 결과 -->
   <div class="result-grid" id="result-grid" style="display:none">
     <div class="result-card">
-      <div class="rc-header">🛒 쇼핑검색 추출 TOP 20</div>
+      <div class="rc-header" id="ph1-result-title">🛍 쇼핑인사이트 인기검색어 TOP 20</div>
       <div class="rc-body" id="phase1-result"></div>
     </div>
     <div class="result-card">
-      <div class="rc-header">📈 데이터랩 트렌드 TOP 10</div>
+      <div class="rc-header">📈 데이터랩 트렌드 점수 TOP 10</div>
       <div class="rc-body" id="phase2-result"></div>
     </div>
     <div class="result-card">
-      <div class="rc-header">🛍 쇼핑인사이트 최종 TOP 5</div>
+      <div class="rc-header">📊 인사이트 점수화 TOP 5</div>
       <div class="rc-body" id="phase3-result"></div>
     </div>
   </div>
