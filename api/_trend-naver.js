@@ -109,11 +109,16 @@ async function fetchNaverSearchData(keyword){
 }
 
 async function _fetchSearch(keyword){
-  var blogRes = await naverGet('/v1/search/blog.json',{query:keyword,display:10,sort:'date'});
+  var blogRes = await naverGet('/v1/search/blog.json',{query:keyword,display:10,sort:'sim'});
   await sleep(150);
-  var shopRes = await naverGet('/v1/search/shop.json',{query:keyword,display:10,sort:'sim'});
+  var shopRes = await naverGet('/v1/search/shop.json',{
+    query:   keyword,
+    display: 10,
+    sort:    'sim',
+    exclude: 'used:rental:cbshop', // ★ 중고/렌탈/해외직구 제외 — 수익화 불가 상품 필터
+  });
   await sleep(150);
-  var newsRes = await naverGet('/v1/search/news.json',{query:keyword,display:10,sort:'date'});
+  var newsRes = await naverGet('/v1/search/news.json',{query:keyword,display:10,sort:'sim'});
 
   if(!blogRes&&!shopRes&&!newsRes) return null;
 
@@ -122,7 +127,7 @@ async function _fetchSearch(keyword){
   var shopExists = !!(shopRes&&shopRes.items&&shopRes.items.length>0);
   var shopItems  = shopRes?(shopRes.items||[]):[];
 
-  // [2] title + description 모두 분석, HTML 태그 제거
+  // title + description HTML 태그 제거 후 텍스트 분석
   var allTitles=[];
   if(blogRes&&blogRes.items) allTitles=allTitles.concat(blogRes.items.map(function(i){
     return stripHtml(i.title)+' '+stripHtml(i.description||'');
@@ -134,8 +139,52 @@ async function _fetchSearch(keyword){
     return stripHtml(i.title)+' '+stripHtml(i.description||'');
   }));
   var allText=allTitles.join(' ');
-  var buyIntentHits=0;
-  CFG.BUY_INTENT_SIGNALS.forEach(function(sig){if(allText.indexOf(sig)>-1)buyIntentHits++;});
+
+  // ★ 쇼핑 응답 추가 분석
+  var priceList=[], brandSet={}, categorySet={}, category2Set={};
+  if(shopRes&&shopRes.items){
+    shopRes.items.forEach(function(i){
+      var lp=safeNum(i.lprice);
+      if(lp>0) priceList.push(lp);
+      if(i.brand&&i.brand.trim())    brandSet[i.brand.trim()]=true;   // 빈문자열 제외
+      if(i.category1)                categorySet[i.category1]=true;
+      if(i.category2)                category2Set[i.category2]=true;  // ★ 중분류 추가
+    });
+  }
+  var avgPrice   = priceList.length
+    ? Math.round(priceList.reduce(function(s,v){return s+v;},0)/priceList.length)
+    : 0;
+  var priceGrade = avgPrice>=200000?'high':avgPrice>=50000?'mid':avgPrice>0?'low':'unknown';
+  var brands     = Object.keys(brandSet).slice(0,3);
+  var categories = Object.keys(categorySet).slice(0,2);
+  var categories2= Object.keys(category2Set).slice(0,3); // ★ 중분류
+
+  // ★ 뉴스 pubDate 기반 최신성 점수 (RFC 2822 → Date 파싱)
+  var recentNewsCount=0;
+  var sevenDaysAgo=new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate()-7);
+  if(newsRes&&newsRes.items){
+    newsRes.items.forEach(function(i){
+      try{
+        var pd=new Date(i.pubDate); // RFC 2822 → Date 자동 파싱
+        if(!isNaN(pd.getTime())&&pd>=sevenDaysAgo) recentNewsCount++;
+      }catch(e){}
+    });
+  }
+  var recentNewsRatio=newsRes&&newsRes.items&&newsRes.items.length>0
+    ?Math.round(recentNewsCount/newsRes.items.length*100):0;
+  var recentPostCount=0;
+  var thirtyDaysAgo=new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate()-30);
+  var recentThreshold=parseInt(thirtyDaysAgo.getFullYear()+
+    String(thirtyDaysAgo.getMonth()+1).padStart(2,'0')+
+    String(thirtyDaysAgo.getDate()).padStart(2,'0'));
+  if(blogRes&&blogRes.items){
+    blogRes.items.forEach(function(i){
+      var pd=parseInt((i.postdate||'').replace(/[^0-9]/g,''));
+      if(pd&&pd>=recentThreshold) recentPostCount++;
+    });
+  }
+  var recentRatio=blogRes&&blogRes.items&&blogRes.items.length>0
+    ?Math.round(recentPostCount/blogRes.items.length*100):0;
 
   // 최소 1개라도 수집되면 성공으로 간주
   if(blogCount===0&&newsCount===0&&!shopExists) return null;
@@ -144,8 +193,27 @@ async function _fetchSearch(keyword){
     blogCount, newsCount, cafeCount:0, kinCount:0, cafeSignal:'none',
     shopExists, shopItemCount:shopItems.length,
     buyIntentHits, shoppingExists:shopExists, allText,
+    recentPostRatio:  recentRatio,
+    recentNewsRatio:  recentNewsRatio,
+    avgPrice:         avgPrice,
+    priceGrade:       priceGrade,
+    brands:           brands,
+    categories:       categories,
+    categories2:      categories2,   // ★ 중분류 추가
     sampleShopItems:shopItems.slice(0,3).map(function(i){
-      return {title:stripHtml(i.title),price:safeNum(i.lprice),link:i.link||''};
+      var lp=safeNum(i.lprice), hp=safeNum(i.hprice);
+      return {
+        title:     stripHtml(i.title),
+        price:     lp,
+        hprice:    hp>0?hp:null,        // ★ 0이면 null (가격비교 데이터 없음)
+        mallName:  i.mallName||'네이버', // ★ 없으면 기본값 '네이버'
+        brand:     i.brand&&i.brand.trim()||'',
+        maker:     i.maker||'',          // ★ 제조사 추가
+        category1: i.category1||'',
+        category2: i.category2||'',      // ★ 중분류 추가
+        category3: i.category3||'',      // ★ 소분류 추가
+        link:      i.link||'',
+      };
     }),
   };
 }
@@ -191,6 +259,9 @@ async function fetchNaverDatalabForKeyword(keyword, period){
     endDate:   fmtDate(agoDate(1)),
     timeUnit:  timeUnit,
     keywordGroups:[{ groupName:keyword, keywords:synonyms }],
+    device: '',
+    gender: '',
+    ages:   [],
   };
   var data = await naverPost('/v1/datalab/search', body);
   if(data&&data.results&&data.results[0]) return parseDatalab(data.results[0], keyword);
@@ -202,6 +273,9 @@ async function fetchNaverDatalabForKeyword(keyword, period){
     endDate:   fmtDate(agoDate(1)),
     timeUnit:  timeUnit,
     keywordGroups:[{ groupName:keyword, keywords:[keyword] }],
+    device: '',
+    gender: '',
+    ages:   [],
   };
   var data2 = await naverPost('/v1/datalab/search', body2);
   if(data2&&data2.results&&data2.results[0]) return parseDatalab(data2.results[0], keyword);
@@ -212,17 +286,19 @@ async function fetchNaverDatalabForKeyword(keyword, period){
 }
 
 function parseDatalab(result, keyword){
-  var pts = result.data||[];
+  var pts=(result.data||[]).map(function(d){
+    return {period:d.period, ratio:safeRatio(d.ratio)}; // ★ string→float
+  });
   if(pts.length<4) return {surgeRate:0,accel:0,durability:50,_fallback:true};
-  var h   = Math.floor(pts.length/2);
-  var avg = function(a){return a.reduce(function(s,p){return s+safeNum(p.ratio);},0)/(a.length||1);};
+  var h=Math.floor(pts.length/2);
+  var avg=function(a){return a.reduce(function(s,p){return s+p.ratio;},0)/(a.length||1);};
   var pa=avg(pts.slice(0,h)), ca=avg(pts.slice(h));
-  var surge  = pa>0?Math.round(((ca-pa)/pa)*100):(ca>0?100:0);
-  var mid=pts.slice(h), eh=mid.slice(0,Math.floor(mid.length/2)), rh=mid.slice(Math.floor(mid.length/2));
-  var accel  = avg(eh)>0?Math.round(((avg(rh)-avg(eh))/avg(eh))*100):0;
-  var all    = avg(pts);
-  var dur    = Math.round((pts.filter(function(p){return safeNum(p.ratio)>=all;}).length/pts.length)*100);
-  console.log('[datalab ok]', keyword, 'surge:'+surge+'% accel:'+accel+'%');
+  var surge=pa>0?Math.round(((ca-pa)/pa)*100):(ca>0?100:0);
+  var mid=pts.slice(h),eh=mid.slice(0,Math.floor(mid.length/2)),rh=mid.slice(Math.floor(mid.length/2));
+  var accel=avg(eh)>0?Math.round(((avg(rh)-avg(eh))/avg(eh))*100):0;
+  var all=avg(pts);
+  var dur=Math.round((pts.filter(function(p){return p.ratio>=all;}).length/pts.length)*100);
+  console.log('[datalab ok]',keyword,'surge:'+surge+'% accel:'+accel+'% dur:'+dur+'%');
   return {surgeRate:surge, accel:accel, durability:dur};
 }
 
@@ -378,134 +454,267 @@ function extractKeywordsFromTitles(titles){
     .slice(0,25); // 최대 25개
 }
 
-// ── 쇼핑인사이트 내부 API — 카테고리 TOP 키워드 순위 ─────────
-// datalab.naver.com 내부 API (비공개) — 브라우저와 동일한 헤더 필수
-function fetchInsightTopKeywords(catId){
-  return new Promise(function(resolve){
-    try{
-      var today   = fmtDate(new Date());
-      var weekAgo = fmtDate(agoDate(7));
-      var body    = JSON.stringify({
-        cid:       catId,
-        timeUnit:  'date',
-        startDate: weekAgo,
-        endDate:   today,
-        device:    'pc',
-        gender:    'f',  // 전체: '' / 여성: 'f' / 남성: 'm'
-        age:       '',
-        count:     20,   // TOP 20
-      });
-      var buf=Buffer.from(body,'utf8');
-      var done=false;
-      var t=setTimeout(function(){if(!done){done=true;console.warn('[insightTop timeout]',catId);resolve(null);}},8000);
-      var req=https.request({
-        hostname: 'datalab.naver.com',
-        path:     '/shoppingInsight/getCategoryKeywordRank.naver',
-        method:   'POST',
-        headers:{
-          'Content-Type':   'application/json;charset=UTF-8',
-          'Content-Length': buf.length,
-          'Referer':        'https://datalab.naver.com/shoppingInsight/sCategory.naver',
-          'User-Agent':     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-          'Accept':         'application/json, text/plain, */*',
-          'Accept-Language':'ko-KR,ko;q=0.9',
-          'Origin':         'https://datalab.naver.com',
-          'X-Requested-With':'XMLHttpRequest',
-        }
-      },function(res){
-        var raw='';
-        res.on('data',function(c){raw+=c;});
-        res.on('end',function(){
-          if(done) return; done=true; clearTimeout(t);
-          try{
-            var d=JSON.parse(raw);
-            // 응답 구조: {result:{keywordList:[{keyword,rank,ratio}]}}
-            var list=(d.result&&d.result.keywordList)||
-                     (d.keywordList)||
-                     (Array.isArray(d)?d:[]);
-            if(!list.length){console.warn('[insightTop] 빈 응답',catId,raw.slice(0,200));resolve(null);return;}
-            var keywords=list.map(function(item){
-              return {
-                keyword: item.keyword||item.name||'',
-                rank:    item.rank||0,
-                ratio:   item.ratio||0,
-              };
-            }).filter(function(item){return item.keyword;});
-            console.log('[insightTop ok]',catId,'TOP',keywords.length,'— 1위:',keywords[0]&&keywords[0].keyword);
-            resolve(keywords);
-          }catch(e){
-            console.error('[insightTop parse]',catId,e.message,raw.slice(0,300));
-            resolve(null);
-          }
-        });
-      });
-      req.on('error',function(e){if(!done){done=true;clearTimeout(t);console.error('[insightTop req]',catId,e.message);resolve(null);}});
-      req.setTimeout(7000,function(){req.destroy();});
-      req.write(buf); req.end();
-    }catch(e){console.error('[insightTop]',catId,e.message);resolve(null);}
-  });
+// ratio는 string 타입 — parseFloat 명시 처리
+function safeRatio(v){
+  if(v===null||v===undefined||v==='') return 0;
+  var n=parseFloat(String(v).replace(/[^0-9.-]/g,''));
+  return isNaN(n)?0:n;
 }
 
-// ── 카테고리 TOP 키워드 수집 (쇼핑인사이트 내부 API) ─────────
+// 데이터랩 결과 파싱 — API 스펙 기준
+// results[].title     = groupName (주제어)
+// results[].keywords  = 검색어 배열
+// results[].data[]    = [{period:"yyyy-mm-dd", ratio:"0"~"100"}]
+function parseDatalabResult(results, keywordMap){
+  // keywordMap: {groupName: originalKeyword} — title로 원본 키워드 역추적
+  var scores={};
+  (results||[]).forEach(function(r){
+    var groupName=r.title;
+    var kw=keywordMap?keywordMap[groupName]:groupName;
+    if(!kw) return;
+
+    var pts=(r.data||[]).map(function(d){
+      return {period:d.period, ratio:safeRatio(d.ratio)}; // ★ string→float
+    });
+    if(pts.length<4){ scores[kw]=5; return; }
+
+    var h=Math.floor(pts.length/2);
+    var avg=function(a){
+      return a.reduce(function(s,p){return s+p.ratio;},0)/(a.length||1);
+    };
+    var pa=avg(pts.slice(0,h)), ca=avg(pts.slice(h));
+    var surge=pa>0?Math.round(((ca-pa)/pa)*100):(ca>0?50:0);
+    var mid=pts.slice(h);
+    var eh=mid.slice(0,Math.floor(mid.length/2));
+    var rh=mid.slice(Math.floor(mid.length/2));
+    var accel=avg(eh)>0?Math.round(((avg(rh)-avg(eh))/avg(eh))*100):0;
+    var recent=Math.round(avg(pts.slice(-3))*10);
+
+    scores[kw]=Math.max(0,surge)+Math.max(0,accel)+recent;
+    console.log('[datalab parse]',kw,'surge:'+surge+'% accel:'+accel+'% recent:'+Math.round(avg(pts.slice(-3))));
+  });
+  return scores;
+}
+// API 스펙: keywordGroups 최대 5개, keywords 최대 20개(동의어)
+// → 5개씩 배치 호출, 그룹당 동의어 최대 3개 포함
+async function compareKeywordsByDatalab(keywords, period){
+  var totalDays = period==='month'?60:14;
+  var timeUnit  = period==='month'?'week':'date';
+  var scores    = {};
+  keywords.forEach(function(kw){ scores[kw]=0; });
+
+  // 키워드별 동의어 맵 (그룹당 keywords 배열에 함께 전달)
+  var synonymMap={
+    // ── 패션의류 ──────────────────────────────────────────
+    '트위드자켓':   ['트위드자켓','트위드코트','트위드블레이저'],
+    '원피스':       ['원피스','드레스','미니원피스','맥시원피스'],
+    '트렌치코트':   ['트렌치코트','트렌치','봄코트','롱코트'],
+    '바람막이':     ['바람막이','윈드브레이커','방풍자켓'],
+    '스웨이드자켓': ['스웨이드자켓','스웨이드코트','무스탕'],
+    '여성자켓':     ['여성자켓','여성재킷','봄자켓'],
+    '가죽자켓':     ['가죽자켓','레더자켓','바이커자켓'],
+    '여성가디건':   ['여성가디건','니트가디건','롱가디건'],
+    '여성봄자켓':   ['여성봄자켓','봄아우터','스프링자켓'],
+    '블라우스':     ['블라우스','셔츠블라우스','여성셔츠'],
+    '후드집업':     ['후드집업','집업후드','후드자켓'],
+    '경량패딩':     ['경량패딩','경량점퍼','초경량패딩'],
+    '레더자켓':     ['레더자켓','가죽자켓','PU자켓'],
+    '청바지':       ['청바지','데님팬츠','진바지','스키니진'],
+    '니트':         ['니트','니트스웨터','울니트','뜨개옷'],
+    '맨투맨':       ['맨투맨','스웨트셔츠','크루넥'],
+    '와이드팬츠':   ['와이드팬츠','통바지','와이드슬랙스'],
+    '슬랙스':       ['슬랙스','정장바지','드레스팬츠'],
+    '레깅스':       ['레깅스','요가바지','요가레깅스','타이츠'],
+
+    // ── 패션잡화 ──────────────────────────────────────────
+    '크로스백':     ['크로스백','크로스바디백','숄더크로스백'],
+    '미니백':       ['미니백','미니숄더백','미니크로스백'],
+    '캔버스백':     ['캔버스백','에코백','천가방'],
+    '버킷햇':       ['버킷햇','벙거지','버킷모자'],
+    '비니':         ['비니','니트비니','털비니','겨울비니'],
+    '선글라스':     ['선글라스','썬글라스','UV차단선글라스'],
+    '슬리퍼':       ['슬리퍼','실내슬리퍼','쪼리','플립플랍'],
+    '스니커즈':     ['스니커즈','운동화','캐주얼신발'],
+    '숄더백':       ['숄더백','숄더핸드백','토트숄더백'],
+    '토트백':       ['토트백','대용량토트백','쇼핑백'],
+    '볼캡':         ['볼캡','야구모자','캡모자'],
+    '에코백':       ['에코백','장바구니','캔버스백'],
+
+    // ── 화장품/미용 ───────────────────────────────────────
+    '선크림':       ['선크림','썬크림','자외선차단제','선스크린'],
+    '썬크림':       ['썬크림','선크림','자외선차단제'],
+    '토너패드':     ['토너패드','스킨패드','코튼패드'],
+    '비타민C세럼':  ['비타민C세럼','비타민세럼','브라이트닝세럼'],
+    '수분크림':     ['수분크림','보습크림','모이스처라이저'],
+    '쿠션팩트':     ['쿠션팩트','쿠션파운데이션','에어쿠션'],
+    '클렌징오일':   ['클렌징오일','메이크업클렌저','더블클렌징'],
+    '마스크팩':     ['마스크팩','시트마스크','페이스마스크','수면팩'],
+    '레티놀크림':   ['레티놀크림','레티놀세럼','안티에이징크림'],
+    '선스틱':       ['선스틱','자외선차단스틱','선케어스틱'],
+
+    // ── 디지털/가전 ───────────────────────────────────────
+    '무선이어폰':   ['무선이어폰','블루투스이어폰','TWS이어폰','에어팟'],
+    '보조배터리':   ['보조배터리','파워뱅크','충전배터리','휴대용충전기'],
+    '스마트워치':   ['스마트워치','애플워치','갤럭시워치','스마트밴드'],
+    '블루투스스피커':['블루투스스피커','무선스피커','포터블스피커'],
+    'USB허브':      ['USB허브','USB멀티포트','C타입허브'],
+    '기계식키보드': ['기계식키보드','게이밍키보드','무선키보드'],
+    '웹캠':         ['웹캠','화상카메라','PC카메라'],
+    '노트북거치대': ['노트북거치대','노트북스탠드','모니터받침'],
+    'C타입케이블':  ['C타입케이블','USB-C케이블','PD충전케이블'],
+    '마우스패드':   ['마우스패드','게이밍마우스패드','장패드'],
+
+    // ── 가구/인테리어 ─────────────────────────────────────
+    '수납박스':     ['수납박스','수납함','정리함','수납바구니'],
+    '옷걸이행거':   ['옷걸이행거','행거','이동식행거'],
+    '간접조명':     ['간접조명','LED조명','무드등','스탠드조명'],
+    '러그':         ['러그','카펫','거실매트'],
+    '화분':         ['화분',  '인테리어화분','다육화분','식물화분'],
+    '캔들':         ['캔들','향초','소이캔들','아로마캔들'],
+    '쿠션':         ['쿠션','소파쿠션','인테리어쿠션'],
+
+    // ── 식품/건강 ─────────────────────────────────────────
+    '단백질쉐이크': ['단백질쉐이크','프로틴쉐이크','단백질보충제','WPI프로틴'],
+    '그릭요거트':   ['그릭요거트','플레인요거트','단백질요거트'],
+    '홍삼':         ['홍삼','홍삼정','홍삼농축액','홍삼액'],
+    '유산균':       ['유산균','프로바이오틱스','장유산균'],
+    '콜라겐':       ['콜라겐','저분자콜라겐','어콜라겐','콜라겐펩타이드'],
+    '비타민D':      ['비타민D','비타민D3','비타민D+K2'],
+    '오메가3':      ['오메가3','EPA DHA','피쉬오일','오메가3캡슐'],
+    '흑마늘즙':     ['흑마늘즙','흑마늘','발효흑마늘'],
+    '닭가슴살':     ['닭가슴살','닭가슴살스테이크','훈제닭가슴살'],
+
+    // ── 스포츠/레저 ───────────────────────────────────────
+    '요가매트':     ['요가매트','운동매트','필라테스매트'],
+    '폼롤러':       ['폼롤러','마사지롤러','근막롤러','마사지볼'],
+    '러닝화':       ['러닝화','조깅화','운동화','마라톤화'],
+    '헬스장갑':     ['헬스장갑','운동장갑','웨이트장갑'],
+    '덤벨':         ['덤벨','아령','가변덤벨'],
+    '등산화':       ['등산화','트레킹화','하이킹화'],
+    '아이스팩':     ['아이스팩','냉찜질팩','아이스젤'],
+
+    // ── 생활/건강 ─────────────────────────────────────────
+    '가습기':       ['가습기','초음파가습기','기화식가습기','무선가습기'],
+    '무선청소기':   ['무선청소기','핸디청소기','스틱청소기','코드리스청소기'],
+    '전기장판':     ['전기장판','전기매트','온열매트'],
+    '손선풍기':     ['손선풍기','미니선풍기','휴대용선풍기'],
+    '텀블러':       ['텀블러','보온텀블러','스탠리텀블러','보냉텀블러'],
+    '족욕기':       ['족욕기','발마사지기','족욕버블기'],
+    '마사지쿠션':   ['마사지쿠션','안마쿠션','등마사지기'],
+
+    // ── 반려동물 ──────────────────────────────────────────
+    '강아지간식':   ['강아지간식','강아지트릿','반려견간식'],
+    '고양이사료':   ['고양이사료','고양이캔','습식사료','건식사료'],
+    '펫이동가방':   ['펫이동가방','강아지캐리어','고양이캐리어'],
+    '강아지옷':     ['강아지옷','반려견의류','강아지패딩'],
+    '고양이장난감': ['고양이장난감','낚시대장난감','캣닢장난감'],
+    '자동급수기':   ['자동급수기','펫정수기','강아지정수기'],
+
+    // ── 자동차용품 ────────────────────────────────────────
+    '차량방향제':   ['차량방향제','차량용방향제','자동차방향제'],
+    '블랙박스':     ['블랙박스','차량용블랙박스','전후방블랙박스'],
+    '하이패스':     ['하이패스','하이패스단말기','하이패스OBD'],
+    '차량용충전기': ['차량용충전기','시거잭충전기','차량USB충전기'],
+    '세차샴푸':     ['세차샴푸','세차용품','차량세정제'],
+    '트렁크정리함': ['트렁크정리함','차량수납함','트렁크박스'],
+  };
+  };
+
+  // 5개씩 배치 처리
+  for(var i=0;i<keywords.length;i+=5){
+    var batch=keywords.slice(i,i+5);
+    var groups=batch.map(function(kw){
+      var syns=synonymMap[kw]||[kw];
+      // 키워드 자신 포함 + 동의어 최대 3개 (API 스펙: 최대 20개)
+      var kwList=[kw].concat(syns.filter(function(s){return s!==kw;})).slice(0,3);
+      return { groupName:kw, keywords:kwList };
+    });
+
+    var body={
+      startDate:     fmtDate(agoDate(totalDays+1)),
+      endDate:       fmtDate(agoDate(1)),
+      timeUnit:      timeUnit,
+      keywordGroups: groups,
+      device:        '',   // 전체 환경 (pc + mo)
+      gender:        '',   // 전체 성별
+      ages:          [],   // 전체 연령
+    };
+
+    var data=await naverPost('/v1/datalab/search', body);
+    if(data&&data.results){
+      // groupName → 원본 키워드 맵
+      var kwMap={};
+      groups.forEach(function(g){ kwMap[g.groupName]=g.groupName; });
+      var batchScores=parseDatalabResult(data.results, kwMap);
+      Object.keys(batchScores).forEach(function(kw){ scores[kw]=batchScores[kw]; });
+      console.log('[datalab compare] batch'+(Math.floor(i/5)+1)+'/'+Math.ceil(keywords.length/5),
+        batch.map(function(kw){ return kw+'('+(scores[kw]||0)+'점)'; }).join(' | '));
+    } else {
+      console.warn('[datalab compare] batch'+(Math.floor(i/5)+1)+' 응답 없음');
+      batch.forEach(function(kw){ if(!scores[kw]) scores[kw]=5; });
+    }
+    if(i+5<keywords.length) await sleep(300);
+  }
+  return scores;
+}
+
+// ── 카테고리 TOP 키워드 수집 ─────────────────────────────────
+// 1. CATEGORY_SEEDS 20개를 데이터랩으로 트렌드 비교 (4회 호출)
+// 2. 상위 5개만 쇼핑인사이트 호출 (할당량 절약)
+// 3. 최종 점수 = 데이터랩점수 + 인사이트점수
 async function fetchCategoryTopKeywords(catIds, period){
   var allKeywords=[];
 
   for(var i=0;i<catIds.length;i++){
     var catId=catIds[i];
-    console.log('[cat]',catId,'인사이트 TOP20 수집 시작');
+    var seeds=(CFG.CATEGORY_SEEDS&&CFG.CATEGORY_SEEDS[catId])||[];
+    if(!seeds.length) continue;
 
-    // STEP 1: 내부 API로 TOP 20 키워드 직접 수집
-    var top20=await fetchInsightTopKeywords(catId);
+    console.log('[cat]',catId,'SEEDS',seeds.length+'개 데이터랩 비교 시작');
 
-    // 실패 시 폴백: CATEGORY_SEEDS
-    if(!top20||!top20.length){
-      console.warn('[cat]',catId,'내부API 실패 — SEEDS 폴백');
-      var seeds=(CFG.CATEGORY_SEEDS&&CFG.CATEGORY_SEEDS[catId])||[];
-      top20=seeds.slice(0,10).map(function(kw,idx){
-        return {keyword:kw,rank:idx+1,ratio:0};
-      });
-    }
+    // STEP 1: 데이터랩으로 SEEDS 전체 트렌드 비교 (5개씩 배치)
+    var datalabScores=await compareKeywordsByDatalab(seeds, period);
 
-    // STEP 2: TOP 20 키워드를 쇼핑인사이트 공식 API로 트렌드 점수화
+    // 데이터랩 점수 순 정렬 → 상위 5개 선정
+    var ranked=seeds.slice().sort(function(a,b){
+      return (datalabScores[b]||0)-(datalabScores[a]||0);
+    });
+    var top5=ranked.slice(0,5);
+    console.log('[cat]',catId,'데이터랩 TOP5:',top5.map(function(kw){return kw+'('+(datalabScores[kw]||0)+'점)';}).join(' | '));
+
+    // STEP 2: TOP 5만 쇼핑인사이트 트렌드 점수화
     var catItems=[];
-    for(var j=0;j<top20.length;j++){
-      var kw=top20[j].keyword;
-      if(!kw) continue;
-
+    for(var j=0;j<top5.length;j++){
+      var kw=top5[j];
       var insight=await fetchNaverShoppingInsight(kw,catId,period);
-      var trendScore=0;
-
+      var insightScore=0;
       if(insight&&!insight._fallback){
-        trendScore=Math.max(0,insight.clickSurge||0)+Math.max(0,insight.clickAccel||0);
-        if(insight.shopTrend==='hot')         trendScore+=30;
-        else if(insight.shopTrend==='rising') trendScore+=15;
-        else if(insight.shopTrend==='stable') trendScore+=5;
-      } else {
-        // 인사이트 실패 → 순위 기반 기본 점수 (1위=20점, 20위=1점)
-        trendScore=Math.max(1, 21-(top20[j].rank||j+1));
+        insightScore=Math.max(0,insight.clickSurge||0)+Math.max(0,insight.clickAccel||0);
+        if(insight.shopTrend==='hot')         insightScore+=30;
+        else if(insight.shopTrend==='rising') insightScore+=15;
+        else if(insight.shopTrend==='stable') insightScore+=5;
       }
-
+      var totalScore=(datalabScores[kw]||0)+insightScore;
       catItems.push({
         keyword:    kw,
         catId:      catId,
-        rank:       top20[j].rank||j+1,
         insightData:insight&&!insight._fallback?insight:null,
-        trendScore: trendScore,
+        trendScore: totalScore,
       });
-      await sleep(120);
+      await sleep(150);
     }
 
-    // 트렌드 점수 순 정렬
-    catItems.sort(function(a,b){return b.trendScore-a.trendScore;});
+    // 나머지 seeds는 데이터랩 점수만으로 추가 (인사이트 미호출)
+    ranked.slice(5).forEach(function(kw){
+      catItems.push({keyword:kw,catId:catId,insightData:null,trendScore:datalabScores[kw]||0});
+    });
 
-    // 단일 카테고리: 최대 10개 / 복수: 상위 3개
+    catItems.sort(function(a,b){return b.trendScore-a.trendScore;});
     var take=catIds.length===1?Math.min(catItems.length,10):3;
     allKeywords=allKeywords.concat(catItems.slice(0,take));
 
-    console.log('[cat]',catId,'최종:'+take+'개',
-      catItems.slice(0,take).map(function(c){
-        return '#'+c.rank+' '+c.keyword+'('+c.trendScore+'점)';
-      }).join(' | '));
+    console.log('[cat]',catId,'최종 TOP'+take+':',
+      catItems.slice(0,take).map(function(c){return c.keyword+'('+c.trendScore+'점)';}).join(' | '));
 
     if(i<catIds.length-1) await sleep(300);
   }
