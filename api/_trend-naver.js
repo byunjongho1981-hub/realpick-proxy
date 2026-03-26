@@ -378,78 +378,117 @@ function extractKeywordsFromTitles(titles){
     .slice(0,25); // 최대 25개
 }
 
-// ── 쇼핑인사이트 TOP 500 → TOP 20 키워드 추출 ───────────────
-// 쇼핑 검색 API: display=100, start=1/101/201/301/401 (5회 = 500개)
-async function fetchShoppingTop500Keywords(catId, period){
-  var query=(CFG.CATEGORY_SEARCH_QUERY&&CFG.CATEGORY_SEARCH_QUERY[catId])||'인기';
-  var allTitles=[];
-
-  // 500개 수집 (100개씩 5회)
-  for(var page=0;page<5;page++){
-    var start=page*100+1;
-    var res=await naverGet('/v1/search/shop.json',{
-      query:   query,
-      display: 100,
-      start:   start,
-      sort:    'sim',
-    });
-    if(res&&res.items&&res.items.length){
-      res.items.forEach(function(item){
-        allTitles.push((item.title||'')+(item.category3?' '+item.category3:'')+(item.category4?' '+item.category4:''));
+// ── 쇼핑인사이트 내부 API — 카테고리 TOP 키워드 순위 ─────────
+// datalab.naver.com 내부 API (비공개) — 브라우저와 동일한 헤더 필수
+function fetchInsightTopKeywords(catId){
+  return new Promise(function(resolve){
+    try{
+      var today   = fmtDate(new Date());
+      var weekAgo = fmtDate(agoDate(7));
+      var body    = JSON.stringify({
+        cid:       catId,
+        timeUnit:  'date',
+        startDate: weekAgo,
+        endDate:   today,
+        device:    'pc',
+        gender:    'f',  // 전체: '' / 여성: 'f' / 남성: 'm'
+        age:       '',
+        count:     20,   // TOP 20
       });
-      console.log('[top500]',catId,'page'+(page+1)+' 수집:'+res.items.length+'개 (누적:'+allTitles.length+')');
-    } else {
-      console.warn('[top500]',catId,'page'+(page+1)+' 응답 없음 — 중단');
-      break;
-    }
-    await sleep(150);
-  }
-
-  if(!allTitles.length) return [];
-
-  // 키워드 추출 + 빈도 계산
-  var extracted=extractKeywordsFromTitles(allTitles);
-  console.log('[top500]',catId,'총',allTitles.length,'개 상품 → 상위 키워드:',extracted.slice(0,20).join(', '));
-
-  // TOP 20 반환
-  return extracted.slice(0,20);
+      var buf=Buffer.from(body,'utf8');
+      var done=false;
+      var t=setTimeout(function(){if(!done){done=true;console.warn('[insightTop timeout]',catId);resolve(null);}},8000);
+      var req=https.request({
+        hostname: 'datalab.naver.com',
+        path:     '/shoppingInsight/getCategoryKeywordRank.naver',
+        method:   'POST',
+        headers:{
+          'Content-Type':   'application/json;charset=UTF-8',
+          'Content-Length': buf.length,
+          'Referer':        'https://datalab.naver.com/shoppingInsight/sCategory.naver',
+          'User-Agent':     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'Accept':         'application/json, text/plain, */*',
+          'Accept-Language':'ko-KR,ko;q=0.9',
+          'Origin':         'https://datalab.naver.com',
+          'X-Requested-With':'XMLHttpRequest',
+        }
+      },function(res){
+        var raw='';
+        res.on('data',function(c){raw+=c;});
+        res.on('end',function(){
+          if(done) return; done=true; clearTimeout(t);
+          try{
+            var d=JSON.parse(raw);
+            // 응답 구조: {result:{keywordList:[{keyword,rank,ratio}]}}
+            var list=(d.result&&d.result.keywordList)||
+                     (d.keywordList)||
+                     (Array.isArray(d)?d:[]);
+            if(!list.length){console.warn('[insightTop] 빈 응답',catId,raw.slice(0,200));resolve(null);return;}
+            var keywords=list.map(function(item){
+              return {
+                keyword: item.keyword||item.name||'',
+                rank:    item.rank||0,
+                ratio:   item.ratio||0,
+              };
+            }).filter(function(item){return item.keyword;});
+            console.log('[insightTop ok]',catId,'TOP',keywords.length,'— 1위:',keywords[0]&&keywords[0].keyword);
+            resolve(keywords);
+          }catch(e){
+            console.error('[insightTop parse]',catId,e.message,raw.slice(0,300));
+            resolve(null);
+          }
+        });
+      });
+      req.on('error',function(e){if(!done){done=true;clearTimeout(t);console.error('[insightTop req]',catId,e.message);resolve(null);}});
+      req.setTimeout(7000,function(){req.destroy();});
+      req.write(buf); req.end();
+    }catch(e){console.error('[insightTop]',catId,e.message);resolve(null);}
+  });
 }
 
-// ── 카테고리 TOP 키워드 수집 (방법 1 — TOP 500 기반) ─────────
+// ── 카테고리 TOP 키워드 수집 (쇼핑인사이트 내부 API) ─────────
 async function fetchCategoryTopKeywords(catIds, period){
   var allKeywords=[];
 
   for(var i=0;i<catIds.length;i++){
     var catId=catIds[i];
-    console.log('[cat]',catId,'TOP500 수집 시작');
+    console.log('[cat]',catId,'인사이트 TOP20 수집 시작');
 
-    // STEP 1: 쇼핑 TOP 500에서 TOP 20 키워드 추출
-    var top20=await fetchShoppingTop500Keywords(catId,period);
+    // STEP 1: 내부 API로 TOP 20 키워드 직접 수집
+    var top20=await fetchInsightTopKeywords(catId);
 
-    if(!top20.length){
-      // 폴백: CATEGORY_SEEDS
-      console.warn('[cat]',catId,'TOP500 실패 — SEEDS 폴백');
-      top20=(CFG.CATEGORY_SEEDS&&CFG.CATEGORY_SEEDS[catId])||[];
-      top20=top20.slice(0,10);
+    // 실패 시 폴백: CATEGORY_SEEDS
+    if(!top20||!top20.length){
+      console.warn('[cat]',catId,'내부API 실패 — SEEDS 폴백');
+      var seeds=(CFG.CATEGORY_SEEDS&&CFG.CATEGORY_SEEDS[catId])||[];
+      top20=seeds.slice(0,10).map(function(kw,idx){
+        return {keyword:kw,rank:idx+1,ratio:0};
+      });
     }
 
-    // STEP 2: TOP 20 키워드를 쇼핑인사이트로 트렌드 점수화
+    // STEP 2: TOP 20 키워드를 쇼핑인사이트 공식 API로 트렌드 점수화
     var catItems=[];
     for(var j=0;j<top20.length;j++){
-      var kw=top20[j];
+      var kw=top20[j].keyword;
+      if(!kw) continue;
+
       var insight=await fetchNaverShoppingInsight(kw,catId,period);
       var trendScore=0;
+
       if(insight&&!insight._fallback){
         trendScore=Math.max(0,insight.clickSurge||0)+Math.max(0,insight.clickAccel||0);
         if(insight.shopTrend==='hot')         trendScore+=30;
         else if(insight.shopTrend==='rising') trendScore+=15;
         else if(insight.shopTrend==='stable') trendScore+=5;
       } else {
-        trendScore=10; // 인사이트 실패해도 0점 금지
+        // 인사이트 실패 → 순위 기반 기본 점수 (1위=20점, 20위=1점)
+        trendScore=Math.max(1, 21-(top20[j].rank||j+1));
       }
+
       catItems.push({
         keyword:    kw,
         catId:      catId,
+        rank:       top20[j].rank||j+1,
         insightData:insight&&!insight._fallback?insight:null,
         trendScore: trendScore,
       });
@@ -459,14 +498,14 @@ async function fetchCategoryTopKeywords(catIds, period){
     // 트렌드 점수 순 정렬
     catItems.sort(function(a,b){return b.trendScore-a.trendScore;});
 
-    // 단일 카테고리: 최대 10개 / 복수 카테고리: 상위 3개
+    // 단일 카테고리: 최대 10개 / 복수: 상위 3개
     var take=catIds.length===1?Math.min(catItems.length,10):3;
     allKeywords=allKeywords.concat(catItems.slice(0,take));
 
     console.log('[cat]',catId,'최종:'+take+'개',
       catItems.slice(0,take).map(function(c){
-        return c.keyword+'('+c.trendScore+'점)';
-      }).join(', '));
+        return '#'+c.rank+' '+c.keyword+'('+c.trendScore+'점)';
+      }).join(' | '));
 
     if(i<catIds.length-1) await sleep(300);
   }
