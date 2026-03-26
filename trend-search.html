@@ -862,9 +862,13 @@ function selRow(i){
         +'<b>자동완성/연관어:</b> '+(c.searchIntentData&&c.searchIntentData.suggestions&&c.searchIntentData.suggestions.join(' · ')||'–')
       +'</div></div>'
     +'<div class="dp-sec"><h4>🛒 네이버 구매 문맥</h4>'
-      +'<div class="dp-box">'+(c.naverData?'블로그 '+c.naverData.blogCount.toLocaleString()+'건 · 뉴스 '+c.naverData.newsCount+'건 · 카페 '+c.naverData.cafeCount+'건 · 쇼핑 '+(c.naverData.shoppingExists?'있음 ('+c.naverData.shopItemCount+'개)':'없음')+'  · 구매신호 '+c.naverData.buyIntentHits+'개':'수집 불가')+'</div></div>'
+      +'<div class="dp-box">'    +(c.naverData && !c.naverData._fallback
+        ?'블로그 '+c.naverData.blogCount.toLocaleString()+'건 · 쇼핑 '+(c.naverData.shoppingExists?'있음 ('+c.naverData.shopItemCount+'개)':'없음')+' · 구매신호 '+c.naverData.buyIntentHits+'개'
+        :'<span style="color:#f59e0b;font-size:11px">데이터 부족 (fallback 적용)</span>')+'</div></div>'
     +'<div class="dp-sec"><h4>📈 데이터랩</h4>'
-      +'<div class="dp-box">'+(c.datalabData?'상승률 '+(c.datalabData.surgeRate>=0?'+':'')+c.datalabData.surgeRate+'% · 가속도 '+c.datalabData.accel+'% · 유지력 '+c.datalabData.durability+'%':'수집 불가')+'</div></div>'
+      +'<div class="dp-box">'+(c.datalabData && !c.datalabData._fallback
+        ?'상승률 '+(c.datalabData.surgeRate>=0?'+':'')+c.datalabData.surgeRate+'% · 가속도 '+c.datalabData.accel+'% · 유지력 '+c.datalabData.durability+'%'
+        :'<span style="color:#f59e0b;font-size:11px">추세 약함 (fallback 적용)</span>')+'</div></div>'
     +'<div class="dp-sec"><h4>🛍 쇼핑인사이트</h4>'
       +'<div class="dp-box">'+(c.insightData?'클릭변화 '+(c.insightData.clickSurge>=0?'+':'')+c.insightData.clickSurge+'% · 가속 '+c.insightData.clickAccel+'% · 트렌드 '+c.insightData.shopTrend:'수집 불가')+'</div></div>'
     +'<div class="dp-sec"><h4>▶ YouTube</h4>'
