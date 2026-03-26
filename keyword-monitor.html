@@ -1,118 +1,128 @@
-var https = require('https');
-var CFG   = require('./_trend-config');
-
-function sleep(ms){ return new Promise(function(r){setTimeout(r,ms);}); }
-
-function naverPost(body){
-  return new Promise(function(resolve){
-    try{
-      var buf=Buffer.from(JSON.stringify(body),'utf8');
-      var done=false;
-      var t=setTimeout(function(){if(!done){done=true;resolve(null);}},6000);
-      var req=https.request({
-        hostname:'openapi.naver.com',
-        path:'/v1/datalab/shopping/category/keywords',
-        method:'POST',
-        headers:{
-          'X-Naver-Client-Id':     process.env.NAVER_CLIENT_ID,
-          'X-Naver-Client-Secret': process.env.NAVER_CLIENT_SECRET,
-          'Content-Type':          'application/json',
-          'Content-Length':        buf.length,
-        }
-      },function(res){
-        var raw='';
-        res.on('data',function(c){raw+=c;});
-        res.on('end',function(){
-          if(done)return; done=true; clearTimeout(t);
-          try{
-            var d=JSON.parse(raw);
-            if(d.errorCode){console.error('[naverPost]',d.errorCode,d.errorMessage);resolve(null);return;}
-            resolve(d);
-          }catch(e){resolve(null);}
-        });
-      });
-      req.on('error',function(){if(!done){done=true;clearTimeout(t);resolve(null);}});
-      req.setTimeout(5500,function(){req.destroy();});
-      req.write(buf); req.end();
-    }catch(e){resolve(null);}
-  });
-}
-
-function fmtDate(d){
-  var p=function(n){return String(n).padStart(2,'0');};
-  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());
-}
-
-module.exports = async function(req, res){
-  res.setHeader('Access-Control-Allow-Origin','*');
-  res.setHeader('Access-Control-Allow-Methods','POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers','Content-Type');
-  if(req.method==='OPTIONS') return res.status(200).end();
-  if(req.method!=='POST')    return res.status(405).json({error:'POST only'});
-
-  var body='';
-  req.on('data',function(c){body+=c;});
-  req.on('end', async function(){
-    try{
-      var p      = JSON.parse(body);
-      var catId  = p.catId  || '50000000';
-      var period = p.period || 'week';
-
-      var seeds  = (CFG.CATEGORY_SEEDS && CFG.CATEGORY_SEEDS[catId]) || [];
-      console.log('[monitor] catId:'+catId+' seeds:'+seeds.length);
-      if(!seeds.length) return res.status(200).json({items:[],error:'SEEDS 없음'});
-
-      var totalDays = period==='month'?60:14;
-      var end   = new Date();
-      var start = new Date(); start.setDate(end.getDate()-(totalDays+1));
-      var timeUnit = period==='month'?'week':'date';
-
-      var results=[];
-
-      for(var i=0;i<seeds.length;i+=5){
-        var batch=seeds.slice(i,i+5);
-        var data=await naverPost({
-          startDate: fmtDate(start),
-          endDate:   fmtDate(end),
-          timeUnit:  timeUnit,
-          category:  catId,
-          keyword:   batch.map(function(kw){return {name:kw,param:[kw]};}),
-          device:'', gender:'', ages:[],
-        });
-
-        if(data&&data.results){
-          data.results.forEach(function(r){
-            var pts=(r.data||[]).map(function(d){return parseFloat(d.ratio)||0;});
-            if(!pts.length) return;
-            var h   = Math.floor(pts.length/2);
-            var avg = function(a){return a.reduce(function(s,v){return s+v;},0)/(a.length||1);};
-            var pa  = avg(pts.slice(0,h));
-            var ca  = avg(pts.slice(h));
-            var cur = avg(pts.slice(-3));
-            var surge = pa>0?Math.round(((ca-pa)/pa)*100):(ca>0?50:0);
-            results.push({
-              keyword:      r.title,
-              currentRatio: Math.round(cur*100)/100,
-              surge:        surge,
-              shopTrend:    surge>=30?'hot':surge>=10?'rising':surge>=-10?'stable':'falling',
-            });
-          });
-          console.log('[monitor] batch'+(Math.floor(i/5)+1)+' +'+data.results.length+'개 (누적:'+results.length+')');
-        } else {
-          console.warn('[monitor] batch'+(Math.floor(i/5)+1)+' null — 키워드:'+batch.join(','));
-        }
-
-        if(i+5<seeds.length) await sleep(200);
-      }
-
-      results.sort(function(a,b){return b.currentRatio-a.currentRatio;});
-      var top20=results.slice(0,20);
-      console.log('[monitor] 완료 top1:'+(top20[0]&&top20[0].keyword||'없음'));
-      return res.status(200).json({items:top20});
-
-    }catch(e){
-      console.error('[monitor]',e.message);
-      return res.status(500).json({error:e.message});
-    }
-  });
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>쇼핑인사이트 TOP 20</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f172a;color:#e2e8f0;font-family:'Noto Sans KR',sans-serif;font-size:13px}
+.wrap{max-width:480px;margin:40px auto;padding:0 16px}
+.head{text-align:center;margin-bottom:24px}
+.head h1{font-size:18px;font-weight:900;color:#fff;margin-bottom:4px}
+.head p{font-size:12px;color:#475569}
+.ctrl{display:flex;gap:8px;margin-bottom:16px}
+.ctrl select{flex:1;background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:10px 12px;border-radius:8px;font-size:13px;outline:none}
+.ctrl select:focus{border-color:#6366f1}
+.btn{padding:10px 20px;background:#6366f1;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.card{background:#1e293b;border:1px solid #334155;border-radius:12px;overflow:hidden}
+.card-head{padding:12px 16px;border-bottom:1px solid #334155;display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:13px;font-weight:700;color:#e2e8f0}
+.card-meta{font-size:11px;color:#475569}
+.list{padding:4px 0}
+.item{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid #0f172a}
+.item:last-child{border-bottom:none}
+.rank{width:24px;font-size:14px;font-weight:900;text-align:center;flex-shrink:0}
+.r1{color:#f59e0b}.r2{color:#94a3b8}.r3{color:#b45309}.rn{color:#334155}
+.name{flex:1;font-size:14px;font-weight:600}
+.surge{font-size:11px;color:#475569;flex-shrink:0}
+.badge{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:700;flex-shrink:0}
+.hot{background:#7f1d1d;color:#fca5a5}
+.rising{background:#1c3a2a;color:#6ee7b7}
+.stable{background:#1e3a5f;color:#93c5fd}
+.falling{background:#1c1917;color:#78716c}
+.msg{padding:32px;text-align:center;color:#475569}
+@keyframes shimmer{0%,100%{opacity:.3}50%{opacity:.7}}
+.sk{animation:shimmer 1s infinite;background:#334155;border-radius:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <h1>🛍 쇼핑인사이트 인기검색어</h1>
+    <p>실시간 TOP 20</p>
+  </div>
+  <div class="ctrl">
+    <select id="cat">
+      <option value="50000000">👗 패션의류</option>
+      <option value="50000001">👜 패션잡화</option>
+      <option value="50000002">💄 화장품/미용</option>
+      <option value="50000003">📱 디지털/가전</option>
+      <option value="50000004">🪑 가구/인테리어</option>
+      <option value="50000005">🍱 식품</option>
+      <option value="50000006">⚽ 스포츠/레저</option>
+      <option value="50000007">🏠 생활/건강</option>
+      <option value="50000009">🍼 출산/육아</option>
+      <option value="50000010">🐾 반려동물</option>
+      <option value="50000011">🚗 자동차용품</option>
+    </select>
+    <button class="btn" id="btn" onclick="run()">조회</button>
+  </div>
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title" id="card-title">TOP 20</div>
+      <div class="card-meta" id="card-meta"></div>
+    </div>
+    <div class="list" id="list">
+      <div class="msg">카테고리를 선택하고 조회하세요</div>
+    </div>
+  </div>
+</div>
+<script>
+var CAT={
+  '50000000':'패션의류','50000001':'패션잡화','50000002':'화장품/미용',
+  '50000003':'디지털/가전','50000004':'가구/인테리어','50000005':'식품',
+  '50000006':'스포츠/레저','50000007':'생활/건강','50000009':'출산/육아',
+  '50000010':'반려동물','50000011':'자동차용품'
 };
+async function run(){
+  var catId=document.getElementById('cat').value;
+  var btn=document.getElementById('btn');
+  btn.disabled=true; btn.textContent='조회 중...';
+  document.getElementById('card-title').textContent=CAT[catId]+' 인기검색어 TOP 20';
+  document.getElementById('card-meta').textContent='';
+
+  // 스켈레톤
+  var sk='';
+  for(var i=0;i<10;i++) sk+='<div class="item"><div class="sk" style="width:20px;height:14px"></div><div class="sk" style="flex:1;height:14px;margin-left:8px"></div></div>';
+  document.getElementById('list').innerHTML=sk;
+
+  try{
+    var t=Date.now();
+    var r=await fetch(window.location.origin+'/api/keyword-monitor',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'insight_top',catId:catId,period:'week'})
+    });
+    var d=await r.json();
+    var elapsed=((Date.now()-t)/1000).toFixed(1)+'s';
+
+    if(!d.items||!d.items.length){
+      document.getElementById('list').innerHTML='<div class="msg">데이터 없음</div>';
+      return;
+    }
+
+    document.getElementById('card-meta').textContent=elapsed+' · '+new Date().toLocaleTimeString('ko-KR');
+    document.getElementById('list').innerHTML=d.items.map(function(item,i){
+      var rank=i+1;
+      var rc=rank===1?'r1':rank===2?'r2':rank===3?'r3':'rn';
+      var bc=item.shopTrend==='hot'?'hot':item.shopTrend==='rising'?'rising':item.shopTrend==='stable'?'stable':'falling';
+      var surge=item.surge>0?'+'+item.surge+'%':item.surge+'%';
+      return '<div class="item">'
+        +'<span class="rank '+rc+'">'+rank+'</span>'
+        +'<span class="name">'+item.keyword+'</span>'
+        +'<span class="surge">'+surge+'</span>'
+        +'<span class="badge '+bc+'">'+item.shopTrend+'</span>'
+      +'</div>';
+    }).join('');
+  }catch(e){
+    document.getElementById('list').innerHTML='<div class="msg">오류: '+e.message+'</div>';
+  }finally{
+    btn.disabled=false; btn.textContent='조회';
+  }
+}
+window.onload=run;
+</script>
+</body>
+</html>
