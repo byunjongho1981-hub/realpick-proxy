@@ -1,5 +1,107 @@
 // ═══════════════════════════════════════════════════════════
 // api/naver-insight-top.js — 쇼핑인사이트 인기검색어 TOP 20
+// ═══════════════════════════════════════════════════════════
+var https = require('https');
+
+function safeNum(v){return isNaN(Number(v))?0:Number(v);}
+
+function fetchInsightTop(catId, count){
+  count = count || 20;
+  return new Promise(function(resolve){
+    try{
+      var today   = new Date();
+      var weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate()-28);
+      var fmt = function(d){
+        var p=function(n){return String(n).padStart(2,'0');};
+        return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());
+      };
+
+      // ★ form-urlencoded 방식으로 변경 (브라우저 실제 요청 방식)
+      var params=[
+        'cid='+encodeURIComponent(catId),
+        'timeUnit=date',
+        'startDate='+encodeURIComponent(fmt(weekAgo)),
+        'endDate='+encodeURIComponent(fmt(today)),
+        'device=',
+        'gender=',
+        'age=',
+        'count='+count,
+      ].join('&');
+      var buf  = Buffer.from(params,'utf8');
+      var done = false;
+      var t    = setTimeout(function(){
+        if(!done){done=true;resolve({status:'timeout',raw:''});}
+      },8000);
+
+      var cookie = process.env.NAVER_COOKIE||'';
+      var req = https.request({
+        hostname: 'datalab.naver.com',
+        path:     '/shoppingInsight/getCategoryKeywordRank.naver',
+        method:   'POST',
+        headers:{
+          'Content-Type':   'application/x-www-form-urlencoded; charset=UTF-8',
+          'Content-Length': buf.length,
+          'Cookie':         cookie,
+          'Referer':        'https://datalab.naver.com/shoppingInsight/sCategory.naver',
+          'User-Agent':     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36',
+          'Accept':         'application/json, text/plain, */*',
+          'Accept-Language':'ko-KR,ko;q=0.9',
+          'Origin':         'https://datalab.naver.com',
+          'X-Requested-With':'XMLHttpRequest',
+        }
+      },function(res){
+        var raw='';
+        res.on('data',function(c){raw+=c;});
+        res.on('end',function(){
+          if(done)return; done=true; clearTimeout(t);
+          resolve({status:res.statusCode, raw:raw.slice(0,500)});
+        });
+      });
+      req.on('error',function(e){
+        if(!done){done=true;clearTimeout(t);resolve({status:'error',raw:e.message});}
+      });
+      req.setTimeout(7000,function(){req.destroy();});
+      req.write(buf); req.end();
+    }catch(e){
+      resolve({status:'exception',raw:e.message});
+    }
+  });
+}
+
+module.exports = async function(req, res){
+  res.setHeader('Access-Control-Allow-Origin','*');
+  if(req.method==='OPTIONS') return res.status(200).end();
+
+  var catId  = (req.query&&req.query.catId)||'50000000';
+  var cookie = process.env.NAVER_COOKIE||'';
+
+  // 진단 정보
+  var debug = {
+    cookie_set:   !!cookie,
+    cookie_length: cookie.length,
+    cookie_preview: cookie.slice(0,30)+'...',
+    catId: catId,
+  };
+
+  if(!cookie){
+    return res.status(200).json({error:'NAVER_COOKIE 미설정', debug});
+  }
+
+  var result = await fetchInsightTop(catId, 20);
+
+  // raw 응답 그대로 반환 — 디버그용
+  return res.status(200).json({
+    debug,
+    httpStatus: result.status,
+    rawPreview: result.raw,
+    isHtml:     result.raw.trim().startsWith('<'),
+    isJson:     result.raw.trim().startsWith('{') || result.raw.trim().startsWith('['),
+  });
+};
+
+module.exports.fetchInsightTop = fetchInsightTop;
+// ═══════════════════════════════════════════════════════════
+// api/naver-insight-top.js — 쇼핑인사이트 인기검색어 TOP 20
 // 환경변수 NAVER_COOKIE 필요
 // ═══════════════════════════════════════════════════════════
 var https = require('https');
