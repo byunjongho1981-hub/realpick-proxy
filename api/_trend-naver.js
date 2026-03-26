@@ -497,6 +497,9 @@ function parseDatalabResult(results, keywordMap){
 }
 // API 스펙: keywordGroups 최대 5개, keywords 최대 20개(동의어)
 // → 5개씩 배치 호출, 그룹당 동의어 최대 3개 포함
+// ── 데이터랩으로 키워드 트렌드 비교 ─────────────────────────
+// API 스펙: keywordGroups 최대 5개, keywords 최대 20개(동의어)
+// → 5개씩 배치 호출, 그룹당 동의어 최대 3개 포함
 async function compareKeywordsByDatalab(keywords, period){
   var totalDays = period==='month'?60:14;
   var timeUnit  = period==='month'?'week':'date';
