@@ -29,10 +29,9 @@ function calcRecentRise(kw24h,kw7d){
   return clamp(base);
 }
 
-// ── 구매 의도 (네이버 검색 API) ──────────────────────────────
+// ── 구매 의도 [6] — fallback 40점 ────────────────────────────
 function calcBuyIntent(naverData){
-  // ★ naverData null → 0이 아닌 중립값 반환 (데이터 미수집과 구매의도 없음은 다름)
-  if(!naverData) return 35;
+  if(!naverData||naverData._fallback) return 40; // [6] fallback
   var s=0;
   if(naverData.shoppingExists)    s+=25;
   if(naverData.blogCount>0)       s+=norm(naverData.blogCount,50000)*0.2;
@@ -41,9 +40,9 @@ function calcBuyIntent(naverData){
   return clamp(s);
 }
 
-// ── 데이터랩 추세 ─────────────────────────────────────────────
+// ── 데이터랩 추세 [6] — fallback 35점 ────────────────────────
 function calcDatalabTrend(datalabData){
-  if(!datalabData) return 30;
+  if(!datalabData||datalabData._fallback) return 35; // [6] fallback
   var s=30;
   if(datalabData.surgeRate>50)      s+=40;
   else if(datalabData.surgeRate>20) s+=25;
@@ -54,9 +53,9 @@ function calcDatalabTrend(datalabData){
   return clamp(s);
 }
 
-// ── 쇼핑인사이트 (가중치 22%) ────────────────────────────────
+// ── 쇼핑인사이트 ─────────────────────────────────────────────
 function calcShoppingInterest(insightData){
-  if(!insightData) return 30;
+  if(!insightData||insightData._fallback) return 30;
   var s=30;
   if(insightData.clickSurge>30)        s+=35;
   else if(insightData.clickSurge>10)   s+=20;
@@ -66,18 +65,19 @@ function calcShoppingInterest(insightData){
   return clamp(s);
 }
 
-// ── 유튜브 확산성 ─────────────────────────────────────────────
+// ── 유튜브 [6] — fallback 30점, 0점 금지 ────────────────────
 function calcYoutubeViral(ytData){
-  if(!ytData) return 30;
+  if(!ytData) return 30; // [6] fallback 30점
   var s=0;
-  if(ytData.recentCount>20)       s+=30;
-  else if(ytData.recentCount>5)   s+=15;
-  else if(ytData.recentCount>0)   s+=5;
-  if(ytData.avgViralScore>1000)   s+=30;
-  else if(ytData.avgViralScore>100)s+=15;
-  if(ytData.hasShorts)            s+=20;
-  if(ytData.avgViralScore<10)     s-=10;
-  return clamp(s);
+  if(ytData.recentCount>20)         s+=30;
+  else if(ytData.recentCount>5)     s+=15;
+  else if(ytData.recentCount>0)     s+=5;
+  else                              s+=10; // [4] 영상 없어도 기본 10점
+  if(ytData.avgViralScore>1000)     s+=30;
+  else if(ytData.avgViralScore>100) s+=15;
+  if(ytData.hasShorts)              s+=20;
+  if(ytData.avgViralScore<10&&ytData.recentCount===0) s-=5; // 완전 없는 경우 소폭 감점
+  return clamp(Math.max(s,15)); // 최소 15점 보장
 }
 
 // ── 제품 전환 적합성 ──────────────────────────────────────────
