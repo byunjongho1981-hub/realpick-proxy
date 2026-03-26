@@ -11,11 +11,18 @@ body{background:#0f172a;color:#e2e8f0;font-family:'Noto Sans KR',sans-serif;font
 .head{text-align:center;margin-bottom:24px}
 .head h1{font-size:18px;font-weight:900;color:#fff;margin-bottom:4px}
 .head p{font-size:12px;color:#475569}
-.ctrl{display:flex;gap:8px;margin-bottom:16px}
+.ctrl{display:flex;gap:8px;margin-bottom:8px}
 .ctrl select{flex:1;background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:10px 12px;border-radius:8px;font-size:13px;outline:none}
 .ctrl select:focus{border-color:#6366f1}
 .btn{padding:10px 20px;background:#6366f1;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
 .btn:disabled{opacity:.4;cursor:not-allowed}
+/* seeds 상태 배너 */
+.seeds-bar{margin-bottom:12px;padding:8px 12px;border-radius:8px;font-size:11px;display:flex;align-items:center;gap:6px}
+.seeds-ok{background:#0f2a1a;border:1px solid #166534;color:#4ade80}
+.seeds-warn{background:#2a1a0a;border:1px solid #92400e;color:#fbbf24}
+.seeds-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dot-ok{background:#4ade80}
+.dot-warn{background:#fbbf24}
 .card{background:#1e293b;border:1px solid #334155;border-radius:12px;overflow:hidden}
 .card-head{padding:12px 16px;border-bottom:1px solid #334155;display:flex;align-items:center;justify-content:space-between}
 .card-title{font-size:13px;font-weight:700;color:#e2e8f0}
@@ -32,7 +39,8 @@ body{background:#0f172a;color:#e2e8f0;font-family:'Noto Sans KR',sans-serif;font
 .rising{background:#1c3a2a;color:#6ee7b7}
 .stable{background:#1e3a5f;color:#93c5fd}
 .falling{background:#1c1917;color:#78716c}
-.msg{padding:32px;text-align:center;color:#475569}
+.msg{padding:32px;text-align:center;color:#475569;line-height:1.7;font-size:12px}
+.msg code{display:block;margin-top:10px;background:#0f172a;padding:8px 12px;border-radius:6px;font-size:11px;color:#a78bfa;text-align:left}
 @keyframes shimmer{0%,100%{opacity:.3}50%{opacity:.7}}
 .sk{animation:shimmer 1s infinite;background:#334155;border-radius:4px}
 </style>
@@ -41,10 +49,10 @@ body{background:#0f172a;color:#e2e8f0;font-family:'Noto Sans KR',sans-serif;font
 <div class="wrap">
   <div class="head">
     <h1>🛍 쇼핑인사이트 인기검색어</h1>
-    <p>실시간 TOP 20</p>
+    <p>실시간 TOP 20 · surge 급등 순</p>
   </div>
   <div class="ctrl">
-    <select id="cat">
+    <select id="cat" onchange="checkSeeds()">
       <option value="50000000">👗 패션의류</option>
       <option value="50000001">👜 패션잡화</option>
       <option value="50000002">💄 화장품/미용</option>
@@ -59,6 +67,13 @@ body{background:#0f172a;color:#e2e8f0;font-family:'Noto Sans KR',sans-serif;font
     </select>
     <button class="btn" id="btn" onclick="run()">조회</button>
   </div>
+
+  <!-- seeds 상태 배너 -->
+  <div id="seeds-bar" class="seeds-bar seeds-warn" style="display:none">
+    <div class="seeds-dot dot-warn" id="seeds-dot"></div>
+    <span id="seeds-text">seeds 상태 확인 중...</span>
+  </div>
+
   <div class="card">
     <div class="card-head">
       <div class="card-title" id="card-title">TOP 20</div>
@@ -76,6 +91,43 @@ var CAT={
   '50000006':'스포츠/레저','50000007':'생활/건강','50000009':'출산/육아',
   '50000010':'반려동물','50000011':'자동차용품'
 };
+var metaCache=null;
+
+async function loadMeta(){
+  try{
+    var r=await fetch(window.location.origin+'/api/keyword-monitor?action=meta',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    var d=await r.json();
+    metaCache=d.meta||{};
+  }catch(e){ metaCache={}; }
+}
+
+function checkSeeds(){
+  var catId=document.getElementById('cat').value;
+  var bar=document.getElementById('seeds-bar');
+  var dot=document.getElementById('seeds-dot');
+  var txt=document.getElementById('seeds-text');
+  bar.style.display='flex';
+  if(!metaCache){
+    bar.className='seeds-bar seeds-warn';
+    dot.className='seeds-dot dot-warn';
+    txt.textContent='메타 로딩 중...';
+    return;
+  }
+  var info=metaCache[catId];
+  if(info){
+    var d=new Date(info.updatedAt);
+    var age=Math.round((Date.now()-d)/1000/60);
+    var aged=age>60*24?'⚠ '+Math.round(age/60)+'시간 전':'✔ '+age+'분 전';
+    bar.className='seeds-bar seeds-ok';
+    dot.className='seeds-dot dot-ok';
+    txt.textContent='seeds '+info.total+'개 · 수집 '+aged;
+  }else{
+    bar.className='seeds-bar seeds-warn';
+    dot.className='seeds-dot dot-warn';
+    txt.textContent='seeds 없음 — node scripts/scrape-seeds.js --catId='+catId+' 실행 필요';
+  }
+}
+
 async function run(){
   var catId=document.getElementById('cat').value;
   var btn=document.getElementById('btn');
@@ -83,7 +135,6 @@ async function run(){
   document.getElementById('card-title').textContent=CAT[catId]+' 인기검색어 TOP 20';
   document.getElementById('card-meta').textContent='';
 
-  // 스켈레톤
   var sk='';
   for(var i=0;i<10;i++) sk+='<div class="item"><div class="sk" style="width:20px;height:14px"></div><div class="sk" style="flex:1;height:14px;margin-left:8px"></div></div>';
   document.getElementById('list').innerHTML=sk;
@@ -98,12 +149,29 @@ async function run(){
     var d=await r.json();
     var elapsed=((Date.now()-t)/1000).toFixed(1)+'s';
 
-    if(!d.items||!d.items.length){
-      document.getElementById('list').innerHTML='<div class="msg">데이터 없음</div>';
+    // seeds 없음 경고
+    if(d.warning){
+      document.getElementById('list').innerHTML=
+        '<div class="msg">⚠ '+d.warning
+        +'<code>node scripts/scrape-seeds.js --catId='+catId+'</code></div>';
       return;
     }
 
-    document.getElementById('card-meta').textContent=elapsed+' · '+new Date().toLocaleTimeString('ko-KR');
+    if(!d.items||!d.items.length){
+      document.getElementById('list').innerHTML='<div class="msg">결과 없음</div>';
+      return;
+    }
+
+    // seeds 업데이트 시각 표시
+    if(d.seedUpdatedAt){
+      var ua=new Date(d.seedUpdatedAt);
+      var age=Math.round((Date.now()-ua)/1000/60);
+      document.getElementById('card-meta').textContent=
+        elapsed+' · seeds '+age+'분 전 · '+new Date().toLocaleTimeString('ko-KR');
+    }else{
+      document.getElementById('card-meta').textContent=elapsed+' · '+new Date().toLocaleTimeString('ko-KR');
+    }
+
     document.getElementById('list').innerHTML=d.items.map(function(item,i){
       var rank=i+1;
       var rc=rank===1?'r1':rank===2?'r2':rank===3?'r3':'rn';
@@ -122,7 +190,12 @@ async function run(){
     btn.disabled=false; btn.textContent='조회';
   }
 }
-window.onload=run;
+
+window.onload=async function(){
+  await loadMeta();
+  checkSeeds();
+  run();
+};
 </script>
 </body>
 </html>
