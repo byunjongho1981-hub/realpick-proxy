@@ -70,9 +70,9 @@ function naverPost(path, body){
 async function fetchNaverSearchData(keyword){
   // 순차 호출 — Vercel 아웃바운드 동시연결 제한 회피
   var blogRes = await naverGet('/v1/search/blog.json',{query:keyword,display:10,sort:'date'});
-  await sleep(80);
+  await sleep(150);
   var shopRes = await naverGet('/v1/search/shop.json',{query:keyword,display:10,sort:'sim'});
-  await sleep(80);
+  await sleep(150);
   var newsRes = await naverGet('/v1/search/news.json',{query:keyword,display:10,sort:'date'});
 
   if(!blogRes&&!shopRes&&!newsRes){ console.warn('[search all-null]',keyword); return null; }
@@ -158,11 +158,20 @@ function calcSearchIntentFromData(keyword, naverData, suggestions){
   // 자동완성 가점
   if(sugs.length>=6) score+=10;
   else if(sugs.length>=3) score+=5;
-  CFG.SEARCH_INTENT.BUY.forEach(function(p){
-    if(sugText.indexOf(p)>-1){score+=2;if(detected.length<3)detected.push(p+'(자동완성)');}
+  sugs.forEach(function(sug){
+    var s2=sug.toLowerCase();
+    CFG.SEARCH_INTENT.BUY.forEach(function(p){
+      if(s2.indexOf(p)>-1){ score+=2; if(detected.length<3) detected.push(p+'(자동완성)'); }
+    });
   });
+  // ★ 감지된 패턴 없으면 자동완성 키워드 자체를 패턴으로 표시
+  if(detected.length===0 && sugs.length>0){
+    for(var si=0; si<Math.min(sugs.length,3); si++){
+      if(sugs[si]!==keyword) detected.push(sugs[si]); // 키워드 자신 제외
+    }
+  }
 
-  // naverData 없으면 여기서 반환
+  // naverData 없으면 여기서 반환 — detected 완성 후 반환
   if(!naverData){
     var br0=type==='buy'?Math.max(50,Math.round(buyCnt/Math.max(buyCnt+probCnt+infoCnt,1)*100)):0;
     return {type:type,score:Math.min(100,Math.max(0,Math.round(score))),buyRatio:br0,patterns:detected,suggestions:sugs};
@@ -275,118 +284,90 @@ async function fetchNaverShoppingInsight(keyword, catId, period){
   return {clickSurge,clickAccel,clickDurability:dur,shopTrend,currentRatio:Math.round(ca*10)/10};
 }
 
-// ── 카테고리 TOP 키워드 수집 ──────────────────────────────────
-// ★ 핵심 최적화: 3시드/카테고리, 150ms sleep → 12카테고리×3×(~500ms+150ms) = ~23초
+// ── 카테고리 TOP 키워드 — 전체 병렬 (시간 최우선) ────────────
+// 12카테고리 × 2시드 전체 동시 → ~3초
 async function fetchCategoryTopKeywords(catIds, period){
-  var result=[];
-  for(var i=0;i<catIds.length;i++){
-    var catId=catIds[i];
+  var tasks=[];
+  catIds.forEach(function(catId){
     var seeds=(CFG.CATEGORY_SEEDS&&CFG.CATEGORY_SEEDS[catId])||[];
-    if(!seeds.length) continue;
-    var catItems=[];
-    // ★ 3개씩 병렬 처리 (기존 순차 → 3배 빠름)
-    for(var j=0;j<Math.min(seeds.length,6);j+=3){
-      var batch=seeds.slice(j,j+3);
-      var batchResults=await Promise.all(batch.map(function(seed){
-        return fetchNaverShoppingInsight(seed,catId,period);
-      }));
-      batch.forEach(function(seed,k){
-        var insight=batchResults[k];
+    seeds.slice(0,2).forEach(function(seed){   // 카테고리당 2개만
+      tasks.push({keyword:seed,catId:catId});
+    });
+  });
+
+  // 전체 병렬 실행
+  var results=await Promise.all(tasks.map(function(t){
+    return fetchNaverShoppingInsight(t.keyword,t.catId,period)
+      .then(function(insight){
         var trendScore=0;
         if(insight){
           trendScore=Math.max(0,insight.clickSurge||0)+Math.max(0,insight.clickAccel||0);
-          if(insight.shopTrend==='hot')     trendScore+=30;
+          if(insight.shopTrend==='hot')    trendScore+=30;
           else if(insight.shopTrend==='rising') trendScore+=15;
         }
-        catItems.push({keyword:seed,catId:catId,insightData:insight,trendScore:trendScore});
+        return {keyword:t.keyword,catId:t.catId,insightData:insight,trendScore:trendScore};
       });
-      if(j+3<Math.min(seeds.length,6)) await sleep(150);
-    }
-    catItems.sort(function(a,b){return b.trendScore-a.trendScore;});
-    // ★ 카테고리당 상위 2개로 축소 (12카테고리 × 2 = 24개 → 15개로 추가 컷)
-    result=result.concat(catItems.slice(0,2));
-  }
-  // 전체 상위 15개만 유지
-  result.sort(function(a,b){return b.trendScore-a.trendScore;});
-  return result.slice(0,15);
+  }));
+
+  results.sort(function(a,b){return b.trendScore-a.trendScore;});
+  console.log('[fetchCategoryTopKeywords] 수집:'+results.filter(function(r){return r.insightData;}).length+'/'+results.length);
+  return results.slice(0,12);
 }
 
-// ── 배치 수집 (scope + catIdMap) ─────────────────────────────
+// ── 배치 수집 — 60초 예산 기준 설계 ─────────────────────────
+// 예산: 검색 ~15초 + 데이터랩 ~8초 + 인사이트 ~8초 = ~31초
 async function fetchNaverBatch(keywords, period, scope, catIdMap){
   var s=scope||'all', results={};
   keywords.forEach(function(kw){ results[kw]={}; });
 
-  // ── STEP A: 검색 — 1개씩 순차 (동시연결 제한 회피) ─────────
+  // ── STEP A: 검색 — 1개씩 순차 + 200ms (Rate Limit 방지) ────
   if(s!=='shop'){
     var searchOk=0;
     for(var i=0;i<keywords.length;i++){
       var kw=keywords[i];
-      results[kw].search = await fetchNaverSearchData(kw);
-      if(results[kw].search){
-        searchOk++;
-        console.log('[search ok]',kw,'('+searchOk+'/'+keywords.length+')');
-      } else {
-        console.warn('[search null]',kw,'— 재시도');
-        await sleep(500);
-        results[kw].search = await fetchNaverSearchData(kw);
-        if(results[kw].search) searchOk++;
-        else console.error('[search fail]',kw);
-      }
-      await sleep(150);
+      results[kw].search=await fetchNaverSearchData(kw);
+      if(results[kw].search) searchOk++;
+      else console.warn('[search null]',kw);
+      await sleep(200);
     }
-    console.log('[STEP A 검색] OK:'+searchOk+'/'+keywords.length);
+    console.log('[STEP A] 검색 OK:'+searchOk+'/'+keywords.length);
   }
 
-  // ── STEP B: 데이터랩 — 2개씩 묶어서 순차 ──────────────────
+  // ── STEP B: 데이터랩 — 5개씩 한 번에 호출 (API 지원) ───
   if(s!=='shop'){
     var dlOk=0;
-    var clusters=buildKeywordClusters(keywords);
-    for(var ci=0;ci<clusters.length;ci++){
-      var cl=clusters[ci];
-      var clResult=await fetchNaverDatalabCluster(cl,period);
+    for(var di=0;di<keywords.length;di+=5){
+      var chunk=keywords.slice(di,di+5);
+      var clResult=await fetchNaverDatalabCluster({root:chunk[0],label:chunk[0],keywords:chunk},period);
       if(clResult){
-        Object.keys(clResult).forEach(function(k){
-          if(results[k]) results[k].datalab=clResult[k];
-          if(clResult[k]) dlOk++;
+        chunk.forEach(function(kw){
+          results[kw].datalab=clResult[kw]||null;
+          if(clResult[kw]) dlOk++;
         });
-        console.log('[datalab ok]',cl.root);
-      } else {
-        console.warn('[datalab null]',cl.root,'— 단독 재시도');
-        await sleep(600);
-        for(var ki=0;ki<cl.keywords.length;ki++){
-          var dkw=cl.keywords[ki];
-          var single=await NAVER_DL_SINGLE(dkw,period);
-          if(single){ if(results[dkw]) results[dkw].datalab=single; dlOk++; console.log('[datalab retry ok]',dkw); }
-          else console.error('[datalab fail]',dkw);
-          if(ki<cl.keywords.length-1) await sleep(400);
-        }
-      }
-      if(ci<clusters.length-1) await sleep(350);
+      } else { console.warn('[datalab null] chunk:',chunk.join(',')); }
+      if(di+5<keywords.length) await sleep(300);
     }
-    console.log('[STEP B 데이터랩] OK:'+dlOk+'/'+keywords.length);
+    console.log('[STEP B] 데이터랩 OK:'+dlOk+'/'+keywords.length);
   }
 
-  // ── STEP C: 쇼핑인사이트 — 1개씩 순차 ─────────────────────
+  // ── STEP C: 쇼핑인사이트 — 2개씩 병렬 ─────────────────
   if(s!=='search'){
     var insightOk=0;
-    for(var k=0;k<keywords.length;k++){
-      var ikw=keywords[k];
-      if(results[ikw].insight){ insightOk++; continue; }
-      var cid=(catIdMap&&catIdMap[ikw])||null;
-      results[ikw].insight=await fetchNaverShoppingInsight(ikw,cid,period);
-      if(results[ikw].insight){
-        insightOk++;
-        console.log('[insight ok]',ikw);
-      } else {
-        console.warn('[insight null]',ikw,'— 재시도');
-        await sleep(400);
-        results[ikw].insight=await fetchNaverShoppingInsight(ikw,cid,period);
-        if(results[ikw].insight) insightOk++;
-        else console.error('[insight fail]',ikw);
-      }
-      await sleep(150);
+    for(var k=0;k<keywords.length;k+=2){
+      var ipair=keywords.slice(k,k+2);
+      var iRes=await Promise.all(ipair.map(function(kw){
+        if(results[kw].insight) return Promise.resolve(results[kw].insight);
+        var cid=(catIdMap&&catIdMap[kw])||null;
+        return fetchNaverShoppingInsight(kw,cid,period);
+      }));
+      ipair.forEach(function(kw,j){
+        if(!results[kw].insight) results[kw].insight=iRes[j]||null;
+        if(results[kw].insight) insightOk++;
+        else console.warn('[insight null]',kw);
+      });
+      if(k+2<keywords.length) await sleep(200);
     }
-    console.log('[STEP C 쇼핑인사이트] OK:'+insightOk+'/'+keywords.length);
+    console.log('[STEP C] 인사이트 OK:'+insightOk+'/'+keywords.length);
   }
 
   return results;
