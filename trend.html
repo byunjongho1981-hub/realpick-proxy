@@ -160,7 +160,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
 .rb-track{width:40px;height:4px;background:#f1f5f9;border-radius:2px;overflow:hidden}
 .rb-fill{height:100%;border-radius:2px}
 .rb-val{font-size:10px;font-weight:700}
-.r-ctags{display:flex;gap:3px;padding:0 10px 0 0;flex-shrink:0}
+.r-ctags{display:flex;gap:3px;padding:0 10px 0 0;flex-shrink:0;width:64px;justify-content:flex-end}
 .ct{font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600}
 .ct-s{background:#ecfdf5;color:#059669}
 .ct-b{background:#eff0ff;color:#4f46e5}
@@ -705,10 +705,23 @@ function renderList(){
     ].map(function(s){
       return'<div class="rd-sc"><span class="rd-sc-lbl">'+s.l+'</span><span class="rd-sc-val" style="color:'+s.c+'">'+s.v+'</span></div>';
     }).join('');
-    var trendTxt=p.datalabData&&!p.datalabData._fallback
-      ?'상승률 <b>'+(p.datalabData.surgeRate>=0?'+':'')+p.datalabData.surgeRate+'%</b> · 가속도 '+p.datalabData.accel+'% · 유지력 '+p.datalabData.durability+'%'
-      +(p.insightData&&!p.insightData._fallback?' / 쇼핑클릭 '+(p.insightData.clickSurge>=0?'+':'')+p.insightData.clickSurge+'% ('+p.insightData.shopTrend+')':'')
-      :'수집 중 (데이터 부족 시 fallback 적용)';
+    var trendParts = [];
+    if(p.datalabData) {
+      var dl = p.datalabData;
+      if(!dl._fallback) {
+        trendParts.push('상승률 <b>'+(dl.surgeRate>=0?'+':'')+dl.surgeRate+'%</b>');
+        trendParts.push('가속도 '+dl.accel+'%');
+        trendParts.push('유지력 '+dl.durability+'%');
+      } else {
+        trendParts.push('<span style="color:#f59e0b">검색량 부족 — 트렌드 데이터 없음</span>');
+      }
+    } else {
+      trendParts.push('<span style="color:#f59e0b">데이터 없음</span>');
+    }
+    if(p.insightData&&!p.insightData._fallback){
+      trendParts.push('쇼핑클릭 '+(p.insightData.clickSurge>=0?'+':'')+p.insightData.clickSurge+'% ('+p.insightData.shopTrend+')');
+    }
+    var trendTxt = trendParts.join(' · ');
     var intentTxt=p.searchIntentData
       ?'<b>'+(p.searchIntentType||'–')+'</b> 의도 · 구매형 '+(p.searchIntentData.buyRatio||0)+'%'
         +(p.searchIntentData.suggestions&&p.searchIntentData.suggestions.length
