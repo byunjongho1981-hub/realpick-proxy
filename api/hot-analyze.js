@@ -95,19 +95,25 @@ async function analyzeYouTube(keyword) {
   if (!key) return empty;
   try {
     var ago7 = new Date(); ago7.setDate(ago7.getDate()-7);
+
+    // ★ 수정 1: encodeURIComponent 제거 (이중 인코딩 방지)
+    // ★ 수정 2: relevanceLanguage=ko 제거 (한국어 필터로 결과 극단적 축소 방지)
     var sd = await ytGet(
       '/youtube/v3/search?part=snippet&q='+encodeURIComponent(keyword)+
-      '&type=video&publishedAfter='+encodeURIComponent(ago7.toISOString())+
-      '&maxResults=50&order=viewCount&relevanceLanguage=ko&key='+key
+      '&type=video&publishedAfter='+ago7.toISOString()+
+      '&maxResults=50&order=viewCount&key='+key
     );
+
     if (sd.error) {
       var status = sd.error.code === 403 ? 'QUOTA_OR_KEY_ERROR' : 'API_ERROR_' + sd.error.code;
       return Object.assign({}, empty, { apiStatus: status });
     }
     var items = sd.items||[];
     if (!items.length) {
+      // fallback: 날짜 필터 없이 재시도
       var sd2 = await ytGet(
-        '/youtube/v3/search?part=snippet&q='+encodeURIComponent(keyword)+'&type=video&maxResults=20&order=viewCount&relevanceLanguage=ko&key='+key
+        '/youtube/v3/search?part=snippet&q='+encodeURIComponent(keyword)+
+        '&type=video&maxResults=20&order=viewCount&key='+key
       );
       if (sd2.error) return Object.assign({}, empty, { apiStatus: 'QUOTA_OR_KEY_ERROR' });
       items = sd2.items||[];
@@ -301,7 +307,6 @@ async function getGroqReason(kw, yt, blog, shop, dl, score, jdg) {
   } catch(e) { return null; }
 }
 
-// ── ★ extractCandidates — Groq AI 버전 ───────────────────────
 async function extractCandidates(seedKw) {
   try {
     if (process.env.GROQ_API_KEY) {
@@ -333,7 +338,6 @@ async function extractCandidates(seedKw) {
         return out;
       }
     }
-    // Groq 실패 시 네이버 자동완성 fallback
     var related = await fetch(
       'https://ac.search.naver.com/nx/ac?q=' + encodeURIComponent(seedKw) +
       '&con=1&frm=nv&ans=2&r_format=json&r_enc=UTF-8&r_unicode=0&t_koreng=1&run=2&rev=4&q_enc=UTF-8&st=100',
