@@ -449,12 +449,25 @@ document.getElementById('kw-input').addEventListener('input',updateHint);
 // ══════════════════════════════════════════════
 // 탭 전환 hang 방지
 // ══════════════════════════════════════════════
-window.addEventListener('pageshow',function(e){if(e.persisted)window.location.reload();});
-document.addEventListener('visibilitychange',function(){
-  if(!document.hidden&&S.loading){
-    document.getElementById('loading-box').style.display='block';
-    document.getElementById('btn-start').disabled=true;
-    document.getElementById('btn-txt').textContent='분석 중...';
+// bfcache 복원 시 로딩 중이었으면 UI만 복원, 결과 있으면 그대로 유지
+window.addEventListener('pageshow', function(e) {
+  if (!e.persisted) return;
+  // 로딩 중이었던 경우만 UI 복원
+  if (S.loading) {
+    document.getElementById('loading-box').style.display = 'block';
+    document.getElementById('btn-start').disabled = true;
+    document.getElementById('btn-txt').textContent = '분석 중...';
+  }
+  // 결과가 있으면 다시 표시
+  if (S.products && S.products.length > 0) {
+    document.getElementById('result-wrap').className = 'result-wrap show';
+  }
+});
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden && S.loading) {
+    document.getElementById('loading-box').style.display = 'block';
+    document.getElementById('btn-start').disabled = true;
+    document.getElementById('btn-txt').textContent = '분석 중...';
   }
 });
 
