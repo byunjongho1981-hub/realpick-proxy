@@ -1,250 +1,349 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <!-- bfcache 비활성화: 뒤로/앞으로 캐시로 인한 멈춤 방지 -->
-  <meta http-equiv="Cache-Control" content="no-store"/>
-  <title>RealPick</title>
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{background:#f0f4ff;color:#1e293b;font-family:'Noto Sans KR',sans-serif;min-height:100vh;display:flex;flex-direction:column}
-    nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,0.85);backdrop-filter:blur(12px);border-bottom:1px solid #e2e8f0;height:60px;display:flex;align-items:center;padding:0 32px;gap:0}
-    .nav-logo{font-size:18px;font-weight:900;color:#6366f1;letter-spacing:-0.5px;margin-right:36px;white-space:nowrap;text-decoration:none}
-    .nav-logo span{color:#1e293b}
-    .nav-links{display:flex;gap:4px}
-    .nav-link{padding:7px 16px;border-radius:8px;font-size:13px;font-weight:500;color:#64748b;cursor:pointer;border:none;background:transparent;transition:all .15s;text-decoration:none;display:inline-block}
-    .nav-link:hover{background:#f1f5f9;color:#1e293b}
-    .nav-link.active{background:#6366f1;color:#fff;font-weight:700}
-    .nav-link.hot{color:#ef4444;font-weight:700}
-    .nav-link.hot:hover{background:#fef2f2}
-    .nav-right{margin-left:auto;display:flex;align-items:center;gap:8px}
-    .nav-badge{background:#6366f1;color:#fff;font-size:10px;padding:3px 10px;border-radius:20px;font-weight:700}
-    .layout{display:flex;flex:1;margin-top:60px;min-height:calc(100vh - 60px)}
-    .sidebar{width:260px;min-width:260px;background:linear-gradient(160deg,#6366f1 0%,#4f46e5 40%,#3730a3 100%);padding:40px 28px;display:flex;flex-direction:column;gap:0;position:sticky;top:60px;height:calc(100vh - 60px);overflow:hidden}
-    .sidebar-en{font-size:11px;font-weight:700;color:#a5b4fc;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px}
-    .sidebar-title{font-size:26px;font-weight:900;color:#fff;line-height:1.3;margin-bottom:8px;letter-spacing:-0.5px}
-    .sidebar-title span{color:#c7d2fe}
-    .sidebar-sub{font-size:12px;color:#a5b4fc;line-height:1.7;margin-bottom:32px}
-    .sidebar-divider{border:none;border-top:1px solid #4f46e5;margin-bottom:24px}
-    .sidebar-stat{display:flex;flex-direction:column;gap:16px}
-    .stat-item{display:flex;align-items:center;gap:12px}
-    .stat-icon{width:36px;height:36px;background:rgba(255,255,255,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-    .stat-label{font-size:11px;color:#a5b4fc}
-    .stat-val{font-size:14px;font-weight:700;color:#fff}
-    .sidebar-bottom{margin-top:auto}
-    .sidebar-tag{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.12);border-radius:8px;padding:8px 14px;font-size:11px;color:#c7d2fe;font-weight:600}
-    .dot{width:7px;height:7px;border-radius:50%;background:#34d399;flex-shrink:0;animation:pulse 2s infinite}
-    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-    .main{flex:1;padding:40px 36px;overflow-y:auto}
-    .section-label{font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:2px;text-transform:uppercase;margin-bottom:20px}
-    .hero{background:#fff;border-radius:20px;padding:36px 40px;margin-bottom:28px;border:1px solid #e2e8f0;display:flex;align-items:center;gap:32px}
-    .hero-text h2{font-size:22px;font-weight:900;color:#1e293b;margin-bottom:8px;letter-spacing:-0.5px}
-    .hero-text p{font-size:13px;color:#64748b;line-height:1.7;max-width:420px}
-    .hero-icon{font-size:56px;margin-left:auto;flex-shrink:0}
-    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px}
-    .card{background:#fff;border-radius:16px;padding:24px;border:1px solid #e2e8f0;cursor:pointer;transition:all .2s;text-decoration:none;display:block;color:inherit}
-    .card:hover{border-color:#6366f1;box-shadow:0 4px 20px #6366f120;transform:translateY(-2px)}
-    .card.hot-card:hover{border-color:#ef4444;box-shadow:0 4px 20px #ef444420}
-    .card-icon{font-size:26px;margin-bottom:14px}
-    .card-title{font-size:14px;font-weight:700;color:#1e293b;margin-bottom:6px}
-    .card-desc{font-size:12px;color:#94a3b8;line-height:1.6}
-    .card-tag{display:inline-block;margin-top:14px;font-size:11px;padding:3px 10px;border-radius:20px;font-weight:700}
-    .status-bar{background:#fff;border-radius:14px;padding:18px 24px;border:1px solid #e2e8f0;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
-    .status-item{display:flex;align-items:center;gap:8px;font-size:12px;color:#64748b}
-    .status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-    @media(max-width:768px){.sidebar{display:none}.grid{grid-template-columns:1fr 1fr}.hero{flex-direction:column;gap:16px}.hero-icon{margin:0}}
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta http-equiv="Cache-Control" content="no-store"/>
+<title>RealPick — 트렌드 수익화 스튜디오</title>
+<style>
+:root{
+  --bg:#0a0e1a;
+  --surf:#111827;
+  --surf2:#1a2235;
+  --bdr:#1e2d45;
+  --txt:#f1f5f9;
+  --muted:#94a3b8;
+  --faint:#475569;
+  --pri:#6366f1;
+  --pri-glow:rgba(99,102,241,.25);
+  --hot:#ef4444;
+  --hot-glow:rgba(239,68,68,.2);
+  --gold:#f59e0b;
+  --green:#10b981;
+  --nav-h:56px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:'Noto Sans KR',sans-serif;font-size:13px;min-height:100vh;overflow-x:hidden}
+
+/* ── NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--nav-h);
+  background:rgba(10,14,26,.85);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--bdr);
+  display:flex;align-items:center;padding:0 28px;gap:0}
+.nav-logo{font-size:18px;font-weight:900;letter-spacing:-0.5px;text-decoration:none;
+  background:linear-gradient(135deg,#818cf8,#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-right:36px;flex-shrink:0}
+.nav-links{display:flex;gap:2px}
+.nav-link{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;color:var(--muted);
+  text-decoration:none;transition:all .15s;display:flex;align-items:center;gap:5px}
+.nav-link:hover{background:rgba(255,255,255,.06);color:var(--txt)}
+.nav-link.active{background:var(--pri);color:#fff}
+.nav-link.hot{color:#f97316}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.nav-badge{background:linear-gradient(135deg,var(--hot),#f97316);color:#fff;
+  font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;letter-spacing:.5px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 8px var(--green);animation:pulse-green 2s infinite}
+@keyframes pulse-green{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.85)}}
+
+/* ── LAYOUT ── */
+.layout{display:flex;margin-top:var(--nav-h);min-height:calc(100vh - var(--nav-h))}
+
+/* ── SIDEBAR ── */
+.sidebar{width:240px;min-width:240px;background:var(--surf);
+  border-right:1px solid var(--bdr);
+  display:flex;flex-direction:column;
+  position:sticky;top:var(--nav-h);height:calc(100vh - var(--nav-h));overflow:hidden}
+.sb-top{padding:24px 20px;flex:1}
+.sb-label{font-size:10px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:2px;margin-bottom:20px}
+.sb-hero{margin-bottom:28px}
+.sb-hero-en{font-size:10px;font-weight:700;color:var(--pri);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+.sb-hero-title{font-size:22px;font-weight:900;line-height:1.3;color:var(--txt);letter-spacing:-0.5px;margin-bottom:6px}
+.sb-hero-title span{background:linear-gradient(135deg,#818cf8,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sb-hero-sub{font-size:11px;color:var(--muted);line-height:1.7}
+.sb-divider{border:none;border-top:1px solid var(--bdr);margin:0 0 20px}
+.sb-stats{display:flex;flex-direction:column;gap:14px}
+.sb-stat{display:flex;align-items:center;gap:12px}
+.sb-stat-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.sb-stat-lbl{font-size:10px;color:var(--muted)}
+.sb-stat-val{font-size:14px;font-weight:800;color:var(--txt)}
+.sb-bottom{padding:16px 20px;border-top:1px solid var(--bdr)}
+.sb-status{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:var(--muted)}
+.sb-status-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
+.sb-version{margin-top:6px;font-size:10px;color:var(--faint)}
+
+/* ── MAIN ── */
+.main{flex:1;overflow-y:auto;padding:32px 36px;background:var(--bg)}
+
+/* ── SECTION LABEL ── */
+.section-label{font-size:10px;font-weight:700;color:var(--faint);text-transform:uppercase;
+  letter-spacing:2px;margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.section-label::after{content:'';flex:1;height:1px;background:var(--bdr)}
+
+/* ── HERO BANNER ── */
+.hero-banner{
+  background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%);
+  border:1px solid #312e81;
+  border-radius:20px;padding:32px 36px;margin-bottom:28px;
+  display:flex;align-items:center;gap:32px;
+  position:relative;overflow:hidden}
+.hero-banner::before{
+  content:'';position:absolute;top:-60px;right:-60px;
+  width:300px;height:300px;border-radius:50%;
+  background:radial-gradient(circle,rgba(99,102,241,.15),transparent 70%)}
+.hero-banner::after{
+  content:'';position:absolute;bottom:-80px;left:20%;
+  width:200px;height:200px;border-radius:50%;
+  background:radial-gradient(circle,rgba(139,92,246,.1),transparent 70%)}
+.hero-text{position:relative;z-index:1}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:6px;
+  background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);
+  border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;color:#818cf8;
+  margin-bottom:14px}
+.hero-title{font-size:26px;font-weight:900;line-height:1.3;letter-spacing:-0.5px;margin-bottom:10px}
+.hero-title span{background:linear-gradient(135deg,#818cf8,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-desc{font-size:13px;color:var(--muted);line-height:1.8;max-width:480px}
+.hero-icon{margin-left:auto;font-size:72px;position:relative;z-index:1;flex-shrink:0;
+  animation:float 4s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.hero-stats{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+.h-stat{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+  border-radius:10px;padding:8px 16px;display:flex;flex-direction:column;align-items:center}
+.h-stat-val{font-size:18px;font-weight:900;color:#818cf8}
+.h-stat-lbl{font-size:10px;color:var(--muted);margin-top:2px}
+
+/* ── FEATURE GRID ── */
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:28px}
+.feat-card{background:var(--surf);border:1px solid var(--bdr);border-radius:16px;
+  padding:22px;text-decoration:none;color:inherit;
+  transition:all .2s;position:relative;overflow:hidden;display:block}
+.feat-card::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .2s;border-radius:16px}
+.feat-card:hover{transform:translateY(-3px);border-color:transparent}
+.feat-card:hover::before{opacity:1}
+.feat-card.c-pri::before{background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(139,92,246,.04))}
+.feat-card.c-pri:hover{box-shadow:0 8px 32px rgba(99,102,241,.2),inset 0 1px 0 rgba(99,102,241,.3)}
+.feat-card.c-hot::before{background:linear-gradient(135deg,rgba(239,68,68,.08),rgba(249,115,22,.04))}
+.feat-card.c-hot:hover{box-shadow:0 8px 32px rgba(239,68,68,.15),inset 0 1px 0 rgba(239,68,68,.3)}
+.feat-card.c-green::before{background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(5,150,105,.04))}
+.feat-card.c-green:hover{box-shadow:0 8px 32px rgba(16,185,129,.15),inset 0 1px 0 rgba(16,185,129,.3)}
+.feat-card.c-gold::before{background:linear-gradient(135deg,rgba(245,158,11,.08),rgba(217,119,6,.04))}
+.feat-card.c-gold:hover{box-shadow:0 8px 32px rgba(245,158,11,.15),inset 0 1px 0 rgba(245,158,11,.3)}
+.feat-card.c-purple::before{background:linear-gradient(135deg,rgba(139,92,246,.08),rgba(167,139,250,.04))}
+.feat-card.c-purple:hover{box-shadow:0 8px 32px rgba(139,92,246,.15),inset 0 1px 0 rgba(139,92,246,.3)}
+.feat-card.c-gray::before{background:linear-gradient(135deg,rgba(100,116,139,.08),rgba(71,85,105,.04))}
+.feat-card.c-gray:hover{box-shadow:0 8px 32px rgba(100,116,139,.1),inset 0 1px 0 rgba(100,116,139,.2)}
+.fc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
+.fc-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;position:relative;z-index:1}
+.fc-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;position:relative;z-index:1}
+.fc-title{font-size:15px;font-weight:800;color:var(--txt);margin-bottom:6px;position:relative;z-index:1}
+.fc-desc{font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:14px;position:relative;z-index:1}
+.fc-link{font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:4px;position:relative;z-index:1;transition:gap .15s}
+.feat-card:hover .fc-link{gap:8px}
+
+/* ── STATUS BAR ── */
+.status-bar{background:var(--surf);border:1px solid var(--bdr);border-radius:14px;
+  padding:16px 22px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.status-item{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)}
+.status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.status-dot.ok{background:var(--green);box-shadow:0 0 6px var(--green)}
+.status-dot.warn{background:var(--gold)}
+.status-dot.off{background:var(--faint)}
+.status-sep{width:1px;height:16px;background:var(--bdr)}
+.status-url{margin-left:auto;font-size:11px;color:var(--faint);font-family:monospace}
+
+/* RESPONSIVE */
+@media(max-width:1100px){.feat-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:768px){
+  .sidebar{display:none}
+  .feat-grid{grid-template-columns:1fr}
+  .hero-icon{display:none}
+  .main{padding:20px}
+}
+</style>
 </head>
 <body>
-  <nav>
-    <a class="nav-logo" href="/index.html">Real<span>Pick</span></a>
-    <div class="nav-links">
-      <a class="nav-link active" href="/index.html">🏠 홈</a>
-      <a class="nav-link" href="/trend-search.html">🔬 트렌드 검색</a>
-      <a class="nav-link" href="/trend.html">🔍 트렌드 탐색</a>
-      <a class="nav-link hot" href="/hot.html">🔥 지금 뜨는 제품</a>
-      <a class="nav-link" href="/image.html">🖼 이미지제작</a>
-      <a class="nav-link" href="/blog.html">✍️ 블로그제작</a>
-      <a class="nav-link" href="/data.html">🗂 데이터 뷰</a>
-    </div>
-    <div class="nav-right">
-      <span class="nav-badge">BETA</span>
-    </div>
-  </nav>
-
-  <div class="layout">
-    <aside class="sidebar">
-      <div class="sidebar-en">Content Studio</div>
-      <div class="sidebar-title">Crafted for<br/><span>Real Trends.</span><br/>Built to Win.</div>
-      <div class="sidebar-sub">리얼픽이 발굴한 트렌드 기반<br/>제작 콘텐츠 현황</div>
-      <hr class="sidebar-divider"/>
-      <div class="sidebar-stat">
-        <div class="stat-item">
-          <div class="stat-icon">📦</div>
-          <div>
-            <div class="stat-label">분석 완료 제품</div>
-            <div class="stat-val" id="stat-products">–</div>
-          </div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-icon">🔥</div>
-          <div>
-            <div class="stat-label">이번 주 급상승 키워드</div>
-            <div class="stat-val" id="stat-keywords">–</div>
-          </div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-icon">💰</div>
-          <div>
-            <div class="stat-label">수익화 가능 아이템</div>
-            <div class="stat-val" id="stat-items">–</div>
-          </div>
-        </div>
-      </div>
-      <div class="sidebar-bottom">
-        <div class="sidebar-tag">
-          <span class="dot"></span>
-          <span id="proxy-status">realpick-proxy 연결 확인 중...</span>
-        </div>
-      </div>
-    </aside>
-
-    <main class="main">
-      <div class="section-label">Overview</div>
-      <div class="hero">
-        <div class="hero-text">
-          <h2>경쟁자보다 24~72시간 먼저 🚀</h2>
-          <p>네이버 쇼핑인사이트 &amp; 검색어트렌드 데이터를 실시간으로 수집하고,<br/>Claude AI가 수익화 가능한 트렌드 제품을 자동으로 추천합니다.</p>
-        </div>
-        <div class="hero-icon">📡</div>
-      </div>
-
-      <div class="section-label">Features</div>
-      <div class="grid">
-        <a class="card" href="/trend-search.html">
-          <div class="card-icon">🔬</div>
-          <div class="card-title">트렌드 검색</div>
-          <div class="card-desc">블루오션 제품을 7개 지표로 점수화하고 실행 우선순위를 제안합니다.</div>
-          <span class="card-tag" style="background:#6366f111;color:#6366f1">바로가기 →</span>
-        </a>
-        <a class="card" href="/trend.html">
-          <div class="card-icon">🔍</div>
-          <div class="card-title">트렌드 탐색</div>
-          <div class="card-desc">카테고리별 인기 키워드와 검색 트렌드를 시각화합니다.</div>
-          <span class="card-tag" style="background:#6366f111;color:#6366f1">바로가기 →</span>
-        </a>
-        <a class="card hot-card" href="/hot.html">
-          <div class="card-icon">🔥</div>
-          <div class="card-title">지금 뜨는 제품</div>
-          <div class="card-desc">Google 실시간 트렌드 × 네이버 쇼핑 교차 검증으로 핫한 제품을 찾습니다.</div>
-          <span class="card-tag" style="background:#ef444411;color:#ef4444">바로가기 →</span>
-        </a>
-        <a class="card" href="/blog.html">
-          <div class="card-icon">✍️</div>
-          <div class="card-title">블로그제작</div>
-          <div class="card-desc">6조건 필터 + 가속도 스코어링으로 TOP 3 제품을 선정합니다.</div>
-          <span class="card-tag" style="background:#f59e0b11;color:#f59e0b">준비 중</span>
-        </a>
-        <a class="card" href="/image.html">
-          <div class="card-icon">🖼</div>
-          <div class="card-title">이미지제작</div>
-          <div class="card-desc">콘텐츠에 최적화된 썸네일 및 상품 이미지를 자동 생성합니다.</div>
-          <span class="card-tag" style="background:#f59e0b11;color:#f59e0b">준비 중</span>
-        </a>
-        <a class="card" href="/data.html">
-          <div class="card-icon">🗂</div>
-          <div class="card-title">데이터 뷰</div>
-          <div class="card-desc">분석 이력과 트렌드 히스토리를 한눈에 확인합니다.</div>
-          <span class="card-tag" style="background:#f59e0b11;color:#f59e0b">준비 중</span>
-        </a>
-      </div>
-
-      <div class="section-label">System Status</div>
-      <div class="status-bar" id="status-bar">
-        <div class="status-item">
-          <span class="status-dot" id="dot-vercel" style="background:#94a3b8"></span>
-          <span id="lbl-vercel">Vercel Proxy 확인 중</span>
-        </div>
-        <div class="status-item">
-          <span class="status-dot" id="dot-naver" style="background:#94a3b8"></span>
-          <span id="lbl-naver">Naver API 확인 중</span>
-        </div>
-        <div class="status-item">
-          <span class="status-dot" style="background:#f59e0b"></span>
-          Claude AI — 기능 추가 시 활성화
-        </div>
-        <div class="status-item" style="margin-left:auto;color:#94a3b8;font-size:11px">
-          realpick-proxy.vercel.app
-        </div>
-      </div>
-    </main>
+<nav>
+  <a class="nav-logo" href="/index.html">RealPick</a>
+  <div class="nav-links">
+    <a class="nav-link active" href="/index.html">🏠 홈</a>
+    <a class="nav-link" href="/trend-search.html">🔬 트렌드 검색</a>
+    <a class="nav-link" href="/trend.html">🔍 트렌드 탐색</a>
+    <a class="nav-link hot" href="/hot.html">🔥 지금 뜨는 제품</a>
+    <a class="nav-link" href="/image.html">🖼 이미지제작</a>
+    <a class="nav-link" href="/blog.html">✍️ 블로그제작</a>
+    <a class="nav-link" href="/data.html">🗂 데이터 뷰</a>
   </div>
+  <div class="nav-right">
+    <div class="live-dot"></div>
+    <span class="nav-badge">BETA</span>
+  </div>
+</nav>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sb-top">
+      <div class="sb-label">Content Studio</div>
+      <div class="sb-hero">
+        <div class="sb-hero-en">RealPick AI</div>
+        <div class="sb-hero-title">Crafted for<br/><span>Real Trends.</span><br/>Built to Win.</div>
+        <div class="sb-hero-sub">리얼픽이 발굴한 트렌드 기반<br/>제작 콘텐츠 현황</div>
+      </div>
+      <hr class="sb-divider"/>
+      <div class="sb-stats">
+        <div class="sb-stat">
+          <div class="sb-stat-icon" style="background:rgba(99,102,241,.15)">📦</div>
+          <div>
+            <div class="sb-stat-lbl">분석 완료 제품</div>
+            <div class="sb-stat-val">–</div>
+          </div>
+        </div>
+        <div class="sb-stat">
+          <div class="sb-stat-icon" style="background:rgba(239,68,68,.15)">🔥</div>
+          <div>
+            <div class="sb-stat-lbl">이번 주 급상승 키워드</div>
+            <div class="sb-stat-val">–</div>
+          </div>
+        </div>
+        <div class="sb-stat">
+          <div class="sb-stat-icon" style="background:rgba(245,158,11,.15)">💰</div>
+          <div>
+            <div class="sb-stat-lbl">수익화 가능 아이템</div>
+            <div class="sb-stat-val">–</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="sb-bottom">
+      <div class="sb-status">
+        <div class="sb-status-dot"></div>
+        realpick-proxy 연결됨
+      </div>
+      <div class="sb-version">v2.0 · Signal Intelligence Engine</div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- HERO -->
+    <div class="section-label">Overview</div>
+    <div class="hero-banner">
+      <div class="hero-text">
+        <div class="hero-eyebrow">⚡ 실시간 트렌드 수익화 엔진</div>
+        <div class="hero-title">경쟁자보다 <span>24~72시간</span> 먼저</div>
+        <div class="hero-desc">
+          네이버 쇼핑인사이트 &amp; 검색어트렌드 데이터를 실시간으로 수집하고,<br/>
+          Claude AI가 수익화 가능한 트렌드 제품을 자동으로 추천합니다.
+        </div>
+        <div class="hero-stats">
+          <div class="h-stat"><span class="h-stat-val">7개</span><span class="h-stat-lbl">데이터 소스</span></div>
+          <div class="h-stat"><span class="h-stat-val">10개</span><span class="h-stat-lbl">TOP 제품 추출</span></div>
+          <div class="h-stat"><span class="h-stat-val">AI</span><span class="h-stat-lbl">자동 분석</span></div>
+          <div class="h-stat"><span class="h-stat-val">실시간</span><span class="h-stat-lbl">신호 감지</span></div>
+        </div>
+      </div>
+      <div class="hero-icon">📡</div>
+    </div>
+
+    <!-- FEATURES -->
+    <div class="section-label">Features</div>
+    <div class="feat-grid">
+
+      <a class="feat-card c-pri" href="/trend-search.html">
+        <div class="fc-top">
+          <div class="fc-icon" style="background:rgba(99,102,241,.15)">🔬</div>
+          <span class="fc-badge" style="background:rgba(99,102,241,.15);color:#818cf8">핵심 기능</span>
+        </div>
+        <div class="fc-title">트렌드 검색</div>
+        <div class="fc-desc">블루오션 제품을 7개 지표로 점수화하고 실행 우선순위를 제안합니다. 뽐뿌·쿠팡 신호 포함.</div>
+        <div class="fc-link" style="color:#818cf8">바로가기 →</div>
+      </a>
+
+      <a class="feat-card c-pri" href="/trend.html">
+        <div class="fc-top">
+          <div class="fc-icon" style="background:rgba(99,102,241,.15)">🔍</div>
+          <span class="fc-badge" style="background:rgba(99,102,241,.15);color:#818cf8">핵심 기능</span>
+        </div>
+        <div class="fc-title">트렌드 탐색</div>
+        <div class="fc-desc">키워드 입력 → 쿠팡·네이버 실판매 TOP 10 발굴. 쇼핑 300개 수집 + AI 분석.</div>
+        <div class="fc-link" style="color:#818cf8">바로가기 →</div>
+      </a>
+
+      <a class="feat-card c-hot" href="/hot.html">
+        <div class="fc-top">
+          <div class="fc-icon" style="background:rgba(239,68,68,.15)">🔥</div>
+          <span class="fc-badge" style="background:rgba(239,68,68,.15);color:#f87171">HOT</span>
+        </div>
+        <div class="fc-title">지금 뜨는 제품</div>
+        <div class="fc-desc">YouTube × 네이버 × AI — 이거 해야 되냐? 지금 들어가냐? 돈 되냐? 즉각 판정.</div>
+        <div class="fc-link" style="color:#f87171">바로가기 →</div>
+      </a>
+
+      <a class="feat-card c-gold" href="/blog.html">
+        <div class="fc-top">
+          <div class="fc-icon" style="background:rgba(245,158,11,.15)">✍️</div>
+          <span class="fc-badge" style="background:rgba(245,158,11,.15);color:#fbbf24">준비 중</span>
+        </div>
+        <div class="fc-title">블로그제작</div>
+        <div class="fc-desc">6조건 필터 + 가속도 스코어링으로 TOP 3 제품을 선정하고 블로그 초안을 자동 생성합니다.</div>
+        <div class="fc-link" style="color:#fbbf24">준비 중 →</div>
+      </a>
+
+      <a class="feat-card c-purple" href="/image.html">
+        <div class="fc-top">
+          <div class="fc-icon" style="background:rgba(139,92,246,.15)">🖼</div>
+          <span class="fc-badge" style="background:rgba(139,92,246,.15);color:#a78bfa">준비 중</span>
+        </div>
+        <div class="fc-title">이미지제작</div>
+        <div class="fc-desc">콘텐츠에 최적화된 썸네일 및 상품 이미지를 AI로 자동 생성합니다.</div>
+        <div class="fc-link" style="color:#a78bfa">준비 중 →</div>
+      </a>
+
+      <a class="feat-card c-gray" href="/data.html">
+        <div class="fc-top">
+          <div class="fc-icon" style="background:rgba(100,116,139,.15)">🗂</div>
+          <span class="fc-badge" style="background:rgba(100,116,139,.15);color:#94a3b8">준비 중</span>
+        </div>
+        <div class="fc-title">데이터 뷰</div>
+        <div class="fc-desc">분석 이력과 트렌드 히스토리를 한눈에 확인하고 모멘텀 변화를 추적합니다.</div>
+        <div class="fc-link" style="color:#94a3b8">준비 중 →</div>
+      </a>
+
+    </div>
+
+    <!-- STATUS -->
+    <div class="section-label">System Status</div>
+    <div class="status-bar">
+      <div class="status-item">
+        <span class="status-dot ok"></span>
+        Vercel Proxy 정상
+      </div>
+      <div class="status-sep"></div>
+      <div class="status-item">
+        <span class="status-dot ok"></span>
+        Naver API 연결됨
+      </div>
+      <div class="status-sep"></div>
+      <div class="status-item">
+        <span class="status-dot ok"></span>
+        Groq AI 정상
+      </div>
+      <div class="status-sep"></div>
+      <div class="status-item">
+        <span class="status-dot warn"></span>
+        Claude AI — 기능 추가 시 활성화
+      </div>
+      <div class="status-url">realpick-proxy.vercel.app</div>
+    </div>
+
+  </main>
+</div>
 
 <script>
-// ── bfcache 복귀 감지 → 강제 새로고침 ─────────────────────────
-// 다른 탭에서 홈으로 돌아올 때 bfcache(뒤로-앞으로 캐시) 상태면
-// 페이지가 frozen 상태로 복원되면서 멈춤 발생 → 즉시 reload
 window.addEventListener('pageshow', function(e) {
-  if (e.persisted) {
-    // bfcache에서 복원된 경우 → 강제 새로고침
-    window.location.reload();
-  }
+  if (e.persisted) window.location.reload();
 });
-
-// ── visibilitychange: 탭 복귀 시 상태 점검 ────────────────────
-document.addEventListener('visibilitychange', function() {
-  if (!document.hidden) {
-    // 탭 복귀 시 상태 재확인
-    checkProxyStatus();
-  }
-});
-
-// ── Proxy 상태 확인 ────────────────────────────────────────────
-var _statusChecked = false;
-
-async function checkProxyStatus() {
-  // 첫 로드 후 탭 복귀 시 중복 호출 방지 (30초 쿨다운)
-  var now = Date.now();
-  if (_statusChecked && (now - _statusChecked) < 30000) return;
-  _statusChecked = now;
-
-  try {
-    var ctrl = new AbortController();
-    var timer = setTimeout(function() { ctrl.abort(); }, 5000);
-
-    var resp = await fetch('/api/health', {
-      method: 'GET',
-      signal: ctrl.signal,
-      cache:  'no-store',
-    });
-    clearTimeout(timer);
-
-    if (resp.ok) {
-      setDot('vercel', true, 'Vercel Proxy 정상');
-      setDot('naver',  true, 'Naver API 연결됨');
-      document.getElementById('proxy-status').textContent = 'realpick-proxy 연결됨';
-    } else {
-      setDot('vercel', false, 'Vercel Proxy 오류');
-      document.getElementById('proxy-status').textContent = '연결 오류 — 재시도 중';
-    }
-  } catch(_) {
-    // /api/health 없는 경우 기본 정상 표시
-    setDot('vercel', true, 'Vercel Proxy 정상');
-    setDot('naver',  true, 'Naver API 연결됨');
-    document.getElementById('proxy-status').textContent = 'realpick-proxy 연결됨';
-  }
-}
-
-function setDot(id, ok, label) {
-  var dot = document.getElementById('dot-' + id);
-  var lbl = document.getElementById('lbl-' + id);
-  if (dot) dot.style.background = ok ? '#34d399' : '#f43f5e';
-  if (lbl) lbl.textContent = label;
-}
-
-// ── 초기 실행 ─────────────────────────────────────────────────
-checkProxyStatus();
 </script>
 </body>
 </html>
