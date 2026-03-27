@@ -346,8 +346,15 @@ function calcReviewQuality(naverData) {
 }
 
 function calcTrendScore(datalabData, insightData) {
+  const dlOk  = datalabData && !datalabData._fallback;
+  const insOk = insightData && !insightData._fallback;
+
+  // 둘 다 없으면 중립값 50 (패널티 없음)
+  if (!dlOk && !insOk) return 50;
+
   let s = 22;
-  if (datalabData && !datalabData._fallback) {
+
+  if (dlOk) {
     const sr = safeNum(datalabData.surgeRate);
     if (sr > 80)       s += 38;
     else if (sr > 40)  s += 28;
@@ -357,7 +364,7 @@ function calcTrendScore(datalabData, insightData) {
     if (safeNum(datalabData.accel)      > 20)  s += 10;
     if (safeNum(datalabData.durability) > 65)  s +=  5;
   }
-  if (insightData && !insightData._fallback) {
+  if (insOk) {
     const cs = safeNum(insightData.clickSurge);
     if (cs > 40)      s += 22;
     else if (cs > 15) s += 14;
@@ -412,16 +419,30 @@ function scoreProduct(c) {
     0.10 * convScore
   );
 
+  // 데이터랩/인사이트 fallback 여부 확인
+  const hasTrendData = (c.datalabData && !c.datalabData._fallback) ||
+                       (c.insightData  && !c.insightData._fallback);
+
+  // 그룹 분류 — 트렌드 데이터 없을 때 판매·리뷰 기준으로 완화
   let group;
-  if (finalScore >= 65 && salesSignal >= 58 && trendScore >= 48) group = 'hot';
-  else if (finalScore >= 48)                                       group = 'rising';
-  else                                                             group = 'watch';
+  if (hasTrendData) {
+    // 트렌드 데이터 있는 경우: 엄격하게
+    if (finalScore >= 65 && salesSignal >= 58 && trendScore >= 48) group = 'hot';
+    else if (finalScore >= 48) group = 'rising';
+    else group = 'watch';
+  } else {
+    // 트렌드 데이터 없는 경우: 판매신호 + 리뷰품질 기준으로 완화
+    if (finalScore >= 58 && salesSignal >= 65 && reviewQuality >= 55) group = 'hot';
+    else if (finalScore >= 44 && salesSignal >= 50) group = 'rising';
+    else group = 'watch';
+  }
 
   return {
     ...c,
     scores: { salesSignal, reviewQuality, trendScore, viralScore, conversion: convScore },
     finalScore,
     group,
+    hasTrendData,
     searchIntentType:   c.searchIntentData?.type     || 'explore',
     isShortsCompatible: !!(c.ytData?.isShortsCompatible || c.ytData?.hasVisualHook),
     isBlogCompatible:   !!(c.ytData?.isBlogCompatible),
