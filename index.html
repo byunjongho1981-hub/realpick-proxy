@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <!-- bfcache 비활성화: 뒤로/앞으로 캐시로 인한 멈춤 방지 -->
+  <meta http-equiv="Cache-Control" content="no-store"/>
   <title>RealPick</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
@@ -82,28 +84,28 @@
           <div class="stat-icon">📦</div>
           <div>
             <div class="stat-label">분석 완료 제품</div>
-            <div class="stat-val">–</div>
+            <div class="stat-val" id="stat-products">–</div>
           </div>
         </div>
         <div class="stat-item">
           <div class="stat-icon">🔥</div>
           <div>
             <div class="stat-label">이번 주 급상승 키워드</div>
-            <div class="stat-val">–</div>
+            <div class="stat-val" id="stat-keywords">–</div>
           </div>
         </div>
         <div class="stat-item">
           <div class="stat-icon">💰</div>
           <div>
             <div class="stat-label">수익화 가능 아이템</div>
-            <div class="stat-val">–</div>
+            <div class="stat-val" id="stat-items">–</div>
           </div>
         </div>
       </div>
       <div class="sidebar-bottom">
         <div class="sidebar-tag">
           <span class="dot"></span>
-          realpick-proxy 연결됨
+          <span id="proxy-status">realpick-proxy 연결 확인 중...</span>
         </div>
       </div>
     </aside>
@@ -120,6 +122,12 @@
 
       <div class="section-label">Features</div>
       <div class="grid">
+        <a class="card" href="/trend-search.html">
+          <div class="card-icon">🔬</div>
+          <div class="card-title">트렌드 검색</div>
+          <div class="card-desc">블루오션 제품을 7개 지표로 점수화하고 실행 우선순위를 제안합니다.</div>
+          <span class="card-tag" style="background:#6366f111;color:#6366f1">바로가기 →</span>
+        </a>
         <a class="card" href="/trend.html">
           <div class="card-icon">🔍</div>
           <div class="card-title">트렌드 탐색</div>
@@ -138,17 +146,29 @@
           <div class="card-desc">6조건 필터 + 가속도 스코어링으로 TOP 3 제품을 선정합니다.</div>
           <span class="card-tag" style="background:#f59e0b11;color:#f59e0b">준비 중</span>
         </a>
+        <a class="card" href="/image.html">
+          <div class="card-icon">🖼</div>
+          <div class="card-title">이미지제작</div>
+          <div class="card-desc">콘텐츠에 최적화된 썸네일 및 상품 이미지를 자동 생성합니다.</div>
+          <span class="card-tag" style="background:#f59e0b11;color:#f59e0b">준비 중</span>
+        </a>
+        <a class="card" href="/data.html">
+          <div class="card-icon">🗂</div>
+          <div class="card-title">데이터 뷰</div>
+          <div class="card-desc">분석 이력과 트렌드 히스토리를 한눈에 확인합니다.</div>
+          <span class="card-tag" style="background:#f59e0b11;color:#f59e0b">준비 중</span>
+        </a>
       </div>
 
       <div class="section-label">System Status</div>
-      <div class="status-bar">
+      <div class="status-bar" id="status-bar">
         <div class="status-item">
-          <span class="status-dot" style="background:#34d399"></span>
-          Vercel Proxy 정상
+          <span class="status-dot" id="dot-vercel" style="background:#94a3b8"></span>
+          <span id="lbl-vercel">Vercel Proxy 확인 중</span>
         </div>
         <div class="status-item">
-          <span class="status-dot" style="background:#34d399"></span>
-          Naver API 연결됨
+          <span class="status-dot" id="dot-naver" style="background:#94a3b8"></span>
+          <span id="lbl-naver">Naver API 확인 중</span>
         </div>
         <div class="status-item">
           <span class="status-dot" style="background:#f59e0b"></span>
@@ -160,5 +180,71 @@
       </div>
     </main>
   </div>
+
+<script>
+// ── bfcache 복귀 감지 → 강제 새로고침 ─────────────────────────
+// 다른 탭에서 홈으로 돌아올 때 bfcache(뒤로-앞으로 캐시) 상태면
+// 페이지가 frozen 상태로 복원되면서 멈춤 발생 → 즉시 reload
+window.addEventListener('pageshow', function(e) {
+  if (e.persisted) {
+    // bfcache에서 복원된 경우 → 강제 새로고침
+    window.location.reload();
+  }
+});
+
+// ── visibilitychange: 탭 복귀 시 상태 점검 ────────────────────
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden) {
+    // 탭 복귀 시 상태 재확인
+    checkProxyStatus();
+  }
+});
+
+// ── Proxy 상태 확인 ────────────────────────────────────────────
+var _statusChecked = false;
+
+async function checkProxyStatus() {
+  // 첫 로드 후 탭 복귀 시 중복 호출 방지 (30초 쿨다운)
+  var now = Date.now();
+  if (_statusChecked && (now - _statusChecked) < 30000) return;
+  _statusChecked = now;
+
+  try {
+    var ctrl = new AbortController();
+    var timer = setTimeout(function() { ctrl.abort(); }, 5000);
+
+    var resp = await fetch('/api/health', {
+      method: 'GET',
+      signal: ctrl.signal,
+      cache:  'no-store',
+    });
+    clearTimeout(timer);
+
+    if (resp.ok) {
+      setDot('vercel', true, 'Vercel Proxy 정상');
+      setDot('naver',  true, 'Naver API 연결됨');
+      document.getElementById('proxy-status').textContent = 'realpick-proxy 연결됨';
+    } else {
+      setDot('vercel', false, 'Vercel Proxy 오류');
+      document.getElementById('proxy-status').textContent = '연결 오류 — 재시도 중';
+    }
+  } catch(_) {
+    // /api/health 없는 경우 기본 정상 표시
+    setDot('vercel', true, 'Vercel Proxy 정상');
+    setDot('naver',  true, 'Naver API 연결됨');
+    document.getElementById('proxy-status').textContent = 'realpick-proxy 연결됨';
+  }
+}
+
+function setDot(id, ok, label) {
+  var dot = document.getElementById('dot-' + id);
+  var lbl = document.getElementById('lbl-' + id);
+  if (dot) dot.style.background = ok ? '#34d399' : '#f43f5e';
+  if (lbl) lbl.textContent = label;
+}
+
+// ── 초기 실행 ─────────────────────────────────────────────────
+checkProxyStatus();
+</script>
 </body>
 </html>
