@@ -128,59 +128,68 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
 .btn-dl{padding:7px 14px;background:#f1f5f9;border:1.5px solid var(--bdr);border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;color:#475569}
 .btn-dl:hover{border-color:var(--pri);color:var(--pri)}
 
-/* PRODUCT CARDS */
-.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-bottom:20px}
-.prod-card{background:var(--surf);border:1.5px solid var(--bdr);border-radius:14px;padding:18px;cursor:pointer;transition:all .2s;position:relative}
-.prod-card:hover{border-color:var(--pri);box-shadow:0 4px 20px rgba(99,102,241,.12);transform:translateY(-2px)}
-.prod-card.sel{border-color:var(--pri);background:var(--pri-lt)}
-.prod-card.group-hot{border-left:4px solid var(--hot)}
-.prod-card.group-rising{border-left:4px solid var(--rising)}
-.prod-card.group-watch{border-left:4px solid var(--watch)}
-.card-rank{position:absolute;top:14px;right:14px;font-size:11px;font-weight:700;color:var(--faint)}
-.card-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px}
-.card-score-circle{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;flex-shrink:0}
-.card-name{font-size:14px;font-weight:800;margin-bottom:3px}
-.card-kw{font-size:10px;color:var(--faint)}
-.card-grp-badge{display:inline-flex;align-items:center;gap:4px;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;margin-bottom:6px}
+/* RANK LIST */
+.rank-list{display:flex;flex-direction:column;gap:6px;margin-bottom:20px}
+.rank-row{background:var(--surf);border:1.5px solid var(--bdr);border-radius:12px;overflow:hidden;transition:all .15s}
+.rank-row:hover{border-color:var(--pri)}
+.rank-row.sel{border-color:var(--pri)}
+.rank-row.group-hot   .rank-bar-left{background:var(--hot)}
+.rank-row.group-rising .rank-bar-left{background:var(--rising)}
+.rank-row.group-watch  .rank-bar-left{background:var(--watch)}
+.rank-main{display:flex;align-items:center;gap:0;cursor:pointer;padding:0}
+.rank-bar-left{width:4px;align-self:stretch;flex-shrink:0}
+.rank-num{width:40px;text-align:center;font-size:18px;font-weight:900;color:var(--faint);flex-shrink:0}
+.rank-score{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#fff;flex-shrink:0;margin:10px 8px 10px 0}
+.rank-info{flex:1;min-width:0;padding:10px 0}
+.rank-name{font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+.rank-grp-badge{display:inline-flex;align-items:center;gap:3px;border-radius:5px;padding:1px 7px;font-size:10px;font-weight:700;margin-right:6px}
 .grp-hot{background:var(--hot-lt);color:var(--hot)}
 .grp-rising{background:var(--rising-lt);color:var(--rising)}
 .grp-watch{background:var(--watch-lt);color:var(--watch)}
-.score-bars{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
-.score-row{display:flex;align-items:center;gap:8px}
-.score-lbl{font-size:10px;color:var(--muted);width:64px;flex-shrink:0}
-.score-bar-bg{flex:1;height:4px;background:#f1f5f9;border-radius:2px;overflow:hidden}
-.score-bar-fill{height:100%;border-radius:2px;transition:width .4s}
-.score-num{font-size:10px;font-weight:700;width:22px;text-align:right;flex-shrink:0}
-.card-tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
-.ctag{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600}
+.rank-meta{font-size:11px;color:var(--muted)}
+.rank-bars{display:flex;gap:14px;padding:0 16px 0 0;align-items:center;flex-shrink:0}
+.rbar-item{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:44px}
+.rbar-lbl{font-size:9px;color:var(--faint);font-weight:600;text-transform:uppercase}
+.rbar-track{width:44px;height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden}
+.rbar-fill{height:100%;border-radius:3px}
+.rbar-val{font-size:10px;font-weight:700}
+.rank-ctags{display:flex;gap:4px;padding:0 12px 0 0;flex-shrink:0}
+.ctag{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600}
 .ctag-shorts{background:#ecfdf5;color:#059669}
 .ctag-blog{background:#eff0ff;color:#4f46e5}
 .ctag-hook{background:#fff7ed;color:#c2410c}
 .ctag-scene{background:#f0f9ff;color:#0369a1}
-.card-reason{font-size:11px;color:#475569;line-height:1.6;border-top:1px solid var(--bdr);padding-top:8px}
-.card-price{font-size:11px;color:var(--muted);margin-top:6px}
-.card-price b{color:#ef4444;font-weight:700}
+.rank-arrow{font-size:14px;color:var(--faint);padding:0 14px 0 4px;flex-shrink:0;transition:transform .2s}
+.rank-row.sel .rank-arrow{transform:rotate(180deg);color:var(--pri)}
+/* 아코디언 상세 */
+.rank-detail{display:none;border-top:1px solid var(--bdr);background:#fafbff;padding:18px 20px}
+.rank-row.sel .rank-detail{display:block}
+.rd-grid{display:grid;grid-template-columns:auto 1fr;gap:12px}
+.rd-img{width:90px;height:90px;object-fit:contain;border-radius:10px;border:1px solid var(--bdr);background:#fff}
+.rd-img-ph{width:90px;height:90px;border-radius:10px;border:1px dashed var(--bdr);display:flex;align-items:center;justify-content:center;font-size:28px;background:#f8fafc}
+.rd-body{display:flex;flex-direction:column;gap:8px}
+.rd-name{font-size:15px;font-weight:900}
+.rd-price-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.rd-price{font-size:16px;font-weight:900;color:var(--hot)}
+.rd-mall{font-size:11px;color:var(--muted);background:#f1f5f9;padding:2px 8px;border-radius:6px}
+.rd-cat{font-size:11px;color:var(--muted)}
+.rd-buy-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;background:linear-gradient(135deg,var(--hot),#f97316);color:#fff;border-radius:10px;font-size:12px;font-weight:700;text-decoration:none;cursor:pointer;border:none;transition:all .15s}
+.rd-buy-btn:hover{opacity:.88;transform:translateY(-1px)}
+.rd-scores{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+.rd-score-item{display:flex;flex-direction:column;align-items:center;background:#fff;border:1px solid var(--bdr);border-radius:8px;padding:6px 10px;min-width:56px}
+.rd-score-lbl{font-size:9px;color:var(--faint);font-weight:700;text-transform:uppercase;margin-bottom:2px}
+.rd-score-val{font-size:14px;font-weight:900}
+.rd-section{margin-top:10px}
+.rd-section-title{font-size:10px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.rd-box{background:#fff;border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.7;color:var(--txt)}
+.rd-box.green{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}
+.rd-box.orange{background:#fffbeb;color:#92400e;border-color:#fde68a}
+.rd-ideas{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.rd-idea{background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px}
+.rd-idea b{display:block;font-size:9px;color:var(--faint);margin-bottom:3px;text-transform:uppercase;font-weight:700}
+.rd-idea p{font-size:12px;line-height:1.5}
 
-/* DETAIL */
-.detail-panel{background:var(--surf);border:1px solid var(--bdr);border-radius:14px;padding:22px;margin-bottom:20px;display:none}
-.detail-panel.show{display:block}
-.dp-title{font-size:18px;font-weight:800;margin-bottom:4px}
-.dp-sub{font-size:11px;color:var(--muted);margin-bottom:16px}
-.dp-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px}
-.dp-cell{background:#f8fafc;border-radius:8px;padding:10px}
-.dp-cell-lbl{font-size:9px;color:var(--faint);font-weight:700;text-transform:uppercase;margin-bottom:3px}
-.dp-cell-val{font-size:16px;font-weight:900}
-.dp-sec{margin-bottom:12px}
-.dp-sec h4{font-size:10px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
-.dp-box{background:#f8fafc;border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.7;color:var(--txt);margin-bottom:6px}
-.dp-box.blue{background:#eff0ff;color:#3730a3}
-.dp-box.green{background:#ecfdf5;color:#065f46}
-.dp-box.orange{background:#fffbeb;color:#92400e}
-.idea-row{display:flex;gap:8px;margin-top:10px}
-.idea-card{flex:1;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px}
-.idea-card b{display:block;font-size:9px;color:var(--faint);margin-bottom:4px;text-transform:uppercase;font-weight:700}
-.idea-card p{font-size:12px;line-height:1.6}
-.shop-img{width:60px;height:60px;object-fit:contain;border-radius:8px;border:1px solid var(--bdr);float:right;margin-left:12px}
+/* detail panel 제거 — 아코디언으로 대체 */
 
 /* PRIORITY TABLE */
 .pri-tbl-wrap{background:var(--surf);border-radius:12px;overflow:hidden;border:1px solid var(--bdr);margin-bottom:16px;overflow-x:auto}
@@ -335,10 +344,7 @@ td{padding:10px 11px;vertical-align:middle}
         </select>
         <button class="btn-dl" onclick="downloadCSV()">📥 CSV</button>
       </div>
-      <div class="card-grid" id="card-grid"></div>
-      <div class="detail-panel" id="detail-panel">
-        <div id="dp-content"></div>
-      </div>
+      <div class="rank-list" id="card-grid"></div>
     </div>
 
     <!-- 실행 우선순위 탭 -->
@@ -625,105 +631,156 @@ function getFiltered(){
   return list;
 }
 
+function buildDetailHtml(p) {
+  var sc = p.scores || {};
+  var m  = p.shopMeta || {};
+
+  // 상품 이미지
+  var imgHtml = m.image
+    ? '<img class="rd-img" src="'+m.image+'" alt="" onerror="this.parentNode.innerHTML=\'<div class=rd-img-ph>🛒</div>\'">'
+    : '<div class="rd-img-ph">🛒</div>';
+
+  // 쿠팡/네이버 검색 링크
+  var kwEnc   = encodeURIComponent(p.productName);
+  var coupUrl = 'https://www.coupang.com/np/search?q='+kwEnc;
+  var naverUrl= 'https://search.shopping.naver.com/search/all?query='+kwEnc;
+
+  // 가격
+  var priceHtml = m.price
+    ? '<span class="rd-price">'+m.price.toLocaleString()+'원~'+(m.hprice?' / '+m.hprice.toLocaleString()+'원':'')+'</span>'
+    : '';
+  var mallHtml  = m.mallName ? '<span class="rd-mall">'+m.mallName+'</span>' : '';
+  var catHtml   = [m.category1,m.category2,m.category3].filter(Boolean).join(' > ');
+
+  // 점수 뱃지 5개
+  var scoreItems = [
+    {lbl:'판매신호',val:Math.round(sc.salesSignal||0),  color:'#ef4444'},
+    {lbl:'리뷰품질',val:Math.round(sc.reviewQuality||0),color:'#6366f1'},
+    {lbl:'트렌드',  val:Math.round(sc.trendScore||0),   color:'#f97316'},
+    {lbl:'바이럴',  val:Math.round(sc.viralScore||0),   color:'#f59e0b'},
+    {lbl:'전환적합',val:Math.round(sc.conversion||0),   color:'#10b981'},
+  ].map(function(s){
+    return'<div class="rd-score-item">'
+      +'<span class="rd-score-lbl">'+s.lbl+'</span>'
+      +'<span class="rd-score-val" style="color:'+s.color+'">'+s.val+'</span>'
+      +'</div>';
+  }).join('');
+
+  // 검색의도
+  var intentHtml = p.searchIntentData
+    ? '의도: <b>'+(p.searchIntentType||'–')+'</b> · 구매형 '+(p.searchIntentData.buyRatio||0)+'%'
+      +(p.searchIntentData.patterns&&p.searchIntentData.patterns.length?' · 패턴: '+p.searchIntentData.patterns.join(', '):'')
+      +(p.searchIntentData.suggestions&&p.searchIntentData.suggestions.length
+        ? '<br>자동완성: '+p.searchIntentData.suggestions.slice(0,5).join(' · '):'')
+    : '–';
+
+  // 트렌드
+  var trendHtml = p.datalabData&&!p.datalabData._fallback
+    ? '상승률 <b>'+(p.datalabData.surgeRate>=0?'+':'')+p.datalabData.surgeRate+'%</b>'
+      +' · 가속도 '+p.datalabData.accel+'% · 유지력 '+p.datalabData.durability+'%'
+      +(p.insightData&&!p.insightData._fallback?' · 쇼핑클릭 '+(p.insightData.clickSurge>=0?'+':'')+p.insightData.clickSurge+'% ('+p.insightData.shopTrend+')':'')
+    : '데이터 수집 중';
+
+  return '<div class="rd-grid">'
+    +'<div>'+imgHtml+'</div>'
+    +'<div class="rd-body">'
+      +'<div class="rd-name">'+p.productName+'</div>'
+      +'<div class="rd-price-row">'+priceHtml+mallHtml+'</div>'
+      +(catHtml?'<div class="rd-cat">'+catHtml+'</div>':'')
+      +'<div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">'
+        +'<a class="rd-buy-btn" href="'+coupUrl+'" target="_blank" rel="noopener">🛒 쿠팡 검색</a>'
+        +'<a class="rd-buy-btn" href="'+naverUrl+'" target="_blank" rel="noopener" style="background:linear-gradient(135deg,#03c75a,#00b84b)">🟢 네이버 검색</a>'
+      +'</div>'
+    +'</div>'
+  +'</div>'
+  +'<div class="rd-scores" style="margin-top:12px">'+scoreItems+'</div>'
+  +(p.groqReason?'<div class="rd-section" style="margin-top:12px"><div class="rd-section-title">📌 공략 이유</div><div class="rd-box">'+p.groqReason+'</div></div>':'')
+  +'<div class="rd-section"><div class="rd-section-title">🔍 검색 의도</div><div class="rd-box green">'+intentHtml+'</div></div>'
+  +'<div class="rd-section"><div class="rd-section-title">📈 트렌드 데이터</div><div class="rd-box">'+trendHtml+'</div></div>'
+  +(p.geminiExplanation?'<div class="rd-section"><div class="rd-section-title">✨ Gemini 분석</div><div class="rd-box orange">'+p.geminiExplanation+'</div></div>':'')
+  +'<div class="rd-ideas">'
+    +'<div class="rd-idea"><b>📱 쇼츠 아이디어</b><p>'+(p.shortsIdea||'–')+'</p></div>'
+    +'<div class="rd-idea"><b>📝 블로그 주제</b><p>'+(p.blogIdea||'–')+'</p></div>'
+  +'</div>';
+}
+
 function renderCards(){
-  var list=getFiltered();
-  var grid=document.getElementById('card-grid');
+  var list = getFiltered();
+  var grid = document.getElementById('card-grid');
   if(!list.length){
-    grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--faint)">결과 없음</div>';
+    grid.innerHTML='<div style="text-align:center;padding:40px;color:var(--faint)">결과 없음</div>';
     return;
   }
-  grid.innerHTML=list.map(function(p,i){
-    var sc=p.scores||{},col=getScoreColor(p.finalScore);
-    var grpCls=p.group==='hot'?'group-hot':p.group==='rising'?'group-rising':'group-watch';
-    var grpBadge=p.group==='hot'?'<span class="card-grp-badge grp-hot">🔥 즉시 공략</span>':
-                 p.group==='rising'?'<span class="card-grp-badge grp-rising">📈 상승 중</span>':
-                 '<span class="card-grp-badge grp-watch">👀 관망</span>';
-    var isSel=S.selectedIdx===i;
-    var priceHtml='';
-    if(p.shopMeta&&p.shopMeta.price>0){
-      priceHtml='<div class="card-price"><b>'+p.shopMeta.price.toLocaleString()+'원~</b>';
-      if(p.shopMeta.category1)priceHtml+=' · '+p.shopMeta.category1;
-      priceHtml+='</div>';
-    }
-    var bars=[
-      {lbl:'판매신호',val:sc.salesSignal||0,color:'#ef4444'},
-      {lbl:'리뷰품질',val:sc.reviewQuality||0,color:'#6366f1'},
-      {lbl:'트렌드',val:sc.trendScore||0,color:'#f97316'},
-      {lbl:'바이럴',val:sc.viralScore||0,color:'#f59e0b'},
-      {lbl:'전환적합',val:sc.conversion||0,color:'#10b981'},
+  grid.innerHTML = list.map(function(p, i){
+    var sc      = p.scores || {};
+    var col     = getScoreColor(p.finalScore);
+    var grpCls  = p.group==='hot'?'group-hot':p.group==='rising'?'group-rising':'group-watch';
+    var grpBdg  = p.group==='hot'?'<span class="rank-grp-badge grp-hot">🔥 즉시 공략</span>':
+                  p.group==='rising'?'<span class="rank-grp-badge grp-rising">📈 상승 중</span>':
+                  '<span class="rank-grp-badge grp-watch">👀 관망</span>';
+    var isSel   = S.selectedIdx === i;
+
+    // 5개 점수 미니바
+    var bars = [
+      {lbl:'판매',val:sc.salesSignal||0,  color:'#ef4444'},
+      {lbl:'리뷰',val:sc.reviewQuality||0,color:'#6366f1'},
+      {lbl:'트렌드',val:sc.trendScore||0,  color:'#f97316'},
+      {lbl:'바이럴',val:sc.viralScore||0,  color:'#f59e0b'},
+      {lbl:'전환',val:sc.conversion||0,   color:'#10b981'},
     ].map(function(b){
       var v=Math.round(b.val);
-      return'<div class="score-row"><span class="score-lbl">'+b.lbl+'</span>'
-        +'<div class="score-bar-bg"><div class="score-bar-fill" style="width:'+v+'%;background:'+b.color+'"></div></div>'
-        +'<span class="score-num" style="color:'+b.color+'">'+v+'</span></div>';
+      return'<div class="rbar-item">'
+        +'<span class="rbar-lbl">'+b.lbl+'</span>'
+        +'<div class="rbar-track"><div class="rbar-fill" style="width:'+v+'%;background:'+b.color+'"></div></div>'
+        +'<span class="rbar-val" style="color:'+b.color+'">'+v+'</span>'
+        +'</div>';
     }).join('');
+
     var ctags='';
-    if(p.isShortsCompatible)ctags+='<span class="ctag ctag-shorts">📱 쇼츠</span>';
-    if(p.isBlogCompatible)  ctags+='<span class="ctag ctag-blog">📝 블로그</span>';
-    if(p.hasVisualHook)     ctags+='<span class="ctag ctag-hook">🎬 훅</span>';
-    if(p.hasUsageScene)     ctags+='<span class="ctag ctag-scene">🎯 장면</span>';
-    return'<div class="prod-card '+grpCls+(isSel?' sel':'')+'" onclick="selCard('+i+')">'
-      +'<span class="card-rank">#'+(i+1)+'</span>'
-      +'<div class="card-head">'
-        +'<div class="card-score-circle" style="background:'+col+'">'+Math.round(p.finalScore)+'</div>'
-        +'<div>'+grpBadge+'<div class="card-name">'+p.productName+'</div><div class="card-kw">← '+p.originalKeyword+'</div></div>'
+    if(p.isShortsCompatible)ctags+='<span class="ctag ctag-shorts">📱</span>';
+    if(p.isBlogCompatible)  ctags+='<span class="ctag ctag-blog">📝</span>';
+    if(p.hasVisualHook)     ctags+='<span class="ctag ctag-hook">🎬</span>';
+    if(p.hasUsageScene)     ctags+='<span class="ctag ctag-scene">🎯</span>';
+
+    var price = p.shopMeta&&p.shopMeta.price>0
+      ? '<span style="color:#ef4444;font-weight:700">'+p.shopMeta.price.toLocaleString()+'원~</span>'
+        +(p.shopMeta.category1?' · '+p.shopMeta.category1:'')
+      : '';
+
+    return'<div class="rank-row '+grpCls+(isSel?' sel':'')+'" id="rrow-'+i+'">'
+      +'<div class="rank-main" onclick="selCard('+i+')">'
+        +'<div class="rank-bar-left"></div>'
+        +'<span class="rank-num">'+(i+1)+'</span>'
+        +'<div class="rank-score" style="background:'+col+'">'+Math.round(p.finalScore)+'</div>'
+        +'<div class="rank-info">'
+          +grpBdg
+          +'<div class="rank-name">'+p.productName+'</div>'
+          +'<div class="rank-meta">'+price+'</div>'
+        +'</div>'
+        +'<div class="rank-bars">'+bars+'</div>'
+        +(ctags?'<div class="rank-ctags">'+ctags+'</div>':'')
+        +'<span class="rank-arrow">▼</span>'
       +'</div>'
-      +'<div class="score-bars">'+bars+'</div>'
-      +(ctags?'<div class="card-tags">'+ctags+'</div>':'')
-      +priceHtml
-      +'<div class="card-reason">'+(p.groqReason||'–')+'</div>'
+      +'<div class="rank-detail" id="rdetail-'+i+'">'+buildDetailHtml(p)+'</div>'
     +'</div>';
   }).join('');
 }
 
 function selCard(i){
-  var list=getFiltered(),p=list[i];if(!p)return;
-  S.selectedIdx=i; renderCards();
-  var sc=p.scores||{};
-  var imgHtml=p.shopMeta&&p.shopMeta.image?'<img class="shop-img" src="'+p.shopMeta.image+'" alt="" onerror="this.style.display=\'none\'"/>':'';
-  var metaHtml='';
-  if(p.shopMeta){
-    var m=p.shopMeta;
-    metaHtml='<div class="dp-box">'
-      +(m.price?'<b>최저가:</b> '+m.price.toLocaleString()+'원'+(m.hprice?' ~ '+m.hprice.toLocaleString()+'원':'')+'<br>':'')
-      +(m.brand?'<b>브랜드:</b> '+m.brand+'<br>':'')
-      +(m.category1?'<b>카테고리:</b> '+[m.category1,m.category2,m.category3].filter(Boolean).join(' > ')+'<br>':'')
-      +(m.mallName?'<b>대표몰:</b> '+m.mallName:'')
-    +'</div>';
+  var list  = getFiltered();
+  var isSel = S.selectedIdx === i;
+  // 기존 선택 해제
+  if(S.selectedIdx !== null){
+    var prev = document.getElementById('rrow-'+S.selectedIdx);
+    if(prev) prev.classList.remove('sel');
   }
-  document.getElementById('dp-content').innerHTML=
-    '<div class="dp-title">'+imgHtml+p.productName+'</div>'
-    +'<div class="dp-sub">키워드: '+p.originalKeyword+' | 그룹: '+p.group+' | 빈도: '+p.frequency+'회</div>'
-    +'<div class="dp-grid">'
-      +'<div class="dp-cell"><div class="dp-cell-lbl">판매신호</div><div class="dp-cell-val" style="color:#ef4444">'+Math.round(sc.salesSignal||0)+'</div></div>'
-      +'<div class="dp-cell"><div class="dp-cell-lbl">리뷰품질</div><div class="dp-cell-val" style="color:#6366f1">'+Math.round(sc.reviewQuality||0)+'</div></div>'
-      +'<div class="dp-cell"><div class="dp-cell-lbl">트렌드</div><div class="dp-cell-val" style="color:#f97316">'+Math.round(sc.trendScore||0)+'</div></div>'
-      +'<div class="dp-cell"><div class="dp-cell-lbl">바이럴</div><div class="dp-cell-val" style="color:#f59e0b">'+Math.round(sc.viralScore||0)+'</div></div>'
-      +'<div class="dp-cell"><div class="dp-cell-lbl">전환적합</div><div class="dp-cell-val" style="color:#10b981">'+Math.round(sc.conversion||0)+'</div></div>'
-    +'</div>'
-    +(metaHtml?'<div class="dp-sec"><h4>🛒 쇼핑 정보</h4>'+metaHtml+'</div>':'')
-    +'<div class="dp-sec"><h4>🔍 검색 의도</h4><div class="dp-box green">'
-      +'의도 유형: '+(p.searchIntentType||'–')+'<br>'
-      +'구매형 비율: '+(p.searchIntentData&&p.searchIntentData.buyRatio!==undefined?p.searchIntentData.buyRatio+'%':'–')+'<br>'
-      +'주요 패턴: '+(p.searchIntentData&&p.searchIntentData.patterns&&p.searchIntentData.patterns.join(', ')||'–')+'<br>'
-      +'자동완성: '+(p.searchIntentData&&p.searchIntentData.suggestions&&p.searchIntentData.suggestions.slice(0,5).join(' · ')||'–')
-    +'</div></div>'
-    +'<div class="dp-sec"><h4>📈 데이터랩</h4><div class="dp-box">'+(p.datalabData&&!p.datalabData._fallback
-      ?'상승률 '+(p.datalabData.surgeRate>=0?'+':'')+p.datalabData.surgeRate+'% · 가속도 '+p.datalabData.accel+'% · 유지력 '+p.datalabData.durability+'%'
-      :'<span style="color:#f59e0b">데이터 부족</span>')+'</div></div>'
-    +'<div class="dp-sec"><h4>🛍 쇼핑인사이트</h4><div class="dp-box">'+(p.insightData&&!p.insightData._fallback
-      ?'클릭변화 '+(p.insightData.clickSurge>=0?'+':'')+p.insightData.clickSurge+'% · 트렌드: '+p.insightData.shopTrend
-      :'<span style="color:#f59e0b">데이터 부족</span>')+'</div></div>'
-    +'<div class="dp-sec"><h4>▶ YouTube</h4><div class="dp-box">'+(p.ytData
-      ?'최근14일 '+p.ytData.recentCount+'개 · 평균 바이럴 '+p.ytData.avgViralScore+' · Shorts '+(p.ytData.hasShorts?'있음':'없음')
-      :'수집 불가')+'</div></div>'
-    +(p.geminiExplanation?'<div class="dp-sec"><h4>✨ Gemini 분석</h4><div class="dp-box orange">'+p.geminiExplanation+'</div></div>':'')
-    +'<div class="idea-row">'
-      +'<div class="idea-card"><b>📱 쇼츠 아이디어</b><p>'+(p.shortsIdea||'–')+'</p></div>'
-      +'<div class="idea-card"><b>📝 블로그 주제</b><p>'+(p.blogIdea||'–')+'</p></div>'
-    +'</div>';
-  document.getElementById('detail-panel').classList.add('show');
-  setTimeout(function(){document.getElementById('detail-panel').scrollIntoView({behavior:'smooth',block:'nearest'});},100);
+  if(isSel){ S.selectedIdx=null; return; }
+  S.selectedIdx = i;
+  var row = document.getElementById('rrow-'+i);
+  if(row){
+    row.classList.add('sel');
+    setTimeout(function(){row.scrollIntoView({behavior:'smooth',block:'nearest'});},100);
+  }
 }
 
 function switchGroup(g){
@@ -731,7 +788,7 @@ function switchGroup(g){
   document.querySelectorAll('.gtab').forEach(function(t){t.classList.remove('active');});
   var map={all:'gtab-all',hot:'gtab-hot',rising:'gtab-rising',watch:'gtab-watch'};
   var btn=document.querySelector('.'+map[g]);if(btn)btn.classList.add('active');
-  document.getElementById('detail-panel').classList.remove('show');
+  S.selectedIdx = null;
   renderCards();
 }
 function switchTab(tab){
