@@ -477,14 +477,15 @@ function scoreProduct(c) {
                        (c.insightData  && !c.insightData._fallback);
   let group;
   if (hasTrendData) {
-    if (finalScore >= 65 && salesSignal >= 58 && trendScore >= 48) group = 'hot';
-    else if (finalScore >= 48) group = 'rising';
-    else group = 'watch';
+    if      (finalScore >= 55 && salesSignal >= 52) group = 'hot';
+    else if (finalScore >= 42)                       group = 'rising';
+    else                                             group = 'watch';
   } else {
-    if (finalScore >= 58 && salesSignal >= 65 && reviewQuality >= 55) group = 'hot';
-    else if (finalScore >= 44 && salesSignal >= 50) group = 'rising';
-    else group = 'watch';
+    if      (finalScore >= 48 && salesSignal >= 55) group = 'hot';
+    else if (finalScore >= 38 && salesSignal >= 42) group = 'rising';
+    else                                             group = 'watch';
   }
+  console.log(`[score] ${c.productName} final:${finalScore} sales:${salesSignal} trend:${trendScore} hasTrend:${hasTrendData} → ${group}`);
 
   return {
     ...c,
