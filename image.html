@@ -2,127 +2,205 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>RealPick – 이미지제작</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>RealPick — 이미지제작</title>
   <style>
+    :root{
+      --bg:#0a0e1a;--surf:#111827;--surf2:#1a2235;--bdr:#1e2d45;
+      --txt:#f1f5f9;--muted:#94a3b8;--faint:#475569;
+      --pri:#6366f1;--pri-lt:rgba(99,102,241,.12);--pri-bdr:rgba(99,102,241,.3);
+      --pri-dk:#4f46e5;--pri-glow:rgba(99,102,241,.25);
+      --green:#10b981;--hot:#ef4444;--nav-h:56px;
+    }
     *{box-sizing:border-box;margin:0;padding:0}
-    body{background:#f0f4ff;color:#1e293b;font-family:'Noto Sans KR',sans-serif;min-height:100vh;display:flex;flex-direction:column}
-    nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,0.85);backdrop-filter:blur(12px);border-bottom:1px solid #e2e8f0;height:60px;display:flex;align-items:center;padding:0 32px}
-    .nav-logo{font-size:18px;font-weight:900;color:#6366f1;letter-spacing:-0.5px;margin-right:36px;text-decoration:none}
-    .nav-logo span{color:#1e293b}
-    .nav-links{display:flex;gap:4px}
-    .nav-link{padding:7px 16px;border-radius:8px;font-size:13px;font-weight:500;color:#64748b;text-decoration:none;border:none;background:transparent;transition:all .15s}
-    .nav-link:hover{background:#f1f5f9;color:#1e293b}
-    .nav-link.active{background:#6366f1;color:#fff;font-weight:700}
-    .nav-link.hot{color:#ef4444;font-weight:700}
-    .nav-link.hot:hover{background:#fef2f2}
-    .nav-right{margin-left:auto}
-    .nav-badge{background:#6366f1;color:#fff;font-size:10px;padding:3px 10px;border-radius:20px;font-weight:700}
-    .main{flex:1;margin-top:60px;padding:40px 36px;max-width:1200px;margin-left:auto;margin-right:auto;width:100%}
-    .sec-label{font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:2px;text-transform:uppercase;margin-bottom:16px}
-    .prod-name-input{width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;outline:none;font-family:inherit;margin-bottom:16px;background:#fff}
-    .prod-name-input:focus{border-color:#6366f1}
-    .prod-box{background:#eff0ff;border:1.5px solid #c7d2fe;border-radius:12px;padding:12px 20px;margin-bottom:16px;display:flex;align-items:center;gap:12px}
-    .body-panel{background:#fff;border:1.5px solid #c7d2fe;border-radius:16px;padding:18px 22px;margin-bottom:20px}
+    body{background:var(--bg);color:var(--txt);font-family:'Noto Sans KR',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+
+    /* ── NAV ── */
+    nav{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--nav-h);
+      background:rgba(10,14,26,.85);backdrop-filter:blur(20px);
+      border-bottom:1px solid var(--bdr);display:flex;align-items:center;padding:0 28px}
+    .nav-logo{font-size:18px;font-weight:900;letter-spacing:-0.5px;text-decoration:none;
+      background:linear-gradient(135deg,#818cf8,#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      margin-right:36px;flex-shrink:0}
+    .nav-links{display:flex;gap:2px}
+    .nav-link{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;color:var(--muted);
+      text-decoration:none;transition:all .15s;display:flex;align-items:center;gap:5px}
+    .nav-link:hover{background:rgba(255,255,255,.06);color:var(--txt)}
+    .nav-link.active{background:var(--pri);color:#fff}
+    .nav-link.hot{color:#f97316}
+    .nav-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+    .nav-badge{background:linear-gradient(135deg,var(--hot),#f97316);color:#fff;
+      font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;letter-spacing:.5px}
+    .live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);
+      box-shadow:0 0 8px var(--green);animation:pulse-green 2s infinite}
+    @keyframes pulse-green{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.85)}}
+
+    /* ── MAIN ── */
+    .main{flex:1;margin-top:var(--nav-h);padding:32px 36px;max-width:1200px;margin-left:auto;margin-right:auto;width:100%}
+    .sec-label{font-size:10px;font-weight:700;color:var(--faint);letter-spacing:2px;text-transform:uppercase;
+      margin-bottom:16px;display:flex;align-items:center;gap:8px}
+    .sec-label::after{content:'';flex:1;height:1px;background:var(--bdr)}
+
+    /* ── INPUTS ── */
+    .prod-name-input{width:100%;padding:12px 16px;border:1.5px solid var(--bdr);border-radius:10px;
+      font-size:13px;outline:none;font-family:inherit;margin-bottom:16px;
+      background:var(--surf2);color:var(--txt);transition:border-color .15s}
+    .prod-name-input:focus{border-color:var(--pri)}
+    .prod-name-input::placeholder{color:var(--faint)}
+
+    /* ── PROD BOX ── */
+    .prod-box{background:var(--pri-lt);border:1.5px solid var(--pri-bdr);border-radius:12px;
+      padding:12px 20px;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+
+    /* ── BODY PANEL ── */
+    .body-panel{background:var(--surf);border:1.5px solid var(--pri-bdr);border-radius:16px;padding:18px 22px;margin-bottom:20px}
     .body-panel-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;cursor:pointer;user-select:none}
-    .body-panel-title{font-size:13px;font-weight:800;color:#6366f1;display:flex;align-items:center;gap:6px}
-    .body-panel-toggle{font-size:11px;color:#94a3b8;padding:3px 10px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer}
+    .body-panel-title{font-size:13px;font-weight:800;color:#818cf8;display:flex;align-items:center;gap:6px}
+    .body-panel-toggle{font-size:11px;color:var(--muted);padding:3px 10px;background:var(--surf2);border:1px solid var(--bdr);border-radius:6px;cursor:pointer}
     .body-panel-body{display:none}
     .body-panel-body.on{display:block}
     .body-top-grid{display:grid;grid-template-columns:110px 1fr;gap:14px;margin-bottom:12px}
-    .prod-img-sm{width:110px;height:110px;border:2px dashed #c7d2fe;border-radius:12px;background:#f8faff;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:border-color .15s;overflow:hidden;position:relative;flex-shrink:0}
-    .prod-img-sm:hover{border-color:#6366f1;background:#eff0ff}
+
+    /* ── PROD IMG SM ── */
+    .prod-img-sm{width:110px;height:110px;border:2px dashed var(--pri-bdr);border-radius:12px;
+      background:var(--surf2);display:flex;flex-direction:column;align-items:center;justify-content:center;
+      cursor:pointer;transition:border-color .15s;overflow:hidden;position:relative;flex-shrink:0}
+    .prod-img-sm:hover{border-color:var(--pri);background:var(--pri-lt)}
     .prod-img-sm img{width:100%;height:100%;object-fit:cover;border-radius:10px;display:none}
-    .prod-img-sm-del{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:2}
-    .body-textarea{width:100%;height:150px;padding:11px 13px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:12px;line-height:1.8;color:#1e293b;resize:vertical;outline:none;font-family:inherit;background:#f8fafc}
-    .body-textarea:focus{border-color:#6366f1;background:#fff}
-    .btn-analyze{width:100%;padding:12px;background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;font-size:13px;font-weight:700;border:none;border-radius:10px;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s}
+    .prod-img-sm-del{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.7);color:#fff;border:none;
+      border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;display:none;
+      align-items:center;justify-content:center;z-index:2}
+
+    /* ── BODY TEXTAREA ── */
+    .body-textarea{width:100%;height:150px;padding:11px 13px;border:1.5px solid var(--bdr);
+      border-radius:10px;font-size:12px;line-height:1.8;color:var(--txt);resize:vertical;
+      outline:none;font-family:inherit;background:var(--surf2)}
+    .body-textarea:focus{border-color:var(--pri)}
+    .body-textarea::placeholder{color:var(--faint)}
+
+    /* ── ANALYZE BTN ── */
+    .btn-analyze{width:100%;padding:12px;background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;
+      font-size:13px;font-weight:700;border:none;border-radius:10px;cursor:pointer;margin-bottom:10px;
+      display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s}
     .btn-analyze:hover{opacity:.9}
     .btn-analyze:disabled{opacity:.5;cursor:not-allowed}
-    .prompt-preview{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 16px;margin-top:10px;display:none}
+
+    /* ── PROMPT PREVIEW ── */
+    .prompt-preview{background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:12px 16px;margin-top:10px;display:none}
     .prompt-preview.on{display:block}
-    .prompt-preview-ttl{font-size:11px;font-weight:700;color:#6366f1;margin-bottom:8px}
-    .prompt-item{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:11px;line-height:1.6;align-items:flex-start}
+    .prompt-preview-ttl{font-size:11px;font-weight:700;color:#818cf8;margin-bottom:8px}
+    .prompt-item{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--bdr);font-size:11px;line-height:1.6;align-items:flex-start}
     .prompt-item:last-child{border-bottom:none}
-    .prompt-num{width:18px;height:18px;background:#6366f1;color:#fff;border-radius:4px;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
-    .prompt-txt-p{color:#475569;flex:1}
-    .prompt-edit-btn{background:none;border:1px solid #e2e8f0;border-radius:5px;font-size:10px;padding:2px 7px;cursor:pointer;color:#94a3b8;flex-shrink:0}
-    .prompt-edit-btn:hover{border-color:#6366f1;color:#6366f1}
-    .upload-wrap{background:#fff;border:2px dashed #c7d2fe;border-radius:20px;margin-bottom:20px;overflow:hidden;transition:border-color .2s}
-    .upload-wrap.drag{border-color:#6366f1;background:#f5f3ff}
+    .prompt-num{width:18px;height:18px;background:var(--pri);color:#fff;border-radius:4px;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+    .prompt-txt-p{color:var(--muted);flex:1}
+    .prompt-edit-btn{background:none;border:1px solid var(--bdr);border-radius:5px;font-size:10px;padding:2px 7px;cursor:pointer;color:var(--faint);flex-shrink:0}
+    .prompt-edit-btn:hover{border-color:var(--pri);color:#818cf8}
+
+    /* ── UPLOAD ── */
+    .upload-wrap{background:var(--surf);border:2px dashed var(--bdr);border-radius:20px;margin-bottom:20px;overflow:hidden;transition:border-color .2s}
+    .upload-wrap.drag{border-color:var(--pri);background:var(--pri-lt)}
     .upload-zone{position:relative;padding:48px 40px;text-align:center;cursor:pointer}
     .upload-zone input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:5}
-    .upload-zone:hover{background:#f8f7ff}
+    .upload-zone:hover{background:rgba(99,102,241,.04)}
     .upload-icon{font-size:44px;margin-bottom:12px;pointer-events:none}
-    .upload-ttl{font-size:16px;font-weight:700;color:#1e293b;margin-bottom:6px;pointer-events:none}
-    .upload-sub{font-size:13px;color:#94a3b8;pointer-events:none}
-    .upload-cta{display:inline-block;margin-top:14px;padding:10px 28px;background:#6366f1;color:#fff;border-radius:10px;font-size:13px;font-weight:700;pointer-events:none}
+    .upload-ttl{font-size:16px;font-weight:700;color:var(--txt);margin-bottom:6px;pointer-events:none}
+    .upload-sub{font-size:13px;color:var(--muted);pointer-events:none}
+    .upload-cta{display:inline-block;margin-top:14px;padding:10px 28px;background:var(--pri);color:#fff;border-radius:10px;font-size:13px;font-weight:700;pointer-events:none}
     .preview-zone{padding:24px 40px;display:flex;align-items:center;gap:24px}
-    .preview-thumb{width:100px;height:100px;object-fit:cover;border-radius:12px;border:2px solid #e2e8f0;flex-shrink:0}
-    .preview-fname{font-size:14px;font-weight:600;color:#1e293b;margin-bottom:4px}
-    .preview-ok{font-size:12px;color:#94a3b8}
-    .btn-reset-upload{margin-top:8px;font-size:12px;color:#ef4444;background:none;border:none;cursor:pointer;padding:0}
-    .slot-sel{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px 20px;margin-bottom:20px}
-    .slot-sel-hdr{font-size:12px;font-weight:700;color:#64748b;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+    .preview-thumb{width:100px;height:100px;object-fit:cover;border-radius:12px;border:2px solid var(--bdr);flex-shrink:0}
+    .preview-fname{font-size:14px;font-weight:600;color:var(--txt);margin-bottom:4px}
+    .preview-ok{font-size:12px;color:var(--muted)}
+    .btn-reset-upload{margin-top:8px;font-size:12px;color:#f87171;background:none;border:none;cursor:pointer;padding:0}
+
+    /* ── SLOT SEL ── */
+    .slot-sel{background:var(--surf);border:1px solid var(--bdr);border-radius:14px;padding:16px 20px;margin-bottom:20px}
+    .slot-sel-hdr{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
     .slot-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
     .slot-lbl{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
     .slot-lbl input{display:none}
-    .slot-box{width:44px;height:44px;border-radius:10px;border:2px solid #e2e8f0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#94a3b8;transition:all .15s;background:#f8fafc}
-    .slot-lbl input:checked ~ .slot-box{border-color:#6366f1;background:#6366f1;color:#fff}
-    .slot-txt{font-size:9px;color:#94a3b8;text-align:center;line-height:1.4;font-weight:600}
-    .slot-lbl input:checked ~ .slot-txt{color:#6366f1;font-weight:700}
-    .err-box{background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:14px 18px;color:#dc2626;font-size:13px;margin-bottom:16px;display:none}
+    .slot-box{width:44px;height:44px;border-radius:10px;border:2px solid var(--bdr);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--faint);transition:all .15s;background:var(--surf2)}
+    .slot-lbl input:checked ~ .slot-box{border-color:var(--pri);background:var(--pri);color:#fff}
+    .slot-txt{font-size:9px;color:var(--faint);text-align:center;line-height:1.4;font-weight:600}
+    .slot-lbl input:checked ~ .slot-txt{color:#818cf8;font-weight:700}
+
+    /* ── ERR ── */
+    .err-box{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:12px;
+      padding:14px 18px;color:#f87171;font-size:13px;margin-bottom:16px;display:none}
     .err-box.on{display:block}
-    .btn-gen{width:100%;padding:18px;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;font-size:15px;font-weight:700;border:none;border-radius:14px;cursor:pointer;transition:all .2s;margin-bottom:24px;display:flex;align-items:center;justify-content:center;gap:10px}
+
+    /* ── GEN BTN ── */
+    .btn-gen{width:100%;padding:18px;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;
+      font-size:15px;font-weight:700;border:none;border-radius:14px;cursor:pointer;transition:all .2s;
+      margin-bottom:24px;display:flex;align-items:center;justify-content:center;gap:10px;
+      box-shadow:0 4px 20px var(--pri-glow)}
     .btn-gen:hover{opacity:.9;transform:translateY(-1px)}
     .btn-gen:disabled{opacity:.5;cursor:not-allowed;transform:none}
-    .prog-wrap{background:#fff;border-radius:14px;padding:20px 24px;border:1px solid #e2e8f0;margin-bottom:24px;display:none}
+
+    /* ── PROGRESS ── */
+    .prog-wrap{background:var(--surf);border-radius:14px;padding:20px 24px;border:1px solid var(--bdr);margin-bottom:24px;display:none}
     .prog-wrap.on{display:block}
-    .prog-lbl{font-size:13px;color:#64748b;margin-bottom:10px}
-    .prog-track{background:#f1f5f9;border-radius:99px;height:8px;overflow:hidden}
+    .prog-lbl{font-size:13px;color:var(--muted);margin-bottom:10px}
+    .prog-track{background:var(--surf2);border-radius:99px;height:8px;overflow:hidden}
     .prog-bar{height:100%;background:linear-gradient(90deg,#6366f1,#818cf8);border-radius:99px;transition:width .4s;width:0%}
-    .prog-step{font-size:11px;color:#94a3b8;margin-top:8px}
+    .prog-step{font-size:11px;color:var(--faint);margin-top:8px}
+
+    /* ── IMG GRID ── */
     .img-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px}
-    .img-card{background:#fff;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;transition:all .2s}
-    .img-card:hover{box-shadow:0 4px 20px #6366f120;transform:translateY(-2px)}
+    .img-card{background:var(--surf);border-radius:16px;border:1px solid var(--bdr);overflow:hidden;transition:all .2s}
+    .img-card:hover{box-shadow:0 4px 20px var(--pri-glow);transform:translateY(-2px)}
     .img-card.loading{opacity:.6}
     .card-hdr{padding:14px 16px 10px;display:flex;align-items:center;gap:8px}
-    .card-num{width:22px;height:22px;background:#6366f1;color:#fff;border-radius:6px;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-    .card-name{font-size:13px;font-weight:700;color:#1e293b}
-    .img-wrap{width:100%;aspect-ratio:1;background:#f8fafc;overflow:hidden;cursor:zoom-in}
+    .card-num{width:22px;height:22px;background:var(--pri);color:#fff;border-radius:6px;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .card-name{font-size:13px;font-weight:700;color:var(--txt)}
+    .img-wrap{width:100%;aspect-ratio:1;background:var(--surf2);overflow:hidden;cursor:zoom-in}
     .img-wrap img{width:100%;height:100%;object-fit:cover;display:block}
-    .img-ph{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#94a3b8}
-    .spinner{width:28px;height:28px;border:3px solid #e2e8f0;border-top-color:#6366f1;border-radius:50%;animation:spin .8s linear infinite}
+    .img-ph{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--faint)}
+    .spinner{width:28px;height:28px;border:3px solid var(--bdr);border-top-color:var(--pri);border-radius:50%;animation:spin .8s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
     .card-ftr{padding:10px 16px 14px;display:flex;align-items:center;gap:6px}
-    .prompt-txt{font-size:10px;color:#94a3b8;line-height:1.5;flex:1;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-    .btn-regen{padding:5px 10px;background:#f1f5f9;color:#64748b;font-size:11px;font-weight:700;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer;flex-shrink:0}
-    .btn-regen:hover{background:#e2e8f0}
+    .prompt-txt{font-size:10px;color:var(--faint);line-height:1.5;flex:1;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+    .btn-regen{padding:5px 10px;background:var(--surf2);color:var(--muted);font-size:11px;font-weight:700;border:1px solid var(--bdr);border-radius:8px;cursor:pointer;flex-shrink:0}
+    .btn-regen:hover{background:var(--bdr)}
     .btn-regen:disabled{opacity:.4;cursor:not-allowed}
-    .btn-save{padding:5px 12px;background:#6366f1;color:#fff;font-size:11px;font-weight:700;border:none;border-radius:8px;cursor:pointer;flex-shrink:0}
-    .btn-save:disabled{background:#e2e8f0;color:#94a3b8;cursor:not-allowed}
-    .btn-to-blog{width:100%;padding:15px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:14px;font-weight:700;border:none;border-radius:12px;cursor:pointer;margin-bottom:16px;display:none;align-items:center;justify-content:center;gap:8px}
+    .btn-save{padding:5px 12px;background:var(--pri);color:#fff;font-size:11px;font-weight:700;border:none;border-radius:8px;cursor:pointer;flex-shrink:0}
+    .btn-save:disabled{background:var(--surf2);color:var(--faint);cursor:not-allowed}
+
+    /* ── TO BLOG ── */
+    .btn-to-blog{width:100%;padding:15px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;
+      font-size:14px;font-weight:700;border:none;border-radius:12px;cursor:pointer;
+      margin-bottom:16px;display:none;align-items:center;justify-content:center;gap:8px}
     .btn-to-blog.on{display:flex}
-    .modal{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;display:none;align-items:center;justify-content:center}
+
+    /* ── MODAL ── */
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:none;align-items:center;justify-content:center}
     .modal.on{display:flex}
     .modal img{max-width:90vw;max-height:88vh;object-fit:contain;border-radius:12px}
-    .modal-info{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;text-align:center;max-width:560px;pointer-events:none}
-    .modal-close{position:fixed;top:20px;right:24px;color:#fff;font-size:22px;cursor:pointer;background:rgba(255,255,255,.15);border:none;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center}
-    @media(max-width:768px){.img-grid{grid-template-columns:1fr 1fr}.main{padding:24px 16px}.slot-grid{grid-template-columns:repeat(3,1fr)}.body-top-grid{grid-template-columns:1fr}}
+    .modal-info{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);
+      background:rgba(0,0,0,.8);color:#fff;padding:10px 20px;border-radius:10px;
+      font-size:13px;text-align:center;max-width:560px;pointer-events:none}
+    .modal-close{position:fixed;top:20px;right:24px;color:#fff;font-size:22px;cursor:pointer;
+      background:rgba(255,255,255,.12);border:none;border-radius:50%;width:38px;height:38px;
+      display:flex;align-items:center;justify-content:center}
+
+    @media(max-width:768px){.img-grid{grid-template-columns:1fr 1fr}.main{padding:20px 16px}.slot-grid{grid-template-columns:repeat(3,1fr)}.body-top-grid{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
 <nav>
-  <a class="nav-logo" href="/index.html">Real<span>Pick</span></a>
+  <a class="nav-logo" href="/index.html">RealPick</a>
   <div class="nav-links">
     <a class="nav-link" href="/index.html">🏠 홈</a>
+    <a class="nav-link" href="/trend-search.html">🔬 트렌드 검색</a>
     <a class="nav-link" href="/trend.html">🔍 트렌드 탐색</a>
     <a class="nav-link hot" href="/hot.html">🔥 지금 뜨는 제품</a>
     <a class="nav-link active" href="/image.html">🖼 이미지제작</a>
     <a class="nav-link" href="/blog.html">✍️ 블로그제작</a>
     <a class="nav-link" href="/data.html">🗂 데이터 뷰</a>
   </div>
-  <div class="nav-right"><span class="nav-badge">BETA</span></div>
+  <div class="nav-right">
+    <div class="live-dot"></div>
+    <span class="nav-badge">BETA</span>
+  </div>
 </nav>
 
 <main class="main">
@@ -131,33 +209,33 @@
   <!-- 본문 분석 패널 -->
   <div class="body-panel">
     <div class="body-panel-hdr" onclick="toggleBodyPanel()">
-      <div class="body-panel-title">📋 블로그 본문으로 이미지 생성 <span style="font-size:10px;font-weight:500;color:#94a3b8">(본문 붙여넣기 → 씬 자동 분석)</span></div>
+      <div class="body-panel-title">📋 블로그 본문으로 이미지 생성 <span style="font-size:10px;font-weight:500;color:var(--faint)">(본문 붙여넣기 → 씬 자동 분석)</span></div>
       <button class="body-panel-toggle" id="bodyPanelToggleBtn">펼치기 ▾</button>
     </div>
     <div class="body-panel-body" id="bodyPanelBody">
       <div class="body-top-grid">
         <div>
-          <div style="font-size:10px;font-weight:700;color:#94a3b8;margin-bottom:6px">제품 이미지</div>
+          <div style="font-size:10px;font-weight:700;color:var(--faint);margin-bottom:6px">제품 이미지</div>
           <div class="prod-img-sm" id="prodImgSm"
             onclick="document.getElementById('prodImgSmFile').click()"
-            ondragover="event.preventDefault();this.style.borderColor='#6366f1'"
-            ondragleave="this.style.borderColor='#c7d2fe'"
-            ondrop="event.preventDefault();this.style.borderColor='#c7d2fe';handleProdSmDrop(event)">
+            ondragover="event.preventDefault();this.style.borderColor='var(--pri)'"
+            ondragleave="this.style.borderColor='var(--pri-bdr)'"
+            ondrop="event.preventDefault();this.style.borderColor='var(--pri-bdr)';handleProdSmDrop(event)">
             <div id="prodImgSmPh" style="text-align:center;pointer-events:none">
               <div style="font-size:26px;margin-bottom:4px">🖼️</div>
-              <div style="font-size:9px;color:#94a3b8">클릭/드래그</div>
+              <div style="font-size:9px;color:var(--faint)">클릭/드래그</div>
             </div>
             <img id="prodImgSmPreview" src="" alt=""/>
             <button class="prod-img-sm-del" id="prodImgSmDel" onclick="event.stopPropagation();clearProdImgSm()">✕</button>
           </div>
           <input type="file" id="prodImgSmFile" accept="image/*" style="display:none" onchange="handleProdImgSmFile(this)"/>
-          <div style="font-size:9px;color:#c4cad4;text-align:center;margin-top:4px">JPG·PNG·WEBP</div>
+          <div style="font-size:9px;color:var(--faint);text-align:center;margin-top:4px">JPG·PNG·WEBP</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:8px">
           <input id="bodyProdName" class="prod-name-input" type="text" placeholder="제품명 입력 (예: 에이플심플 여성 일자핏 팬츠)" style="margin-bottom:0"/>
           <textarea id="bodyText" class="body-textarea"
             placeholder="블로그 본문을 여기에 붙여넣으세요.&#10;[📸1]~[📸6] 마커 위치를 분석해 씬별 이미지 프롬프트를 자동으로 만들어줍니다.&#10;마커가 없어도 전체 내용을 기반으로 자동 설정합니다."></textarea>
-          <div style="font-size:10px;color:#94a3b8">📌 [📸1]~[📸6] 마커를 자동 감지합니다 · 마커 없어도 동작</div>
+          <div style="font-size:10px;color:var(--faint)">📌 [📸1]~[📸6] 마커를 자동 감지합니다 · 마커 없어도 동작</div>
         </div>
       </div>
       <button class="btn-analyze" id="btnAnalyze" onclick="analyzeBody()">
@@ -172,9 +250,9 @@
 
   <!-- 제품명 연결 -->
   <div id="prodBox" class="prod-box" style="display:none">
-    <span style="font-size:13px;color:#6366f1;font-weight:700">📦 연결된 제품:</span>
-    <span id="prodBoxName" style="font-size:14px;font-weight:800;color:#1e293b"></span>
-    <button onclick="clearProd()" style="margin-left:auto;font-size:11px;color:#94a3b8;background:none;border:none;cursor:pointer">✕</button>
+    <span style="font-size:13px;color:#818cf8;font-weight:700">📦 연결된 제품:</span>
+    <span id="prodBoxName" style="font-size:14px;font-weight:800;color:var(--txt)"></span>
+    <button onclick="clearProd()" style="margin-left:auto;font-size:11px;color:var(--faint);background:none;border:none;cursor:pointer">✕</button>
   </div>
   <input id="prodName" class="prod-name-input" type="text" placeholder="제품명 입력 (없어도 됩니다)"/>
 
@@ -202,8 +280,8 @@
     <div class="slot-sel-hdr">
       <span>🎯 생성할 장면 선택</span>
       <div style="display:flex;gap:8px">
-        <button onclick="selAll(true)" style="font-size:11px;padding:3px 10px;background:#6366f1;color:#fff;border:none;border-radius:6px;cursor:pointer">전체선택</button>
-        <button onclick="selAll(false)" style="font-size:11px;padding:3px 10px;background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer">전체해제</button>
+        <button onclick="selAll(true)" style="font-size:11px;padding:3px 10px;background:var(--pri);color:#fff;border:none;border-radius:6px;cursor:pointer">전체선택</button>
+        <button onclick="selAll(false)" style="font-size:11px;padding:3px 10px;background:var(--surf2);color:var(--muted);border:1px solid var(--bdr);border-radius:6px;cursor:pointer">전체해제</button>
       </div>
     </div>
     <div class="slot-grid">
@@ -243,50 +321,40 @@
 </div>
 
 <script>
-const NAMES = {1:'문제상황',2:'기존한계',3:'제품등장',4:'사용장면',5:'결과변화',6:'라이프스타일'};
-const CHARACTER_DNA = `FIXED CHARACTER (must appear identical in every image):
+const NAMES={1:'문제상황',2:'기존한계',3:'제품등장',4:'사용장면',5:'결과변화',6:'라이프스타일'};
+const CHARACTER_DNA=`FIXED CHARACTER (must appear identical in every image):
 - Korean woman, age 28-32, slim athletic build
 - Face: soft oval face, natural double eyelids, slightly high cheekbones, small lips
 - Hair: straight black hair, shoulder-length, loosely pulled back, few strands on forehead
 - Skin: fair porcelain skin, light natural makeup only
 - SAME woman in every scene. Do NOT change her appearance.`;
-const IMG_STATE_KEY = 'image-page-state';
+const IMG_STATE_KEY='image-page-state';
 
-let imgFile=null, imgB64=null, prompts=[];
+let imgFile=null,imgB64=null,prompts=[];
 let bodyPrompts=[];
 let generatedCards=[];
 
-// DOM
-const fileIn   = document.getElementById('fileIn');
-const upWrap   = document.getElementById('upWrap');
-const upZone   = document.getElementById('upZone');
-const prevZone = document.getElementById('prevZone');
-const prevImg  = document.getElementById('prevImg');
-const prevName = document.getElementById('prevName');
-const btnReset = document.getElementById('btnReset');
-const btnGen   = document.getElementById('btnGen');
-const btnTxt   = document.getElementById('btnTxt');
-const progWrap = document.getElementById('progWrap');
-const progBar  = document.getElementById('progBar');
-const progLbl  = document.getElementById('progLbl');
-const progStep = document.getElementById('progStep');
-const imgGrid  = document.getElementById('imgGrid');
-const gridLbl  = document.getElementById('gridLbl');
-const errBox   = document.getElementById('errBox');
+const fileIn   =document.getElementById('fileIn');
+const upWrap   =document.getElementById('upWrap');
+const upZone   =document.getElementById('upZone');
+const prevZone =document.getElementById('prevZone');
+const prevImg  =document.getElementById('prevImg');
+const prevName =document.getElementById('prevName');
+const btnReset =document.getElementById('btnReset');
+const btnGen   =document.getElementById('btnGen');
+const btnTxt   =document.getElementById('btnTxt');
+const progWrap =document.getElementById('progWrap');
+const progBar  =document.getElementById('progBar');
+const progLbl  =document.getElementById('progLbl');
+const progStep =document.getElementById('progStep');
+const imgGrid  =document.getElementById('imgGrid');
+const gridLbl  =document.getElementById('gridLbl');
+const errBox   =document.getElementById('errBox');
 
-// ── 초기화 ───────────────────────────────────────────────────
 (function(){
-  const n = sessionStorage.getItem('image-product-name');
-  if(n){
-    document.getElementById('prodBox').style.display='flex';
-    document.getElementById('prodBoxName').textContent=n;
-    document.getElementById('prodName').value=n;
-    sessionStorage.removeItem('image-product-name');
-  }
-  try{
-    const sv = JSON.parse(sessionStorage.getItem('image-result')||'null');
-    if(sv&&sv.length) restoreCards(sv);
-  }catch(e){}
+  const n=sessionStorage.getItem('image-product-name');
+  if(n){document.getElementById('prodBox').style.display='flex';document.getElementById('prodBoxName').textContent=n;document.getElementById('prodName').value=n;sessionStorage.removeItem('image-product-name');}
+  try{const sv=JSON.parse(sessionStorage.getItem('image-result')||'null');if(sv&&sv.length)restoreCards(sv);}catch(e){}
   restoreImageState();
 })();
 
@@ -304,74 +372,60 @@ function restoreCards(cards){
     </div>`).join('');
   generatedCards=cards;
   cards.forEach(p=>{
-    const rg=document.getElementById('rg'+p.slot);
-    if(rg) rg.onclick=()=>regenOne(p);
-    if(!p.src) return;
-    const sv=document.getElementById('sv'+p.slot);
-    if(sv) sv.onclick=()=>saveFile(p.src,p.slot,p.name);
-    const im=document.querySelector(`#c${p.slot} .img-wrap img`);
-    if(im) im.onclick=()=>showModal(p.src,p.name);
+    const rg=document.getElementById('rg'+p.slot);if(rg)rg.onclick=()=>regenOne(p);
+    if(!p.src)return;
+    const sv=document.getElementById('sv'+p.slot);if(sv)sv.onclick=()=>saveFile(p.src,p.slot,p.name);
+    const im=document.querySelector(`#c${p.slot} .img-wrap img`);if(im)im.onclick=()=>showModal(p.src,p.name);
   });
   btnTxt.textContent='🔄 다시 생성하기';
   document.getElementById('btnToBlog').classList.add('on');
 }
 
-// ── 파일 업로드 ──────────────────────────────────────────────
-fileIn.onchange=function(){ if(this.files&&this.files[0]) loadImg(this.files[0]); };
+fileIn.onchange=function(){if(this.files&&this.files[0])loadImg(this.files[0]);};
 upWrap.addEventListener('dragover',e=>{e.preventDefault();upWrap.classList.add('drag');});
 upWrap.addEventListener('dragleave',()=>upWrap.classList.remove('drag'));
 upWrap.addEventListener('drop',e=>{
   e.preventDefault();upWrap.classList.remove('drag');
-  const f=e.dataTransfer.files[0];
-  if(f&&f.type.startsWith('image/')) loadImg(f);
+  const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))loadImg(f);
 });
 btnReset.onclick=()=>{
-  fileIn.value=''; imgFile=imgB64=null;
-  upZone.style.display='block'; prevZone.style.display='none';
-  if(!bodyPrompts.length){ btnGen.disabled=true; btnTxt.textContent='이미지 업로드 후 생성 가능'; }
+  fileIn.value='';imgFile=imgB64=null;
+  upZone.style.display='block';prevZone.style.display='none';
+  if(!bodyPrompts.length){btnGen.disabled=true;btnTxt.textContent='이미지 업로드 후 생성 가능';}
 };
 function loadImg(f){
   imgFile=f;
   const r=new FileReader();
   r.onload=ev=>{
     imgB64=ev.target.result.split(',')[1];
-    prevImg.src=ev.target.result;
-    prevName.textContent=f.name;
-    upZone.style.display='none';
-    prevZone.style.display='flex';
-    btnGen.disabled=false;
-    btnTxt.textContent='이미지 생성하기 — Gemini 분석 + 생성';
-    hideErr();
+    prevImg.src=ev.target.result;prevName.textContent=f.name;
+    upZone.style.display='none';prevZone.style.display='flex';
+    btnGen.disabled=false;btnTxt.textContent='이미지 생성하기 — Gemini 분석 + 생성';hideErr();
   };
   r.readAsDataURL(f);
 }
 
-// ── 본문 패널 ────────────────────────────────────────────────
 function toggleBodyPanel(){
   const body=document.getElementById('bodyPanelBody');
   const btn=document.getElementById('bodyPanelToggleBtn');
   const isOn=body.classList.toggle('on');
-  btn.textContent=isOn?'접기 ▴':'펼치기 ▾';
-  saveImageState();
+  btn.textContent=isOn?'접기 ▴':'펼치기 ▾';saveImageState();
 }
 
-// ── 작은 제품 이미지 ─────────────────────────────────────────
 function handleProdImgSmFile(input){
-  const file=input.files[0]; if(!file) return;
+  const file=input.files[0];if(!file)return;
   const r=new FileReader();
   r.onload=ev=>{
     document.getElementById('prodImgSmPreview').src=ev.target.result;
     document.getElementById('prodImgSmPreview').style.display='block';
     document.getElementById('prodImgSmPh').style.display='none';
     document.getElementById('prodImgSmDel').style.display='flex';
-    try{ sessionStorage.setItem(IMG_STATE_KEY+'-prodimg', ev.target.result); }catch(e){}
+    try{sessionStorage.setItem(IMG_STATE_KEY+'-prodimg',ev.target.result);}catch(e){}
   };
-  r.readAsDataURL(file);
-  input.value='';
+  r.readAsDataURL(file);input.value='';
 }
 function handleProdSmDrop(e){
-  const f=e.dataTransfer.files[0];
-  if(f&&f.type.startsWith('image/')) handleProdImgSmFile({files:[f],value:''});
+  const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))handleProdImgSmFile({files:[f],value:''});
 }
 function clearProdImgSm(){
   document.getElementById('prodImgSmPreview').src='';
@@ -381,49 +435,36 @@ function clearProdImgSm(){
   sessionStorage.removeItem(IMG_STATE_KEY+'-prodimg');
 }
 
-// ── 본문 분석 ────────────────────────────────────────────────
 async function analyzeBody(){
   const body=document.getElementById('bodyText').value.trim();
-  if(!body){ showErr('⚠️ 블로그 본문을 입력해주세요'); return; }
+  if(!body){showErr('⚠️ 블로그 본문을 입력해주세요');return;}
   hideErr();
-  const btnA=document.getElementById('btnAnalyze');
-  const txtA=document.getElementById('analyzeTxt');
-  btnA.disabled=true; txtA.textContent='분석 중...';
-
-  const prodName=document.getElementById('bodyProdName').value.trim()
-               ||document.getElementById('prodName').value.trim()||'제품';
+  const btnA=document.getElementById('btnAnalyze'),txtA=document.getElementById('analyzeTxt');
+  btnA.disabled=true;txtA.textContent='분석 중...';
+  const prodName=document.getElementById('bodyProdName').value.trim()||document.getElementById('prodName').value.trim()||'제품';
   const scenes=extractScenes(body,prodName);
-
   try{
-    const sysPrompt=`You are an expert at creating photorealistic image generation prompts for Korean affiliate blog posts.
-Given scene context, create concise English prompts. Each must include the subject as a Korean woman (same appearance).
-Respond ONLY with valid JSON array: [{"slot":1,"prompt":"..."},...]`;
+    const sysPrompt=`You are an expert at creating photorealistic image generation prompts for Korean affiliate blog posts. Given scene context, create concise English prompts. Each must include the subject as a Korean woman (same appearance). Respond ONLY with valid JSON array: [{"slot":1,"prompt":"..."},...]`;
     const userMsg=`Product: ${prodName}\nGenerate prompts for ${scenes.length} scenes:\n${scenes.map(s=>`Scene ${s.slot} (${s.name}): ${s.context}`).join('\n')}`;
-    const res=await fetch('/api/blog-generate',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({user:userMsg,system:sysPrompt,max_tokens:2000})
-    });
+    const res=await fetch('/api/blog-generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:userMsg,system:sysPrompt,max_tokens:2000})});
     const data=await res.json();
-    if(data.error) throw new Error(data.error);
+    if(data.error)throw new Error(data.error);
     const raw=(data.text||'').replace(/```json|```/g,'').trim();
     bodyPrompts=JSON.parse(raw).map(p=>({slot:p.slot,name:NAMES[p.slot]||('씬'+p.slot),prompt:p.prompt}));
   }catch(e){
     bodyPrompts=scenes.map(s=>({slot:s.slot,name:s.name,prompt:buildDefaultPrompt(s,prodName)}));
   }
-
   renderPromptPreview();
   document.getElementById('promptPreview').classList.add('on');
-  btnGen.disabled=false;
-  btnTxt.textContent=`🎨 이미지 생성하기 (본문 기반 · ${bodyPrompts.length}장)`;
-  btnA.disabled=false; txtA.textContent='본문 분석 → 씬별 프롬프트 생성';
-  saveImageState();
+  btnGen.disabled=false;btnTxt.textContent=`🎨 이미지 생성하기 (본문 기반 · ${bodyPrompts.length}장)`;
+  btnA.disabled=false;txtA.textContent='본문 분석 → 씬별 프롬프트 생성';saveImageState();
 }
 
 function extractScenes(body,prodName){
   const scenes=[];
   const markerRe=/\[📸\s*(\d+)[^\]]*\]/g;
-  let m; const markers=[];
-  while((m=markerRe.exec(body))!==null) markers.push({slot:parseInt(m[1]),idx:m.index});
+  let m;const markers=[];
+  while((m=markerRe.exec(body))!==null)markers.push({slot:parseInt(m[1]),idx:m.index});
   if(markers.length>=3){
     markers.forEach(mk=>{
       const before=body.slice(Math.max(0,mk.idx-200),mk.idx).replace(/\[📸\d+[^\]]*\]/g,'').trim();
@@ -433,7 +474,7 @@ function extractScenes(body,prodName){
   }else{
     const clean=body.replace(/\[📸\d+[^\]]*\]/g,'');
     const unit=Math.floor(clean.length/6);
-    for(let i=1;i<=6;i++) scenes.push({slot:i,name:NAMES[i],context:clean.slice((i-1)*unit,i*unit).trim().slice(0,200)});
+    for(let i=1;i<=6;i++)scenes.push({slot:i,name:NAMES[i],context:clean.slice((i-1)*unit,i*unit).trim().slice(0,200)});
   }
   return scenes;
 }
@@ -458,19 +499,12 @@ function renderPromptPreview(){
       <button class="prompt-edit-btn" onclick="editPrompt(${p.slot})">편집</button>
     </div>`).join('');
 }
-
 function editPrompt(slot){
-  const p=bodyPrompts.find(x=>x.slot===slot); if(!p) return;
+  const p=bodyPrompts.find(x=>x.slot===slot);if(!p)return;
   const v=window.prompt(`씬 ${slot} 프롬프트 편집:`,p.prompt);
-  if(v&&v.trim()){ p.prompt=v.trim(); renderPromptPreview(); saveImageState(); }
+  if(v&&v.trim()){p.prompt=v.trim();renderPromptPreview();saveImageState();}
 }
-
-function goToBlog(){
-  sessionStorage.setItem('image-result',JSON.stringify(generatedCards));
-  location.href='/blog.html';
-}
-
-// ── 유틸 ────────────────────────────────────────────────────
+function goToBlog(){sessionStorage.setItem('image-result',JSON.stringify(generatedCards));location.href='/blog.html';}
 function selAll(v){document.querySelectorAll('.slotChk').forEach(c=>c.checked=v);}
 function getSel(){return[...document.querySelectorAll('.slotChk:checked')].map(c=>+c.value);}
 function clearProd(){document.getElementById('prodBox').style.display='none';document.getElementById('prodName').value='';}
@@ -478,79 +512,46 @@ function getProd(){return document.getElementById('prodName').value.trim();}
 function setProgress(pct,lbl,step=''){progBar.style.width=pct+'%';progLbl.textContent=lbl;progStep.textContent=step;}
 function showErr(m){errBox.textContent=m;errBox.classList.add('on');}
 function hideErr(){errBox.classList.remove('on');}
-function saveFile(src,slot,name){
-  const a=document.createElement('a');
-  a.href=src;a.download=`realpick_${slot}_${name}.png`;
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
-}
-function showModal(src,info){
-  document.getElementById('modalImg').src=src;
-  document.getElementById('modalInfo').textContent=info||'';
-  document.getElementById('modal').classList.add('on');
-}
+function saveFile(src,slot,name){const a=document.createElement('a');a.href=src;a.download=`realpick_${slot}_${name}.png`;document.body.appendChild(a);a.click();document.body.removeChild(a);}
+function showModal(src,info){document.getElementById('modalImg').src=src;document.getElementById('modalInfo').textContent=info||'';document.getElementById('modal').classList.add('on');}
 function closeModal(){document.getElementById('modal').classList.remove('on');}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
 
-// ── callGenerate: CHARACTER_DNA 자동 주입 ────────────────────
 async function callGenerate(prompt){
   const full=`${CHARACTER_DNA}\n\nSCENE:\n${prompt}\n\nCRITICAL: Photorealistic, 4K, cinematic. Korean setting.`;
   const ctrl=new AbortController();
   const t=setTimeout(()=>ctrl.abort(),55000);
   try{
-    const r=await fetch('/api/generate-image',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({prompt:full}),signal:ctrl.signal
-    });
-    clearTimeout(t);
-    const d=await r.json();
-    if(!r.ok||!d.base64) throw new Error(d.error||'이미지 생성 실패');
+    const r=await fetch('/api/generate-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:full}),signal:ctrl.signal});
+    clearTimeout(t);const d=await r.json();
+    if(!r.ok||!d.base64)throw new Error(d.error||'이미지 생성 실패');
     return `data:${d.mimeType};base64,${d.base64}`;
-  }catch(e){
-    clearTimeout(t);
-    throw new Error(e.name==='AbortError'?'시간 초과 (55초)':e.message);
-  }
+  }catch(e){clearTimeout(t);throw new Error(e.name==='AbortError'?'시간 초과 (55초)':e.message);}
 }
 
-// ── 단일 재생성 ──────────────────────────────────────────────
 async function regenOne(p){
   const card=document.getElementById('c'+p.slot);
   const iw=card.querySelector('.img-wrap');
-  const rg=document.getElementById('rg'+p.slot);
-  const sv=document.getElementById('sv'+p.slot);
-  rg.disabled=true; rg.textContent='...';
+  const rg=document.getElementById('rg'+p.slot),sv=document.getElementById('sv'+p.slot);
+  rg.disabled=true;rg.textContent='...';
   iw.innerHTML='<div class="img-ph"><div class="spinner"></div></div>';
   try{
     const src=await callGenerate(p.prompt);
     const img=new Image();
     img.onload=()=>{
-      iw.innerHTML='';iw.appendChild(img);
-      img.onclick=()=>showModal(src,p.name);
+      iw.innerHTML='';iw.appendChild(img);img.onclick=()=>showModal(src,p.name);
       sv.disabled=false;sv.onclick=()=>saveFile(src,p.slot,p.name);
-      try{
-        const sv2=JSON.parse(sessionStorage.getItem('image-result')||'[]');
-        const idx=sv2.findIndex(c=>c.slot===p.slot);
-        if(idx>=0){sv2[idx].src=src;sessionStorage.setItem('image-result',JSON.stringify(sv2));}
-        generatedCards=sv2;
-      }catch(e){}
-    };
-    img.src=src;
-  }catch(e){
-    iw.innerHTML=`<div class="img-ph"><div style="font-size:20px">⚠️</div><div style="font-size:11px">${e.message}</div></div>`;
-  }
+      try{const sv2=JSON.parse(sessionStorage.getItem('image-result')||'[]');const idx=sv2.findIndex(c=>c.slot===p.slot);if(idx>=0){sv2[idx].src=src;sessionStorage.setItem('image-result',JSON.stringify(sv2));}generatedCards=sv2;}catch(e){}
+    };img.src=src;
+  }catch(e){iw.innerHTML=`<div class="img-ph"><div style="font-size:20px">⚠️</div><div style="font-size:11px">${e.message}</div></div>`;}
   rg.disabled=false;rg.textContent='↺';
 }
 
-// ── 메인 생성 ────────────────────────────────────────────────
 btnGen.addEventListener('click',async()=>{
   const sel=getSel();
   if(!sel.length){showErr('⚠️ 최소 1개 이상 선택하세요');return;}
-  hideErr();
-  btnGen.disabled=true;
-  progWrap.classList.add('on');
-  generatedCards=[];
-
+  hideErr();btnGen.disabled=true;progWrap.classList.add('on');generatedCards=[];
   if(bodyPrompts.length){
-    // 본문 기반 생성
     const list=bodyPrompts.filter(p=>sel.includes(p.slot));
     if(!list.length){showErr('⚠️ 선택 슬롯과 분석된 씬이 맞지 않습니다');btnGen.disabled=false;progWrap.classList.remove('on');return;}
     setProgress(5,'본문 기반 이미지 생성 중...',`총 ${list.length}장`);
@@ -566,35 +567,22 @@ btnGen.addEventListener('click',async()=>{
         </div>
       </div>`).join('');
     for(let i=0;i<list.length;i++){
-      const p=list[i];
-      const card=document.getElementById('c'+p.slot);
-      const iw=card.querySelector('.img-wrap');
-      const sv=document.getElementById('sv'+p.slot);
-      const rg=document.getElementById('rg'+p.slot);
+      const p=list[i];const card=document.getElementById('c'+p.slot);const iw=card.querySelector('.img-wrap');
+      const sv=document.getElementById('sv'+p.slot),rg=document.getElementById('rg'+p.slot);
       try{
         const src=await callGenerate(p.prompt);
         const img=new Image();
-        img.onload=()=>{
-          iw.innerHTML='';iw.appendChild(img);
-          card.classList.remove('loading');
-          img.onclick=()=>showModal(src,p.name);
-          sv.disabled=false;sv.onclick=()=>saveFile(src,p.slot,p.name);
-          rg.disabled=false;rg.onclick=()=>regenOne(p);
-        };
-        img.src=src;
-        generatedCards.push({slot:p.slot,name:p.name,prompt:p.prompt,src});
+        img.onload=()=>{iw.innerHTML='';iw.appendChild(img);card.classList.remove('loading');img.onclick=()=>showModal(src,p.name);sv.disabled=false;sv.onclick=()=>saveFile(src,p.slot,p.name);rg.disabled=false;rg.onclick=()=>regenOne(p);};
+        img.src=src;generatedCards.push({slot:p.slot,name:p.name,prompt:p.prompt,src});
       }catch(e){
         iw.innerHTML=`<div class="img-ph"><div style="font-size:20px">⚠️</div><div style="font-size:11px">${e.message}</div></div>`;
-        card.classList.remove('loading');
-        generatedCards.push({slot:p.slot,name:p.name,prompt:p.prompt,src:''});
+        card.classList.remove('loading');generatedCards.push({slot:p.slot,name:p.name,prompt:p.prompt,src:''});
       }
       setProgress(Math.round((i+1)/list.length*95),'생성 중...',`${i+1}/${list.length}장 완료`);
     }
-  } else {
-    // 기존 analyze-image 흐름
+  }else{
     if(!imgB64){showErr('⚠️ 이미지를 업로드하거나 본문을 분석해주세요');btnGen.disabled=false;progWrap.classList.remove('on');return;}
-    setProgress(10,'Gemini 제품 분석 중...','1/2 — 이미지 인식');
-    gridLbl.style.display='block';
+    setProgress(10,'Gemini 제품 분석 중...','1/2 — 이미지 인식');gridLbl.style.display='block';
     imgGrid.innerHTML=sel.map(n=>`
       <div class="img-card loading" id="c${n}">
         <div class="card-hdr"><div class="card-num">${n}</div><div class="card-name">${NAMES[n]}</div></div>
@@ -606,115 +594,63 @@ btnGen.addEventListener('click',async()=>{
         </div>
       </div>`).join('');
     try{
-      const res=await fetch('/api/analyze-image',{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({imageBase64:imgB64,mediaType:imgFile.type||'image/jpeg',productName:getProd()})
-      });
-      const d=await res.json();
-      if(!res.ok) throw new Error(d.error||res.statusText);
-      prompts=d.prompts||[];
-    }catch(e){
-      showErr('분석 실패: '+e.message);
-      btnGen.disabled=false;progWrap.classList.remove('on');return;
-    }
+      const res=await fetch('/api/analyze-image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imageBase64:imgB64,mediaType:imgFile.type||'image/jpeg',productName:getProd()})});
+      const d=await res.json();if(!res.ok)throw new Error(d.error||res.statusText);prompts=d.prompts||[];
+    }catch(e){showErr('분석 실패: '+e.message);btnGen.disabled=false;progWrap.classList.remove('on');return;}
     const list=prompts.filter(p=>sel.includes(p.slot));
     if(!list.length){showErr('분석 결과와 선택 슬롯이 매칭되지 않습니다. 다시 시도해 주세요.');btnGen.disabled=false;progWrap.classList.remove('on');return;}
     setProgress(40,'이미지 생성 중...',`2/2 — (${list.length}장)`);
     for(let i=0;i<list.length;i++){
-      const p=list[i];
-      const card=document.getElementById('c'+p.slot);
-      const iw=card.querySelector('.img-wrap');
-      const pt=document.getElementById('pt'+p.slot);
-      const sv=document.getElementById('sv'+p.slot);
-      const rg=document.getElementById('rg'+p.slot);
-      pt.textContent=p.prompt||'';
-      iw.innerHTML='<div class="img-ph"><div class="spinner"></div></div>';
+      const p=list[i];const card=document.getElementById('c'+p.slot);const iw=card.querySelector('.img-wrap');
+      const pt=document.getElementById('pt'+p.slot),sv=document.getElementById('sv'+p.slot),rg=document.getElementById('rg'+p.slot);
+      pt.textContent=p.prompt||'';iw.innerHTML='<div class="img-ph"><div class="spinner"></div></div>';
       try{
         const src=await callGenerate(p.prompt);
         const img=new Image();
-        img.onload=()=>{
-          iw.innerHTML='';iw.appendChild(img);
-          card.classList.remove('loading');
-          img.onclick=()=>showModal(src,p.name);
-          sv.disabled=false;sv.onclick=()=>saveFile(src,p.slot,p.name);
-          rg.disabled=false;rg.onclick=()=>regenOne(p);
-        };
-        img.src=src;
-        generatedCards.push({slot:p.slot,name:p.name,prompt:p.prompt,src:''});
+        img.onload=()=>{iw.innerHTML='';iw.appendChild(img);card.classList.remove('loading');img.onclick=()=>showModal(src,p.name);sv.disabled=false;sv.onclick=()=>saveFile(src,p.slot,p.name);rg.disabled=false;rg.onclick=()=>regenOne(p);};
+        img.src=src;generatedCards.push({slot:p.slot,name:p.name,prompt:p.prompt,src:''});
       }catch(e){
-        iw.innerHTML=`<div class="img-ph"><div style="font-size:20px">⚠️</div><div style="font-size:11px">${e.message}</div></div>`;
-        card.classList.remove('loading');
+        iw.innerHTML=`<div class="img-ph"><div style="font-size:20px">⚠️</div><div style="font-size:11px">${e.message}</div></div>`;card.classList.remove('loading');
       }
       setProgress(40+Math.round((i+1)/list.length*58),'이미지 생성 중...',`${i+1}/${list.length}장 완료`);
     }
   }
-
-  setProgress(100,'완료!','✅');
-  setTimeout(()=>progWrap.classList.remove('on'),2500);
-  btnGen.disabled=false;
-  btnTxt.textContent='🔄 다시 생성하기';
+  setProgress(100,'완료!','✅');setTimeout(()=>progWrap.classList.remove('on'),2500);
+  btnGen.disabled=false;btnTxt.textContent='🔄 다시 생성하기';
   try{
-    const cards=generatedCards.length?generatedCards:sel.map(n=>{
-      const im=document.querySelector(`#c${n} .img-wrap img`);
-      return{slot:n,name:NAMES[n],prompt:'',src:im?im.src:''};
-    });
-    sessionStorage.setItem('image-result',JSON.stringify(cards));
-    generatedCards=cards;
+    const cards=generatedCards.length?generatedCards:sel.map(n=>{const im=document.querySelector(`#c${n} .img-wrap img`);return{slot:n,name:NAMES[n],prompt:'',src:im?im.src:''};});
+    sessionStorage.setItem('image-result',JSON.stringify(cards));generatedCards=cards;
   }catch(e){}
   document.getElementById('btnToBlog').classList.add('on');
 });
 
-// ── 탭 이동 복원 ─────────────────────────────────────────────
 function saveImageState(){
   try{
-    const state={
-      prodName:     document.getElementById('prodName').value||'',
-      bodyProdName: document.getElementById('bodyProdName').value||'',
-      bodyText:     document.getElementById('bodyText').value||'',
-      bodyPrompts:  bodyPrompts,
-      bodyPanelOpen:document.getElementById('bodyPanelBody').classList.contains('on')
-    };
-    sessionStorage.setItem(IMG_STATE_KEY,JSON.stringify(state));
+    sessionStorage.setItem(IMG_STATE_KEY,JSON.stringify({
+      prodName:document.getElementById('prodName').value||'',
+      bodyProdName:document.getElementById('bodyProdName').value||'',
+      bodyText:document.getElementById('bodyText').value||'',
+      bodyPrompts,bodyPanelOpen:document.getElementById('bodyPanelBody').classList.contains('on')
+    }));
     const smPrev=document.getElementById('prodImgSmPreview');
-    if(smPrev&&smPrev.src&&smPrev.style.display!=='none'){
-      try{sessionStorage.setItem(IMG_STATE_KEY+'-prodimg',smPrev.src);}catch(e){}
-    }
+    if(smPrev&&smPrev.src&&smPrev.style.display!=='none'){try{sessionStorage.setItem(IMG_STATE_KEY+'-prodimg',smPrev.src);}catch(e){}}
   }catch(e){}
 }
-
 function restoreImageState(){
   try{
-    const raw=sessionStorage.getItem(IMG_STATE_KEY);
-    if(!raw) return;
+    const raw=sessionStorage.getItem(IMG_STATE_KEY);if(!raw)return;
     const state=JSON.parse(raw);
-    if(state.prodName)     document.getElementById('prodName').value=state.prodName;
-    if(state.bodyProdName) document.getElementById('bodyProdName').value=state.bodyProdName;
-    if(state.bodyText)     document.getElementById('bodyText').value=state.bodyText;
-    if(state.bodyPanelOpen){
-      document.getElementById('bodyPanelBody').classList.add('on');
-      document.getElementById('bodyPanelToggleBtn').textContent='접기 ▴';
-    }
-    if(state.bodyPrompts&&state.bodyPrompts.length){
-      bodyPrompts=state.bodyPrompts;
-      renderPromptPreview();
-      document.getElementById('promptPreview').classList.add('on');
-      btnGen.disabled=false;
-      btnTxt.textContent=`🎨 이미지 생성하기 (본문 기반 · ${bodyPrompts.length}장)`;
-    }
+    if(state.prodName)document.getElementById('prodName').value=state.prodName;
+    if(state.bodyProdName)document.getElementById('bodyProdName').value=state.bodyProdName;
+    if(state.bodyText)document.getElementById('bodyText').value=state.bodyText;
+    if(state.bodyPanelOpen){document.getElementById('bodyPanelBody').classList.add('on');document.getElementById('bodyPanelToggleBtn').textContent='접기 ▴';}
+    if(state.bodyPrompts&&state.bodyPrompts.length){bodyPrompts=state.bodyPrompts;renderPromptPreview();document.getElementById('promptPreview').classList.add('on');btnGen.disabled=false;btnTxt.textContent=`🎨 이미지 생성하기 (본문 기반 · ${bodyPrompts.length}장)`;}
     const savedImg=sessionStorage.getItem(IMG_STATE_KEY+'-prodimg');
-    if(savedImg){
-      document.getElementById('prodImgSmPreview').src=savedImg;
-      document.getElementById('prodImgSmPreview').style.display='block';
-      document.getElementById('prodImgSmPh').style.display='none';
-      document.getElementById('prodImgSmDel').style.display='flex';
-    }
+    if(savedImg){document.getElementById('prodImgSmPreview').src=savedImg;document.getElementById('prodImgSmPreview').style.display='block';document.getElementById('prodImgSmPh').style.display='none';document.getElementById('prodImgSmDel').style.display='flex';}
   }catch(e){}
 }
-
-document.addEventListener('visibilitychange',function(){
-  if(document.visibilityState==='hidden') saveImageState();
-});
-window.addEventListener('beforeunload',function(){ saveImageState(); });
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden')saveImageState();});
+window.addEventListener('beforeunload',function(){saveImageState();});
 document.getElementById('bodyText').addEventListener('input',saveImageState);
 document.getElementById('bodyProdName').addEventListener('input',saveImageState);
 document.getElementById('prodName').addEventListener('input',saveImageState);
