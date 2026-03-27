@@ -706,20 +706,20 @@ function renderList(){
       return'<div class="rd-sc"><span class="rd-sc-lbl">'+s.l+'</span><span class="rd-sc-val" style="color:'+s.c+'">'+s.v+'</span></div>';
     }).join('');
     var trendParts = [];
-    if(p.datalabData) {
+    if(p.datalabData && !p.datalabData._fallback) {
       var dl = p.datalabData;
-      if(!dl._fallback) {
-        trendParts.push('상승률 <b>'+(dl.surgeRate>=0?'+':'')+dl.surgeRate+'%</b>');
-        trendParts.push('가속도 '+dl.accel+'%');
-        trendParts.push('유지력 '+dl.durability+'%');
-      } else {
-        trendParts.push('<span style="color:#f59e0b">검색량 부족 — 트렌드 데이터 없음</span>');
+      trendParts.push('상승률 <b>'+(dl.surgeRate>=0?'+':'')+dl.surgeRate+'%</b>');
+      trendParts.push('가속도 '+dl.accel+'%');
+      trendParts.push('유지력 '+dl.durability+'%');
+      if(p.insightData&&!p.insightData._fallback){
+        trendParts.push('쇼핑클릭 '+(p.insightData.clickSurge>=0?'+':'')+p.insightData.clickSurge+'% ('+p.insightData.shopTrend+')');
       }
+    } else if(p.insightData&&!p.insightData._fallback) {
+      // 데이터랩은 없지만 인사이트는 있는 경우
+      trendParts.push('쇼핑클릭 '+(p.insightData.clickSurge>=0?'+':'')+p.insightData.clickSurge+'%');
+      trendParts.push('트렌드: '+p.insightData.shopTrend);
     } else {
-      trendParts.push('<span style="color:#f59e0b">데이터 없음</span>');
-    }
-    if(p.insightData&&!p.insightData._fallback){
-      trendParts.push('쇼핑클릭 '+(p.insightData.clickSurge>=0?'+':'')+p.insightData.clickSurge+'% ('+p.insightData.shopTrend+')');
+      trendParts.push('네이버 데이터랩 미지원 키워드');
     }
     var trendTxt = trendParts.join(' · ');
     var intentTxt=p.searchIntentData
@@ -766,7 +766,7 @@ function renderList(){
           +(price?'<div class="r-price">'+price+'</div>':'')
         +'</div>'
         +'<div class="r-bars">'+bars+'</div>'
-        +(ctags?'<div class="r-ctags">'+ctags+'</div>':'')
+        
         +'<span class="r-arrow">▼</span>'
       +'</div>'
       +detail
