@@ -341,8 +341,17 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--nav-h);
 </div>
 
 <script>
+// bfcache 복원 시 강제 리로드 방지 — 상태 없는 정적 홈은 그대로 유지
 window.addEventListener('pageshow', function(e) {
-  if (e.persisted) window.location.reload();
+  // 홈은 로딩 상태 없음 → reload 불필요, 그냥 두면 됨
+});
+// 탭 복귀 시 사이드바 닷 애니메이션 재시작 (CSS animation 자동 재개)
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden) {
+    // 닷 재애니메이션: DOM 잠깐 떼었다 붙이기
+    var dot = document.querySelector('.live-dot');
+    if (dot) { dot.style.animation = 'none'; requestAnimationFrame(function() { dot.style.animation = ''; }); }
+  }
 });
 </script>
 </body>
