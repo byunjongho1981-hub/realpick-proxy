@@ -719,20 +719,24 @@ function renderList(){
       return'<div class="rd-sc"><span class="rd-sc-lbl">'+s.l+'</span><span class="rd-sc-val" style="color:'+s.c+'">'+s.v+'</span></div>';
     }).join('');
     var trendParts = [];
-    if(p.datalabData && !p.datalabData._fallback) {
-      var dl = p.datalabData;
+    var dl  = p.datalabData;
+    var ins = p.insightData;
+    var dlOk  = dl  && !dl._fallback;
+    var insOk = ins && !ins._fallback;
+
+    if (dlOk) {
       trendParts.push('상승률 <b>'+(dl.surgeRate>=0?'+':'')+dl.surgeRate+'%</b>');
       trendParts.push('가속도 '+dl.accel+'%');
       trendParts.push('유지력 '+dl.durability+'%');
-      if(p.insightData&&!p.insightData._fallback){
-        trendParts.push('쇼핑클릭 '+(p.insightData.clickSurge>=0?'+':'')+p.insightData.clickSurge+'% ('+p.insightData.shopTrend+')');
-      }
-    } else if(p.insightData&&!p.insightData._fallback) {
-      // 데이터랩은 없지만 인사이트는 있는 경우
-      trendParts.push('쇼핑클릭 '+(p.insightData.clickSurge>=0?'+':'')+p.insightData.clickSurge+'%');
-      trendParts.push('트렌드: '+p.insightData.shopTrend);
-    } else {
-      trendParts.push('네이버 데이터랩 미지원 키워드');
+    }
+    if (insOk) {
+      trendParts.push('쇼핑클릭 '+(ins.clickSurge>=0?'+':'')+ins.clickSurge+'% ('+ins.shopTrend+')');
+    }
+    if (!dlOk && !insOk) {
+      var ts = Math.round(p.scores && p.scores.trendScore || 0);
+      var sc = Math.round(p.scores && p.scores.salesSignal || 0);
+      trendParts.push('트렌드 점수 <b>'+ts+'점</b>');
+      trendParts.push('판매신호 <b>'+sc+'점</b> 기반 산정');
     }
     var trendTxt = trendParts.join(' · ');
     var intentTxt=p.searchIntentData
