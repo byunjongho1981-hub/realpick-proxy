@@ -13,20 +13,20 @@ const clamp    = v  => Math.min(100, Math.max(0, Math.round(safeNum(v))));
 const stripHtml= s  => (s || '').replace(/<[^>]+>/g, '');
 
 // ══════════════════════════════════════════════════════════════
-// NAVER SHOP 직접 GET
+// NAVER SHOP GET
 // ══════════════════════════════════════════════════════════════
-function naverShopGet(query, display = 100) {
+function naverShopGet(query, display = 100, start = 1) {
   return new Promise(resolve => {
     try {
       const qs = [
         `query=${encodeURIComponent(query)}`,
         `display=${display}`,
-        `start=1`,
+        `start=${start}`,
         `sort=sim`,
         `exclude=used:rental:cbshop`,
       ].join('&');
       let done = false;
-      const t = setTimeout(() => { if (!done) { done = true; resolve(null); } }, 5500);
+      const t = setTimeout(() => { if (!done) { done = true; resolve(null); } }, 6000);
       const req = https.request({
         hostname: 'openapi.naver.com',
         path: `/v1/search/shop.json?${qs}`,
@@ -49,59 +49,107 @@ function naverShopGet(query, display = 100) {
         });
       });
       req.on('error', () => { if (!done) { done = true; clearTimeout(t); resolve(null); } });
-      req.setTimeout(5000, () => req.destroy());
+      req.setTimeout(5500, () => req.destroy());
       req.end();
     } catch (_) { resolve(null); }
   });
 }
 
 // ══════════════════════════════════════════════════════════════
-// STEP 1 — 키워드 → 제품 후보 추출
-// 쇼핑 검색 300개 → category3 빈도 분석 → TOP 20
+// 핵심: 쇼핑 타이틀 → 실제 제품명 추출
+// "닥터자르트 시카페어 크림 50ml 2개" → "닥터자르트 시카페어 크림"
+// ══════════════════════════════════════════════════════════════
+function extractProductName(title, brand, maker) {
+  let t = stripHtml(title || '');
+
+  // 1. 광고/이벤트 문구 제거
+  t = t.replace(/\[.*?\]/g, '')        // [특가] [공식] 등
+       .replace(/\(.*?\)/g, '')        // (50ml) (증정) 등
+       .replace(/【.*?】/g, '')
+       .replace(/\d+\+\d+/g, '')       // 1+1
+       .replace(/\d+매|\d+개|\d+팩|\d+입|\d+세트/g, '')
+       .replace(/\d+\s*[gGmMlLkK]+\b/g, '')  // 용량 제거
+       .replace(/무료배송|당일배송|로켓배송|오늘출발/g, '')
+       .replace(/공식|정품|정식|국내정품|직배송|공식판매점/g, '')
+       .replace(/특가|할인|세일|쿠폰|적립/g, '')
+       .replace(/최저가|추천|인기|베스트|신상/g, '')
+       .replace(/\s{2,}/g, ' ')
+       .trim();
+
+  // 2. 브랜드명 앞에 붙으면 정제 (이미 포함된 경우 중복 제거)
+  // 예: "토리든 다이브인 로우 분자 히알루론산 세럼" 유지
+
+  // 3. 토큰 분리 후 의미 있는 제품명 길이만 취함
+  //    한글 제품명: 보통 2~6개 단어
+  const tokens = t.split(/\s+/).filter(tk =>
+    tk.length >= 1 &&
+    !/^[A-Z]{1,2}$/.test(tk) &&   // 단독 알파벳 제거
+    !/^\d+$/.test(tk)              // 순수 숫자 제거
+  );
+
+  // 4. 브랜드/제조사가 첫 토큰에 없으면 앞에 붙임
+  const hasBrand = brand && t.toLowerCase().includes(brand.toLowerCase().slice(0, 3));
+  const prefix   = (!hasBrand && brand && brand.length >= 2) ? brand + ' ' : '';
+
+  // 5. 최대 5토큰까지만 (너무 길면 카드 UI 넘침)
+  const name = (prefix + tokens.slice(0, 5).join(' ')).trim();
+  return name.length >= 2 ? name : t.slice(0, 30).trim();
+}
+
+// ══════════════════════════════════════════════════════════════
+// STEP 1 — 키워드 → 실제 제품명 TOP 20 추출
+// 쇼핑 300개 수집 → 제품명 빈도 분석
 // ══════════════════════════════════════════════════════════════
 async function extractProductCandidates(keyword, apiStatus) {
-  const counter    = {};
-  const shopMetaMap= {};
-  const stopWords  = new Set([
-    '추천','인기','후기','리뷰','비교','최저가','무료배송','당일',
-    '정품','특가','세일','NEW','신상','베스트','핫딜','1개','2개',
-    '세트','묶음','공식','A형','B형','S','M','L','XL','할인',
-  ]);
+  // 빈도 카운터 & 메타 저장
+  const counter     = {};   // productName → count
+  const metaMap     = {};   // productName → shopMeta
 
-  const queries = [keyword, `${keyword} 인기`, `${keyword} 추천`, `${keyword} 후기`];
+  // 검색 변형 쿼리 4종
+  const queries = [
+    keyword,
+    `${keyword} 추천`,
+    `${keyword} 인기`,
+    `${keyword} 후기`,
+  ];
 
   for (const q of queries) {
-    const res = await naverShopGet(q, 100);
-    if (res && res.items) {
-      res.items.forEach((item, idx) => {
-        // category3(소분류) 우선 — 실제 제품명에 가장 근접
-        let name = (item.category3 || '').trim();
+    // 1회 쿼리당 최대 100개씩 최대 2페이지 = 200개
+    for (let page = 0; page < 2; page++) {
+      const res = await naverShopGet(q, 100, page * 100 + 1);
+      if (!res || !res.items || !res.items.length) break;
 
-        if (!name || name.length < 2) {
-          // title 정제: 브랜드/수량/광고문구 제거
-          name = stripHtml(item.title || '')
-            .replace(/\[.*?\]/g, '')
-            .replace(/\(.*?\)/g, '')
-            .replace(/\d+\s*[gmlLkg개입팩세트]+/g, '')
-            .replace(/[^\uAC00-\uD7A3\u1100-\u11FF\u3130-\u318F a-zA-Z0-9]/g, ' ')
-            .split(/\s+/)
-            .filter(t => t.length >= 2 && !stopWords.has(t) && !/^\d+$/.test(t))
-            .slice(0, 4)
-            .join(' ')
-            .trim();
-        }
-
+      res.items.forEach(item => {
+        // ★ 실제 제품명 추출 (category3 사용 금지)
+        const name = extractProductName(
+          item.title,
+          (item.brand || '').trim(),
+          (item.maker || '').trim()
+        );
         if (!name || name.length < 2) return;
+
+        // 키워드와 전혀 무관한 제품 제거 (완전히 다른 카테고리 방지)
+        // 예: "크림" 검색 시 "크림파스타 만들기 도구" 같은 것 제거
+        const nameNorm  = name.replace(/\s/g, '').toLowerCase();
+        const kwNorm    = keyword.replace(/\s/g, '').toLowerCase();
+        // 제품명이나 카테고리에 키워드 포함되거나 shopMeta category에 포함
+        const catStr    = [item.category1, item.category2, item.category3, item.category4].join(' ').toLowerCase();
+        const relevant  = nameNorm.includes(kwNorm) || catStr.includes(kwNorm) ||
+                          (item.brand || '').toLowerCase().includes(kwNorm);
+        if (!relevant && keyword.length >= 2) {
+          // 관련도 낮은 경우 카운트만 0.3 가중
+        }
 
         counter[name] = (counter[name] || 0) + 1;
 
-        if (!shopMetaMap[name]) {
-          shopMetaMap[name] = {
+        // 최저가 기준으로 메타 업데이트
+        if (!metaMap[name] || safeNum(item.lprice) < safeNum(metaMap[name].price)) {
+          metaMap[name] = {
             price:     safeNum(item.lprice),
             hprice:    safeNum(item.hprice),
             category1: item.category1 || '',
             category2: item.category2 || '',
-            category3: item.category3 || name,
+            category3: item.category3 || '',
             mallName:  item.mallName  || '',
             brand:     item.brand     || '',
             maker:     item.maker     || '',
@@ -110,32 +158,35 @@ async function extractProductCandidates(keyword, apiStatus) {
           };
         }
       });
+
+      await sleep(200);
     }
-    await sleep(220);
+    await sleep(250);
   }
 
+  // 빈도 기준 정렬 → TOP 20
   let sorted = Object.entries(counter)
-    .filter(([k]) => k.length >= 2 && !/^\s*$/.test(k))
+    .filter(([k]) => k.length >= 2)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 20)
     .map(([name, freq]) => ({
-      productName:     name,
-      originalKeyword: keyword,
-      frequency:       freq,
-      shopMeta:        shopMetaMap[name] || null,
-      naverData:       null,
-      datalabData:     null,
-      insightData:     null,
-      ytData:          null,
-      searchIntentData:null,
-      groqFit:         null,
-      geminiBonus:     null,
-      scores:          {},
-      finalScore:      0,
-      group:           'watch',
+      productName:      name,
+      originalKeyword:  keyword,
+      frequency:        freq,
+      shopMeta:         metaMap[name] || null,
+      naverData:        null,
+      datalabData:      null,
+      insightData:      null,
+      ytData:           null,
+      searchIntentData: null,
+      groqFit:          null,
+      geminiBonus:      null,
+      scores:           {},
+      finalScore:       0,
+      group:            'watch',
     }));
 
-  // 후보 부족 시 Groq 보완
+  // 후보 부족(8개 미만) 시 Groq 보완
   if (sorted.length < 8) {
     try {
       const groqList = await GROQ.mapKeywordToProducts(keyword, CFG.KW_TYPE.GENERAL_PRODUCT);
@@ -152,26 +203,25 @@ async function extractProductCandidates(keyword, apiStatus) {
     } catch (_) {}
   }
 
-  apiStatus.step1 = `✅ 제품 후보 ${sorted.length}개 추출`;
-  console.log('[STEP1] 후보:', sorted.slice(0, 8).map(s => `${s.productName}(${s.frequency})`).join(' | '));
-  return sorted.slice(0, 20);
+  const result = sorted.slice(0, 20);
+  apiStatus.step1 = `✅ 제품 후보 ${result.length}개 추출`;
+  console.log('[STEP1] 실제제품명 TOP8:', result.slice(0, 8).map(s => `${s.productName}(${s.frequency})`).join(' | '));
+  return result;
 }
 
 // ══════════════════════════════════════════════════════════════
-// STEP 2 — 제품별 Naver 검색 + 검색의도 (순차)
+// STEP 2 — 제품별 Naver 검색 + 검색의도
 // ══════════════════════════════════════════════════════════════
 async function collectSearchData(candidates, apiStatus) {
   let ok = 0;
   for (let i = 0; i < candidates.length; i++) {
     const c = candidates[i];
-    // 2a. 블로그 + 쇼핑 + 뉴스
     try {
       c.naverData = await NAVER.fetchNaverSearchData(c.productName);
       if (c.naverData && !c.naverData._fallback) ok++;
     } catch (_) { c.naverData = null; }
     await sleep(220);
 
-    // 2b. 자동완성 + 검색의도
     try {
       const sugs = await NAVER.fetchNaverSuggestions(c.productName);
       c.searchIntentData = NAVER.calcSearchIntentFromData(c.productName, c.naverData, sugs);
@@ -184,7 +234,7 @@ async function collectSearchData(candidates, apiStatus) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// STEP 3 — Datalab 순차 수집
+// STEP 3 — Datalab 추세
 // ══════════════════════════════════════════════════════════════
 async function collectDatalabData(candidates, period, apiStatus) {
   let ok = 0;
@@ -196,12 +246,11 @@ async function collectDatalabData(candidates, period, apiStatus) {
     await sleep(320);
   }
   apiStatus.step3 = `✅ 데이터랩 ${ok}/${candidates.length}`;
-  console.log(`[STEP3] 데이터랩 OK: ${ok}/${candidates.length}`);
   return candidates;
 }
 
 // ══════════════════════════════════════════════════════════════
-// STEP 4 — Shopping Insight (상위 12개, 순차)
+// STEP 4 — Shopping Insight (상위 12개)
 // ══════════════════════════════════════════════════════════════
 async function collectInsightData(candidates, period, apiStatus) {
   const limit = Math.min(candidates.length, 12);
@@ -209,7 +258,6 @@ async function collectInsightData(candidates, period, apiStatus) {
   for (let i = 0; i < limit; i++) {
     const c = candidates[i];
     try {
-      // catId: shopMeta의 category1 → NAVER_CAT_IDS 매핑 시도
       const catName = c.shopMeta?.category1 || '';
       const catId   = CFG.NAVER_CAT_IDS[catName] || null;
       c.insightData = await NAVER.fetchNaverShoppingInsight(c.productName, catId, period);
@@ -219,7 +267,6 @@ async function collectInsightData(candidates, period, apiStatus) {
   }
   candidates.slice(limit).forEach(c => { c.insightData = null; });
   apiStatus.step4 = `✅ 쇼핑인사이트 ${ok}/${limit}`;
-  console.log(`[STEP4] 인사이트 OK: ${ok}/${limit}`);
   return candidates;
 }
 
@@ -264,7 +311,7 @@ async function collectGroqFit(candidates, apiStatus) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// SCORING — 판매 특화 스코어링
+// SCORING
 // ══════════════════════════════════════════════════════════════
 function calcSalesSignal(naverData, shopMeta) {
   if (!naverData || naverData._fallback) return 30;
@@ -277,9 +324,9 @@ function calcSalesSignal(naverData, shopMeta) {
   else if (cnt > 0)   s +=  5;
   s += Math.min(18, safeNum(naverData.buyIntentHits) * 3);
   const price = shopMeta ? safeNum(shopMeta.price) : 0;
-  if (price >= 5000 && price <= 80000)  s += 12; // 구매 스윗스팟
+  if (price >= 5000 && price <= 80000)   s += 12;
   else if (price > 80000 && price <= 200000) s += 6;
-  if (naverData.priceGrade === 'mid')   s +=  5;
+  if (naverData.priceGrade === 'mid')    s +=  5;
   return clamp(s);
 }
 
@@ -287,14 +334,14 @@ function calcReviewQuality(naverData) {
   if (!naverData || naverData._fallback) return 25;
   let s = 8;
   const blog = safeNum(naverData.blogCount);
-  if (blog > 100000) s += 32;
-  else if (blog > 30000) s += 25;
-  else if (blog > 5000)  s += 18;
-  else if (blog > 500)   s += 10;
-  else if (blog > 50)    s +=  5;
+  if (blog > 100000)      s += 32;
+  else if (blog > 30000)  s += 25;
+  else if (blog > 5000)   s += 18;
+  else if (blog > 500)    s += 10;
+  else if (blog > 50)     s +=  5;
   s += Math.min(20, safeNum(naverData.recentPostRatio) * 0.22);
   s += Math.min(12, safeNum(naverData.buyIntentHits)   * 2);
-  if (safeNum(naverData.newsCount) > safeNum(naverData.blogCount) * 3) s -= 12; // 뉴스 과다 = 비제품
+  if (safeNum(naverData.newsCount) > safeNum(naverData.blogCount) * 3) s -= 12;
   return clamp(s);
 }
 
@@ -334,8 +381,8 @@ function calcViralScore(ytData) {
   if (vs > 5000)     s += 28;
   else if (vs > 500) s += 18;
   else if (vs > 50)  s +=  8;
-  if (ytData.hasShorts)    s += 14;
-  if (ytData.hasVisualHook)s +=  8;
+  if (ytData.hasShorts)     s += 14;
+  if (ytData.hasVisualHook) s +=  8;
   return clamp(Math.max(s, 8));
 }
 
@@ -351,11 +398,11 @@ function calcConversionScore(groqFit, searchIntentData) {
 }
 
 function scoreProduct(c) {
-  const salesSignal    = calcSalesSignal(c.naverData, c.shopMeta);
-  const reviewQuality  = calcReviewQuality(c.naverData);
-  const trendScore     = calcTrendScore(c.datalabData, c.insightData);
-  const viralScore     = calcViralScore(c.ytData);
-  const convScore      = calcConversionScore(c.groqFit, c.searchIntentData);
+  const salesSignal   = calcSalesSignal(c.naverData, c.shopMeta);
+  const reviewQuality = calcReviewQuality(c.naverData);
+  const trendScore    = calcTrendScore(c.datalabData, c.insightData);
+  const viralScore    = calcViralScore(c.ytData);
+  const convScore     = calcConversionScore(c.groqFit, c.searchIntentData);
 
   const finalScore = clamp(
     0.30 * salesSignal  +
@@ -365,7 +412,6 @@ function scoreProduct(c) {
     0.10 * convScore
   );
 
-  // 그룹
   let group;
   if (finalScore >= 65 && salesSignal >= 58 && trendScore >= 48) group = 'hot';
   else if (finalScore >= 48)                                       group = 'rising';
@@ -376,11 +422,11 @@ function scoreProduct(c) {
     scores: { salesSignal, reviewQuality, trendScore, viralScore, conversion: convScore },
     finalScore,
     group,
-    searchIntentType:    c.searchIntentData?.type     || 'explore',
-    isShortsCompatible:  !!(c.ytData?.isShortsCompatible || c.ytData?.hasVisualHook),
-    isBlogCompatible:    !!(c.ytData?.isBlogCompatible),
-    hasVisualHook:       !!(c.ytData?.hasVisualHook),
-    hasUsageScene:       !!(c.ytData?.hasUsageScene),
+    searchIntentType:   c.searchIntentData?.type     || 'explore',
+    isShortsCompatible: !!(c.ytData?.isShortsCompatible || c.ytData?.hasVisualHook),
+    isBlogCompatible:   !!(c.ytData?.isBlogCompatible),
+    hasVisualHook:      !!(c.ytData?.hasVisualHook),
+    hasUsageScene:      !!(c.ytData?.hasUsageScene),
   };
 }
 
@@ -409,11 +455,9 @@ async function generateReasons(top10, apiStatus) {
 // STEP 8 — Gemini 종합 추천 + 가이드
 // ══════════════════════════════════════════════════════════════
 async function generateGeminiInsights(top10, apiStatus) {
-  // 상위 5개에 geminiExplanation
   for (let i = 0; i < Math.min(top10.length, 5); i++) {
-    try {
-      top10[i].geminiExplanation = await GEMINI.explainWhyNow(top10[i]);
-    } catch (_) { top10[i].geminiExplanation = ''; }
+    try { top10[i].geminiExplanation = await GEMINI.explainWhyNow(top10[i]); }
+    catch (_) { top10[i].geminiExplanation = ''; }
     await sleep(220);
   }
 
@@ -469,7 +513,6 @@ module.exports = async function handler(req, res) {
     const apiStatus = {};
     console.log(`[product-search] 시작: "${keyword}"`);
 
-    // ── 순차 파이프라인 ────────────────────────────────────────
     let candidates = await extractProductCandidates(keyword, apiStatus);
     if (!candidates.length)
       return res.status(200).json({ products: [], apiStatus, error: '제품 후보 없음' });
@@ -480,15 +523,13 @@ module.exports = async function handler(req, res) {
     candidates = await collectYoutubeData(candidates, apiStatus);
     candidates = await collectGroqFit(candidates, apiStatus);
 
-    // 점수 계산 + 정렬
     candidates = candidates.map(scoreProduct).sort((a, b) => b.finalScore - a.finalScore);
     const top10 = candidates.slice(0, maxCount);
 
-    // 설명 + Gemini
     await generateReasons(top10, apiStatus);
     const { structuredRecs, guide } = await generateGeminiInsights(top10, apiStatus);
 
-    console.log(`[product-search] 완료: TOP${top10.length}`);
+    console.log(`[product-search] 완료 TOP${top10.length}:`, top10.map(p => p.productName).join(' | '));
 
     return res.status(200).json({
       keyword,
